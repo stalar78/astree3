@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Index, String, Text
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, validates
 
 from app.db.base import Base
@@ -16,6 +16,7 @@ class Video(TimestampMixin, Base):
     __tablename__ = "videos"
     __table_args__ = (
         Index("ix_videos_public_order", "is_published", "published_at", "id"),
+        CheckConstraint("provider = 'rutube'", name="ck_videos_provider_rutube"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -31,6 +32,12 @@ class Video(TimestampMixin, Base):
         validated = validate_video_url(value)
         self.provider = validated.provider
         return validated.source_url
+
+    @validates("provider")
+    def validate_provider(self, _: str, value: str) -> str:
+        if value != "rutube":
+            raise VideoUrlValidationError("Unsupported video provider")
+        return value
 
     @property
     def embed_url(self) -> str:

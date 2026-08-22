@@ -93,11 +93,12 @@ def make_news(slug: str, published_at: datetime | None, is_published: bool = Tru
 
 
 def make_video(id: int, published_at: datetime | None, is_published: bool = True) -> Video:
+    video_id = f"{id:032x}"
     return Video(
         id=id,
         title=f"Video {id}",
         description="Description",
-        source_url=f"https://rutube.ru/video/{id:032d}/",
+        source_url=f"https://rutube.ru/video/{video_id}/",
         provider="rutube",
         is_published=is_published,
         published_at=published_at,

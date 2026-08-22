@@ -27,6 +27,7 @@ def upgrade() -> None:
         sa.Column("is_published", sa.Boolean(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.CheckConstraint("provider = 'rutube'", name="ck_videos_provider_rutube"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_pages_key"), "pages", ["key"], unique=True)

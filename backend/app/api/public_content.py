@@ -1,4 +1,3 @@
-import re
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
@@ -9,17 +8,18 @@ from app.schemas.news import NewsPostListItem, NewsPostPublic
 from app.schemas.page import PagePublic
 from app.schemas.video import VideoPublic
 from app.services import public_content
+from app.services.identifiers import NEWS_SLUG_PATTERN, PAGE_KEY_PATTERN
 
 router = APIRouter(tags=["public-content"])
 DbSession = Annotated[Session, Depends(get_db)]
 
 SlugPath = Annotated[
     str,
-    Path(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$", min_length=1, max_length=160),
+    Path(pattern=NEWS_SLUG_PATTERN.pattern, min_length=1, max_length=160),
 ]
 PageKeyPath = Annotated[
     str,
-    Path(pattern=r"^[a-z0-9_]+$", min_length=1, max_length=80),
+    Path(pattern=PAGE_KEY_PATTERN.pattern, min_length=1, max_length=80),
 ]
 LimitQuery = Annotated[int, Query(ge=1, le=public_content.MAX_LIMIT)]
 OffsetQuery = Annotated[int, Query(ge=0)]
@@ -66,6 +66,3 @@ def get_video(video_id: int, db: DbSession) -> VideoPublic:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found")
     return video
 
-
-def is_valid_slug(value: str) -> bool:
-    return re.fullmatch(r"^[a-z0-9]+(?:-[a-z0-9]+)*$", value) is not None

@@ -1,10 +1,11 @@
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, Index, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, validates
 
 from app.db.base import Base
 from app.models.mixins import TimestampMixin
+from app.services.identifiers import validate_news_slug
 
 
 class NewsPost(TimestampMixin, Base):
@@ -21,3 +22,7 @@ class NewsPost(TimestampMixin, Base):
     image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_published: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    @validates("slug")
+    def validate_slug(self, _: str, value: str) -> str:
+        return validate_news_slug(value)
