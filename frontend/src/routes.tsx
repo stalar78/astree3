@@ -11,6 +11,11 @@ import { NewsPage } from './pages/NewsPage';
 import { NewsArticlePage } from './pages/NewsArticlePage';
 import { VideoPage } from './pages/VideoPage';
 import { ContactsPage } from './pages/ContactsPage';
+import { AdminLoginPage } from './pages/admin/AdminLoginPage';
+import { AdminCandidatesPage } from './pages/admin/AdminCandidatesPage';
+import { AdminCandidateDetailPage } from './pages/admin/AdminCandidateDetailPage';
+import { AdminProtectedLayout } from './admin/AdminShell';
+import { Navigate } from 'react-router-dom';
 
 export type SeoMeta = {
   title: string;
@@ -79,6 +84,19 @@ export const routes: RouteObject[] = [
         element: <LegalPage kind="consent" />,
         handle: { title: 'Согласие на обработку данных | Astrea', description: 'Страница согласия, ожидающая утвержденного текста.' } satisfies SeoMeta,
       },
+    ],
+  },
+  {
+    path: '/admin/login',
+    element: <AdminLoginPage />,
+  },
+  {
+    path: '/admin',
+    element: <AdminProtectedLayout />,
+    children: [
+      { index: true, element: <Navigate to="candidates" replace /> },
+      { path: 'candidates', element: <AdminCandidatesPage /> },
+      { path: 'candidates/:candidateId', element: <AdminCandidateDetailPage /> },
     ],
   },
 ];
