@@ -16,8 +16,9 @@ export default {
         },
       },
       fontFamily: {
-        display: ['Georgia', 'Times New Roman', 'serif'],
-        body: ['Inter', 'Segoe UI', 'Arial', 'sans-serif'],
+        display: ['Cormorant Garamond', 'Playfair Display', 'Georgia', 'serif'],
+        serifBody: ['PT Serif', 'Georgia', 'serif'],
+        body: ['PT Sans', 'Helvetica Neue', 'Arial', 'sans-serif'],
       },
       boxShadow: {
         formal: '0 24px 70px rgba(0, 0, 0, 0.26)',

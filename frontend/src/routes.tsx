@@ -1,7 +1,11 @@
 import type { RouteObject } from 'react-router-dom';
 import { PageShell } from './components/PageShell';
 import { HomePage } from './pages/HomePage';
-import { EditorialPage } from './pages/EditorialPage';
+import { AboutPage } from './pages/AboutPage';
+import { LodgesPage } from './pages/LodgesPage';
+import { PrinciplesPage } from './pages/PrinciplesPage';
+import { FaqPage } from './pages/FaqPage';
+import { LegalPage } from './pages/LegalPage';
 import { CandidatePage } from './pages/CandidatePage';
 import { NewsPage } from './pages/NewsPage';
 import { NewsArticlePage } from './pages/NewsArticlePage';
@@ -22,17 +26,17 @@ export const routes: RouteObject[] = [
       { path: '/', element: <HomePage />, handle: { title: 'Astrea', description: commonDescription } satisfies SeoMeta },
       {
         path: '/o-lozhe',
-        element: <EditorialPage kind="about" />,
+        element: <AboutPage />,
         handle: { title: 'О ложе | Astrea', description: 'Информационная страница о Д.Л. «Астрея» № 3.' } satisfies SeoMeta,
       },
       {
         path: '/lozhi-sankt-peterburga',
-        element: <EditorialPage kind="lodges" />,
+        element: <LodgesPage />,
         handle: { title: 'Ложи Санкт-Петербурга | Astrea', description: 'Редакционный раздел о петербургском контексте.' } satisfies SeoMeta,
       },
       {
         path: '/celi-i-principy',
-        element: <EditorialPage kind="principles" />,
+        element: <PrinciplesPage />,
         handle: { title: 'Цели и принципы | Astrea', description: 'Раздел для утвержденного текста о целях и принципах.' } satisfies SeoMeta,
       },
       {
@@ -42,7 +46,7 @@ export const routes: RouteObject[] = [
       },
       {
         path: '/faq',
-        element: <EditorialPage kind="faq" />,
+        element: <FaqPage />,
         handle: { title: 'FAQ | Astrea', description: 'Раздел ответов на вопросы, ожидающий утвержденного содержания.' } satisfies SeoMeta,
       },
       {
@@ -67,12 +71,12 @@ export const routes: RouteObject[] = [
       },
       {
         path: '/privacy',
-        element: <EditorialPage kind="privacy" />,
+        element: <LegalPage kind="privacy" />,
         handle: { title: 'Политика конфиденциальности | Astrea', description: 'Правовая страница, ожидающая утвержденного текста.' } satisfies SeoMeta,
       },
       {
         path: '/consent',
-        element: <EditorialPage kind="consent" />,
+        element: <LegalPage kind="consent" />,
         handle: { title: 'Согласие на обработку данных | Astrea', description: 'Страница согласия, ожидающая утвержденного текста.' } satisfies SeoMeta,
       },
     ],

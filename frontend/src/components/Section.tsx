@@ -15,7 +15,7 @@ export function Section({ children, tone = 'paper', className = '' }: SectionPro
 
   return (
     <section className={`${toneClass} ${className}`}>
-      <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-24">{children}</div>
+      <div className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28">{children}</div>
     </section>
   );
 }

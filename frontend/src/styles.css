@@ -5,6 +5,7 @@
 :root {
   color-scheme: light;
   font-family: Inter, "Segoe UI", Arial, sans-serif;
+  font-family: "PT Sans", "Helvetica Neue", Arial, sans-serif;
   background: #f4f0e8;
 }
 
@@ -20,6 +21,11 @@ body {
   margin: 0;
   min-width: 320px;
   background: #f4f0e8;
+}
+
+p,
+li {
+  font-family: "PT Serif", Georgia, serif;
 }
 
 button,
