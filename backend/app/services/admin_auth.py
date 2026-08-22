@@ -41,12 +41,12 @@ def hash_admin_password(password: str) -> str:
 def verify_admin_password(password_hash: str, password: str) -> bool:
     try:
         validated_password = validate_admin_password(password)
-    except ValueError:
+    except (TypeError, ValueError):
         return False
 
     try:
         return PASSWORD_HASHER.verify(password_hash, validated_password)
-    except VerificationError:
+    except (InvalidHashError, VerificationError, TypeError, ValueError):
         return False
 
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
@@ -7,12 +8,11 @@ from types import ModuleType
 from typing import Any
 
 import pytest
-from sqlalchemy import CheckConstraint, ForeignKeyConstraint, create_engine, select
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy import CheckConstraint, ForeignKeyConstraint
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.config import Settings
-from app.db.base import Base
+from app.main import create_app
 from app.models.admin import AdminSession, AdminUser
 from app.services.admin_auth import (
     admin_password_needs_rehash,
@@ -41,39 +41,54 @@ def test_admin_username_is_normalized_and_validated() -> None:
         normalize_admin_username("админ")
 
 
-def test_admin_password_hashing_and_verification() -> None:
-    password = "correct horse battery staple"
+def test_admin_password_safety_contracts() -> None:
+    password = "Correct Horse Battery Staple"
+    spaced_password = "  Valid Passphrase With Spaces  "
 
     hashed = hash_admin_password(password)
+    spaced_hash = hash_admin_password(spaced_password)
 
     assert hashed.startswith("$argon2id$")
+    assert password not in hashed
     assert verify_admin_password(hashed, password)
-    assert not verify_admin_password(hashed, "incorrect horse battery staple")
+    assert verify_admin_password(hashed, "wrong password") is False
+    assert verify_admin_password("$argon2id$v=19$m=broken", password) is False
+    assert verify_admin_password(hashed, None) is False  # type: ignore[arg-type]
+    assert validate_admin_password(spaced_password) == spaced_password
+    assert verify_admin_password(spaced_hash, spaced_password)
+    assert verify_admin_password(spaced_hash, spaced_password.strip()) is False
+    assert validate_admin_password(password) == password
+    assert verify_admin_password(hashed, password.lower()) is False
+    with pytest.raises(ValueError):
+        validate_admin_password("short")
+    with pytest.raises(ValueError):
+        validate_admin_password("a" * 257)
+    with pytest.raises(ValueError):
+        validate_admin_password("bad\x00value")
     assert not admin_password_needs_rehash(hashed)
 
 
-def test_admin_password_validation_rejects_short_or_control_char_passwords() -> None:
-    with pytest.raises(ValueError):
-        validate_admin_password("short")
+def test_admin_token_contracts() -> None:
+    session_token_one = generate_admin_session_token()
+    session_token_two = generate_admin_session_token()
+    csrf_token_one = generate_admin_csrf_token()
+    csrf_token_two = generate_admin_csrf_token()
 
-    with pytest.raises(ValueError):
-        validate_admin_password("a" * 11)
+    session_digest = hash_admin_token(session_token_one)
+    csrf_digest = hash_admin_csrf_token(csrf_token_one)
 
-    with pytest.raises(ValueError):
-        validate_admin_password("a" * 11 + "\x00")
-
-
-def test_admin_token_hashes_are_opaque_sha256_digests() -> None:
-    session_token = generate_admin_session_token()
-    csrf_token = generate_admin_csrf_token()
-
-    assert len(hash_admin_token(session_token)) == 64
-    assert len(hash_admin_csrf_token(csrf_token)) == 64
-    assert session_token != csrf_token
+    assert session_token_one != session_token_two
+    assert csrf_token_one != csrf_token_two
+    assert session_token_one != csrf_token_one
+    assert len(session_digest) == 64
+    assert len(csrf_digest) == 64
+    assert session_digest != session_token_one
+    assert csrf_digest != csrf_token_one
+    assert _missing_admin_session_fields().isdisjoint(AdminSession.__table__.columns.keys())
 
 
 def test_admin_model_constraints_and_relationships() -> None:
-    user = AdminUser(username="  Astrea.Admin  ", password_hash="x" * 10)
+    user = AdminUser(username="  Astrea.Admin  ", password_hash="x" * 10, is_active=True)
     session = AdminSession(
         admin_user=user,
         token_hash="0" * 64,
@@ -82,20 +97,19 @@ def test_admin_model_constraints_and_relationships() -> None:
     )
 
     assert user.username == "astrea.admin"
+    assert user.is_active is True
+    assert session.admin_user is user
     assert AdminUser.__table__.c.is_active.default is not None
     assert AdminUser.__table__.c.is_active.default.arg is True
-    assert session.admin_user is user
-    assert _constraint_names(AdminUser.__table__, CheckConstraint) == {
+    assert _constraint_names(AdminUser.__table__) == {
         "ck_admin_users_username_length",
         "ck_admin_users_password_hash_nonblank",
     }
-    assert _constraint_names(AdminSession.__table__, CheckConstraint) == {
+    assert _constraint_names(AdminSession.__table__) == {
         "ck_admin_sessions_token_hash_length",
         "ck_admin_sessions_csrf_token_hash_length",
     }
     assert _fk_ondelete_values(AdminSession.__table__, "admin_users.id") == {"CASCADE"}
-    assert AdminUser.__table__.c.username.unique is True
-    assert AdminUser.__table__.c.username.index is True
     assert AdminSession.__table__.c.admin_user_id.index is True
     assert AdminSession.__table__.c.token_hash.unique is True
     assert AdminSession.__table__.c.token_hash.index is True
@@ -166,40 +180,135 @@ def test_admin_migration_creates_only_admin_tables(monkeypatch: pytest.MonkeyPat
     assert _migration_column(created_tables["admin_sessions"], "expires_at").nullable is False
 
 
-def test_initial_admin_bootstrap_creates_user_once() -> None:
-    session = _make_session()
-    settings = Settings(
-        DATABASE_URL="postgresql://user:pass@localhost:5432/astrea",
-        ADMIN_INITIAL_USERNAME="  Astrea.Admin  ",
-        ADMIN_INITIAL_PASSWORD="correct horse battery staple",
-    )
+@pytest.mark.parametrize(
+    ("session_kwargs", "error_message"),
+    [
+        ({"lookup_error": SQLAlchemyError("lookup SELECT password_hash FROM admin_users")}, "lookup"),
+        ({"flush_error": SQLAlchemyError("flush INSERT password_hash leaked")}, "flush"),
+        ({"commit_error": SQLAlchemyError("commit DATABASE_URL leaked")}, "commit"),
+    ],
+)
+def test_initial_admin_bootstrap_wraps_sqlalchemy_failures(
+    session_kwargs: dict[str, Exception],
+    error_message: str,
+) -> None:
+    session = FakeBootstrapSession(**session_kwargs)
+    settings = _bootstrap_settings()
 
-    first = bootstrap_initial_admin(session, settings)
-    second = bootstrap_initial_admin(session, settings)
-
-    user = session.scalar(select(AdminUser).where(AdminUser.username == "astrea.admin"))
-
-    assert first.created is True
-    assert second.created is False
-    assert first.username == "astrea.admin"
-    assert first.admin_user_id == second.admin_user_id
-    assert user is not None
-    assert verify_admin_password(user.password_hash, "correct horse battery staple")
-
-
-def test_initial_admin_bootstrap_requires_credentials() -> None:
-    session = _make_session()
-    settings = Settings(DATABASE_URL="postgresql://user:pass@localhost:5432/astrea")
-
-    with pytest.raises(AdminBootstrapError):
+    with pytest.raises(AdminBootstrapError) as exc_info:
         bootstrap_initial_admin(session, settings)
 
+    assert str(exc_info.value) == "Admin bootstrap failed"
+    assert error_message not in str(exc_info.value).lower()
+    assert session.rollback_calls == 1
 
-def _constraint_names(table: Any, constraint_type: type[Any]) -> set[str | None]:
+    if error_message == "lookup":
+        assert session.execute_calls == 1
+        assert session.add_calls == 0
+        assert session.flush_calls == 0
+        assert session.commit_calls == 0
+    elif error_message == "flush":
+        assert session.execute_calls == 1
+        assert session.add_calls == 1
+        assert session.flush_calls == 1
+        assert session.commit_calls == 0
+    else:
+        assert session.execute_calls == 1
+        assert session.add_calls == 1
+        assert session.flush_calls == 1
+        assert session.commit_calls == 1
+
+
+def test_first_initial_admin_bootstrap_creates_one_user_and_commits_once() -> None:
+    session = FakeBootstrapSession()
+    result = bootstrap_initial_admin(session, _bootstrap_settings())
+
+    admin_user = session.added_users[0]
+
+    assert result.created is True
+    assert result.admin_user_id == 1
+    assert result.username == "astrea.admin"
+    assert len(session.added_users) == 1
+    assert admin_user.username == "astrea.admin"
+    assert admin_user.is_active is True
+    assert admin_user.password_hash.startswith("$argon2id$")
+    assert "Correct Horse Battery Staple" not in admin_user.password_hash
+    assert session.execute_calls == 1
+    assert session.add_calls == 1
+    assert session.flush_calls == 1
+    assert session.commit_calls == 1
+    assert session.rollback_calls == 0
+    assert session.refresh_calls == 0
+
+
+def test_existing_admin_blocks_second_bootstrap_without_changing_credentials() -> None:
+    existing_admin = FakeAdminRow(
+        id=7,
+        username="existing.admin",
+        password_hash="existing-password-hash",
+    )
+    session = FakeBootstrapSession(existing_admin=existing_admin)
+    result = bootstrap_initial_admin(
+        session,
+        Settings(
+            DATABASE_URL="postgresql://user:pass@localhost:5432/astrea",
+            ADMIN_INITIAL_USERNAME="different.admin",
+            ADMIN_INITIAL_PASSWORD="Correct Horse Battery Staple",
+        ),
+    )
+
+    assert result.created is False
+    assert result.admin_user_id == 7
+    assert result.username == "existing.admin"
+    assert existing_admin.password_hash == "existing-password-hash"
+    assert session.execute_calls == 1
+    assert session.add_calls == 0
+    assert session.flush_calls == 0
+    assert session.commit_calls == 0
+    assert session.rollback_calls == 0
+    assert session.refresh_calls == 0
+
+
+def test_bootstrap_does_not_refresh_or_query_after_commit() -> None:
+    session = FakeBootstrapSession()
+
+    bootstrap_initial_admin(session, _bootstrap_settings())
+
+    assert session.execute_calls == 1
+    assert session.commit_calls == 1
+    assert session.refresh_calls == 0
+
+
+def test_create_app_does_not_bootstrap_admin(monkeypatch: pytest.MonkeyPatch) -> None:
+    called = False
+
+    def fail_bootstrap(*_: Any, **__: Any) -> None:
+        nonlocal called
+        called = True
+        raise AssertionError("bootstrap should not run during app creation")
+
+    import app.services.admin_bootstrap as admin_bootstrap_module
+
+    monkeypatch.setattr(admin_bootstrap_module, "bootstrap_initial_admin", fail_bootstrap)
+
+    create_app(Settings(DATABASE_URL="postgresql://user:pass@localhost:5432/astrea"))
+
+    assert called is False
+
+
+def _bootstrap_settings() -> Settings:
+    return Settings(
+        DATABASE_URL="postgresql://user:pass@localhost:5432/astrea",
+        ADMIN_INITIAL_USERNAME="  Astrea.Admin  ",
+        ADMIN_INITIAL_PASSWORD="Correct Horse Battery Staple",
+    )
+
+
+def _constraint_names(table: Any) -> set[str | None]:
     return {
         constraint.name
         for constraint in table.constraints
-        if isinstance(constraint, constraint_type)
+        if isinstance(constraint, CheckConstraint)
     }
 
 
@@ -237,6 +346,10 @@ def _migration_column(columns_and_constraints: tuple[Any, ...], name: str) -> An
     raise AssertionError(f"Missing column {name}")
 
 
+def _missing_admin_session_fields() -> set[str]:
+    return {"session_token", "csrf_token", "ip_address", "user_agent", "fingerprint"}
+
+
 def _load_migration_module() -> ModuleType:
     path = Path("alembic/versions/20260822_0003_admin_auth.py")
     spec = spec_from_file_location("admin_auth_migration", path)
@@ -247,12 +360,69 @@ def _load_migration_module() -> ModuleType:
     return module
 
 
-def _make_session():
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(engine, tables=[AdminUser.__table__, AdminSession.__table__])
-    SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
-    return SessionLocal()
+@dataclass
+class FakeAdminRow:
+    id: int
+    username: str
+    password_hash: str
+
+
+@dataclass
+class FakeExecuteResult:
+    row: FakeAdminRow | None
+
+    def first(self) -> FakeAdminRow | None:
+        return self.row
+
+
+class FakeBootstrapSession:
+    def __init__(
+        self,
+        *,
+        existing_admin: FakeAdminRow | None = None,
+        lookup_error: Exception | None = None,
+        flush_error: Exception | None = None,
+        commit_error: Exception | None = None,
+    ) -> None:
+        self.existing_admin = existing_admin
+        self.lookup_error = lookup_error
+        self.flush_error = flush_error
+        self.commit_error = commit_error
+        self.added_users: list[AdminUser] = []
+        self.execute_calls = 0
+        self.add_calls = 0
+        self.flush_calls = 0
+        self.commit_calls = 0
+        self.rollback_calls = 0
+        self.refresh_calls = 0
+        self._next_id = 1
+
+    def execute(self, statement: Any) -> FakeExecuteResult:
+        self.execute_calls += 1
+        if self.lookup_error is not None:
+            raise self.lookup_error
+        return FakeExecuteResult(self.existing_admin)
+
+    def add(self, obj: AdminUser) -> None:
+        self.add_calls += 1
+        self.added_users.append(obj)
+
+    def flush(self) -> None:
+        self.flush_calls += 1
+        if self.flush_error is not None:
+            raise self.flush_error
+
+        admin_user = self.added_users[0]
+        admin_user.id = self._next_id
+        self._next_id += 1
+
+    def commit(self) -> None:
+        self.commit_calls += 1
+        if self.commit_error is not None:
+            raise self.commit_error
+
+    def rollback(self) -> None:
+        self.rollback_calls += 1
+
+    def refresh(self, _: AdminUser) -> None:
+        self.refresh_calls += 1

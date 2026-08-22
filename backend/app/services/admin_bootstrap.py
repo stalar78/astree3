@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
@@ -35,22 +36,37 @@ def bootstrap_initial_admin(db: Session, settings: Settings) -> AdminBootstrapRe
     except (TypeError, ValueError) as exc:
         raise AdminBootstrapError("Admin bootstrap credentials are invalid") from exc
 
-    existing_admin = db.scalar(select(AdminUser).where(AdminUser.username == username))
-    if existing_admin is not None:
-        return AdminBootstrapResult(
-            created=False,
-            admin_user_id=existing_admin.id,
-            username=existing_admin.username,
-        )
+    try:
+        existing_admin = db.execute(
+            select(AdminUser.id, AdminUser.username).order_by(AdminUser.id).limit(1),
+        ).first()
+        if existing_admin is not None:
+            return AdminBootstrapResult(
+                created=False,
+                admin_user_id=existing_admin.id,
+                username=existing_admin.username,
+            )
 
-    admin_user = AdminUser(username=username, password_hash=hash_admin_password(password))
-    db.add(admin_user)
-    db.commit()
-    db.refresh(admin_user)
+        admin_user = AdminUser(
+            username=username,
+            password_hash=hash_admin_password(password),
+            is_active=True,
+        )
+        db.add(admin_user)
+        db.flush()
+        admin_user_id = admin_user.id
+        db.commit()
+    except SQLAlchemyError as exc:
+        try:
+            db.rollback()
+        except SQLAlchemyError:
+            pass
+        raise AdminBootstrapError("Admin bootstrap failed") from exc
+
     return AdminBootstrapResult(
         created=True,
-        admin_user_id=admin_user.id,
-        username=admin_user.username,
+        admin_user_id=admin_user_id,
+        username=username,
     )
 
 
