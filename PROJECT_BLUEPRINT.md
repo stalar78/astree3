@@ -1,6 +1,6 @@
 # Project Blueprint: Astrea
 
-Current stage: Stage 2 approved - public visual system frozen; Stage 3 frontend implementation next.
+Current stage: Stage 3 public frontend accepted; Stage 4 backend foundation next.
 
 ## Purpose
 
@@ -126,6 +126,21 @@ Approved visual direction:
 
 The approved Lovable prototype is the visual reference only. Production architecture remains the repository architecture baseline.
 
+## Accepted Stage 3 Frontend
+
+The production public frontend is implemented in `frontend/` with:
+- React + TypeScript + Vite + Tailwind;
+- React Router;
+- all approved public routes;
+- accepted ceremonial header, centered home hero and monumental footer;
+- full institutional homepage sequence;
+- distinct internal page compositions;
+- static candidate form UI only, with no submission or persistence yet;
+- exact approved public brand assets;
+- route-specific metadata.
+
+Stage 3 was merged only after build, lint, typecheck and visual-structure review.
+
 ## Security
 
 Main security risk: candidate forms contain personal data and photos.
@@ -147,8 +162,10 @@ The `religion` field remains disabled until the client approves the legal wordin
 
 ## Current Next Steps
 
-1. Port the approved Stage 2 public visual system into `frontend/` using React + TypeScript + Vite + Tailwind and the repository architecture baseline.
-2. Preserve visual parity with the approved Lovable prototype while removing Lovable-specific runtime/server dependencies.
-3. Verify all approved public routes on desktop and mobile, with build/lint/type checks and no fabricated content.
-4. Merge the public frontend only after visual and technical review.
-5. Start backend/API, candidate persistence, private uploads, email outbox and admin work after the frontend shell is accepted in the repository.
+Stage 4 is split into small reviewed slices; see `.plans/STAGE_4_BACKEND_PLAN.md`.
+
+1. Stage 4.1 - create the FastAPI backend foundation, settings, PostgreSQL/SQLAlchemy integration, Alembic migrations, health endpoint and backend tests.
+2. Stage 4.2 - implement structured public content models/API for pages, news and external videos.
+3. Stage 4.3 - implement the high-risk candidate intake transaction: authoritative validation, consent persistence, private image handling and persistent email outbox.
+4. Stage 4.4 - implement closed admin authentication and candidate/content administration.
+5. Integrate the accepted frontend with backend APIs only after each backend slice passes review.
