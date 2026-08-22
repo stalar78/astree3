@@ -1,6 +1,6 @@
 # Project Blueprint: Astrea
 
-Current stage: Stage 4.2 public content domain accepted; Stage 4.3 candidate intake and private media next.
+Current stage: Stage 4.3 candidate intake and private media accepted; Stage 4.4 admin and operations next.
 
 ## Purpose
 
@@ -173,6 +173,31 @@ Accepted behavior:
 
 Stage 4.2 was accepted after corrective validation hardening and migration regression review.
 
+## Accepted Stage 4.3 Candidate Intake and Private Media
+
+The backend now includes the guarded candidate-intake foundation:
+- `candidate_applications`, `application_consents` and `email_outbox` persistence;
+- exact Saint Petersburg acknowledgement contract;
+- three required consent records with server-controlled document versions;
+- private candidate-photo decoding, validation, EXIF-orientation handling, metadata stripping and JPEG normalization;
+- private generated storage keys with traversal-safe filesystem storage and cleanup support;
+- one transactional intake aggregate: candidate + three consents + one pending outbox row;
+- rollback and private-photo cleanup for all pre-commit failures after photo storage;
+- disabled-by-default public multipart candidate POST route;
+- authoritative server-side field validation;
+- strict explicit consent parsing;
+- honeypot and process-local MVP rate limiting;
+- bounded upload reading before Pillow processing;
+- generic candidate validation/error responses without PII echo;
+- no public candidate GET/photo route;
+- no email sending yet.
+
+`CANDIDATE_INTAKE_ENABLED` defaults to `false`. When disabled, the candidate POST route is not registered and is absent from OpenAPI. Enabling intake requires all three server-controlled legal version identifiers.
+
+Stage 4.3 was accepted after dedicated persistence, image-safety, public-ingress and transactional-cleanup hardening. Final reported quality gate: 123 pytest tests passed and Ruff passed.
+
+The feature remains intentionally inactive until approved legal documents, frontend integration and deployment/security review are complete.
+
 ## Security
 
 Main security risk: candidate forms contain personal data and photos.
@@ -198,6 +223,6 @@ Stage 4 is split into small reviewed slices; see `.plans/STAGE_4_BACKEND_PLAN.md
 
 1. Stage 4.1 - accepted: FastAPI backend foundation, settings, PostgreSQL/SQLAlchemy integration, Alembic, health endpoint and backend tests.
 2. Stage 4.2 - accepted: structured public content persistence/read API for pages, news and approved RuTube videos.
-3. Stage 4.3 - next: implement the high-risk candidate intake transaction: authoritative validation, consent persistence, private image handling and persistent email outbox.
-4. Stage 4.4 - implement closed admin authentication and candidate/content administration.
-5. Integrate the accepted frontend with backend APIs only after each backend slice passes review.
+3. Stage 4.3 - accepted: guarded candidate intake persistence, private photo pipeline, transactional consent/outbox aggregate and disabled-by-default public ingress.
+4. Stage 4.4 - next: implement closed admin authentication, candidate/content administration, authenticated private-photo access and persistent email-outbox worker/retry handling.
+5. Before candidate intake activation: approve legal documents/version identifiers, integrate the frontend form, and complete deployment request-body/client-IP security configuration.
