@@ -8,6 +8,22 @@ CONSENT_TYPES = (
     CONSENT_TYPE_SAINT_PETERSBURG_ACKNOWLEDGEMENT,
 )
 
+CANDIDATE_STATUS_NEW = "new"
+CANDIDATE_STATUS_IN_REVIEW = "in_review"
+CANDIDATE_STATUS_CONTACTED = "contacted"
+CANDIDATE_STATUS_CLOSED = "closed"
+CANDIDATE_STATUS_ARCHIVED = "archived"
+
+CANDIDATE_STATUSES = (
+    CANDIDATE_STATUS_NEW,
+    CANDIDATE_STATUS_IN_REVIEW,
+    CANDIDATE_STATUS_CONTACTED,
+    CANDIDATE_STATUS_CLOSED,
+    CANDIDATE_STATUS_ARCHIVED,
+)
+
+_CANDIDATE_STATUS_SET = frozenset(CANDIDATE_STATUSES)
+
 SAINT_PETERSBURG_ACKNOWLEDGEMENT_TEXT = (
     "Я понимаю, что подаю заявку на вступление в ложу, работающую в Санкт-Петербурге"
 )
@@ -25,3 +41,39 @@ EMAIL_OUTBOX_STATUSES = (
     EMAIL_OUTBOX_STATUS_SENT,
     EMAIL_OUTBOX_STATUS_FAILED,
 )
+
+
+def normalize_candidate_status(status: str) -> str:
+    if not isinstance(status, str):
+        raise TypeError("Invalid candidate status")
+    if status not in _CANDIDATE_STATUS_SET:
+        raise ValueError("Invalid candidate status")
+    return status
+
+
+def is_valid_candidate_status(status: str | None) -> bool:
+    return isinstance(status, str) and status in _CANDIDATE_STATUS_SET
+
+
+__all__ = [
+    "CANDIDATE_STATUSES",
+    "CANDIDATE_STATUS_ARCHIVED",
+    "CANDIDATE_STATUS_CLOSED",
+    "CANDIDATE_STATUS_CONTACTED",
+    "CANDIDATE_STATUS_IN_REVIEW",
+    "CANDIDATE_STATUS_NEW",
+    "CONSENT_TYPES",
+    "CONSENT_TYPE_PERSONAL_DATA_PROCESSING",
+    "CONSENT_TYPE_PRIVACY_POLICY_ACKNOWLEDGEMENT",
+    "CONSENT_TYPE_SAINT_PETERSBURG_ACKNOWLEDGEMENT",
+    "EMAIL_OUTBOX_EVENT_CANDIDATE_APPLICATION_RECEIVED",
+    "EMAIL_OUTBOX_EVENT_TYPES",
+    "EMAIL_OUTBOX_STATUSES",
+    "EMAIL_OUTBOX_STATUS_FAILED",
+    "EMAIL_OUTBOX_STATUS_PENDING",
+    "EMAIL_OUTBOX_STATUS_PROCESSING",
+    "EMAIL_OUTBOX_STATUS_SENT",
+    "SAINT_PETERSBURG_ACKNOWLEDGEMENT_TEXT",
+    "is_valid_candidate_status",
+    "normalize_candidate_status",
+]

@@ -9,6 +9,12 @@ from sqlalchemy import CheckConstraint, ForeignKeyConstraint, UniqueConstraint
 from app.db.base import Base
 from app.models.candidate import ApplicationConsent, CandidateApplication, EmailOutbox
 from app.services.candidate_contracts import (
+    CANDIDATE_STATUS_ARCHIVED,
+    CANDIDATE_STATUS_CLOSED,
+    CANDIDATE_STATUS_CONTACTED,
+    CANDIDATE_STATUS_IN_REVIEW,
+    CANDIDATE_STATUS_NEW,
+    CANDIDATE_STATUSES,
     CONSENT_TYPES,
     EMAIL_OUTBOX_EVENT_CANDIDATE_APPLICATION_RECEIVED,
     EMAIL_OUTBOX_STATUS_PENDING,
@@ -52,6 +58,7 @@ def test_candidate_application_expected_fields_and_exclusions() -> None:
         "photo_storage_key",
         "photo_media_type",
         "photo_size_bytes",
+        "status",
         "created_at",
         "updated_at",
     }.issubset(columns)
@@ -65,6 +72,18 @@ def test_candidate_application_expected_fields_and_exclusions() -> None:
         table,
         CheckConstraint,
     )
+    assert "ck_candidate_applications_status" in _constraint_names(table, CheckConstraint)
+    assert table.c.status.default.arg == CANDIDATE_STATUS_NEW
+    assert table.c.status.server_default.arg == CANDIDATE_STATUS_NEW
+    assert table.c.status.nullable is False
+    assert table.c.status.index is True
+    assert set(CANDIDATE_STATUSES) == {
+        CANDIDATE_STATUS_NEW,
+        CANDIDATE_STATUS_IN_REVIEW,
+        CANDIDATE_STATUS_CONTACTED,
+        CANDIDATE_STATUS_CLOSED,
+        CANDIDATE_STATUS_ARCHIVED,
+    }
 
 
 def test_consent_constraints_and_constant() -> None:
@@ -167,6 +186,71 @@ def test_candidate_migration_structure(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "btrim(document_version)" in str(document_version_constraint.sqltext)
 
 
+def test_candidate_admin_status_migration_structure(monkeypatch: pytest.MonkeyPatch) -> None:
+    migration = _load_admin_status_migration_module()
+    added_columns: list[tuple[str, Any]] = []
+    created_constraints: list[tuple[str, str, str]] = []
+    created_indexes: list[tuple[str, str, tuple[str, ...], bool]] = []
+    dropped_indexes: list[tuple[str, str | None]] = []
+    dropped_constraints: list[tuple[str, str, str | None]] = []
+    dropped_columns: list[tuple[str, str]] = []
+
+    def capture_add_column(table_name: str, column: Any, **_: Any) -> None:
+        added_columns.append((table_name, column))
+
+    def capture_create_constraint(name: str, table_name: str, condition: str, **_: Any) -> None:
+        created_constraints.append((name, table_name, condition))
+
+    def capture_create_index(
+        name: str,
+        table_name: str,
+        columns: list[str],
+        unique: bool = False,
+        **_: Any,
+    ) -> None:
+        created_indexes.append((name, table_name, tuple(columns), unique))
+
+    def capture_drop_index(name: str, table_name: str | None = None, **_: Any) -> None:
+        dropped_indexes.append((name, table_name))
+
+    def capture_drop_constraint(name: str, table_name: str, type_: str | None = None, **_: Any) -> None:
+        dropped_constraints.append((name, table_name, type_))
+
+    def capture_drop_column(table_name: str, column_name: str, **_: Any) -> None:
+        dropped_columns.append((table_name, column_name))
+
+    monkeypatch.setattr(migration.op, "add_column", capture_add_column)
+    monkeypatch.setattr(migration.op, "create_check_constraint", capture_create_constraint)
+    monkeypatch.setattr(migration.op, "create_index", capture_create_index)
+    monkeypatch.setattr(migration.op, "drop_index", capture_drop_index)
+    monkeypatch.setattr(migration.op, "drop_constraint", capture_drop_constraint)
+    monkeypatch.setattr(migration.op, "drop_column", capture_drop_column)
+
+    migration.upgrade()
+    migration.downgrade()
+
+    assert migration.revision == "20260822_0004"
+    assert migration.down_revision == "20260822_0003"
+    assert len(added_columns) == 1
+    table_name, column = added_columns[0]
+    assert table_name == "candidate_applications"
+    assert column.name == "status"
+    assert column.type.length == 32
+    assert column.nullable is False
+    assert column.server_default.arg == "new"
+    assert created_constraints == [
+        (
+            "ck_candidate_applications_status",
+            "candidate_applications",
+            "status IN ('new', 'in_review', 'contacted', 'closed', 'archived')",
+        ),
+    ]
+    assert created_indexes == [("ix_candidate_applications_status", "candidate_applications", ("status",), False)]
+    assert dropped_indexes == [("ix_candidate_applications_status", "candidate_applications")]
+    assert dropped_constraints == [("ck_candidate_applications_status", "candidate_applications", "check")]
+    assert dropped_columns == [("candidate_applications", "status")]
+
+
 def _constraint_names(table: Any, constraint_type: type[Any]) -> set[str | None]:
     return {
         constraint.name
@@ -206,6 +290,16 @@ def _load_migration_module() -> ModuleType:
     spec = spec_from_file_location("candidate_intake_migration", path)
     if spec is None or spec.loader is None:
         raise RuntimeError("Could not load candidate intake migration")
+    module = module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_admin_status_migration_module() -> ModuleType:
+    path = Path("alembic/versions/20260822_0004_candidate_admin_status.py")
+    spec = spec_from_file_location("candidate_admin_status_migration", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("Could not load candidate admin status migration")
     module = module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
