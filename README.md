@@ -2,7 +2,7 @@
 
 Astrea is the new official website for D.L. Astrea No. 3 in Saint Petersburg, replacing and evolving the existing mason-astrea.ru website.
 
-Current stage: Stage 0 - Project Bootstrap / pre-build.
+Current stage: Stage 1 - Architecture & Design System.
 
 Application code has not been created yet.
 
@@ -29,6 +29,13 @@ Database: PostgreSQL
 
 Infrastructure: Linux VPS + Docker Compose + Nginx + SSL
 
+## Architecture and Design
+
+- Application architecture: `.architecture/ARCHITECTURE.md`
+- Design system: `docs/DESIGN_SYSTEM.md`
+- Requirements: `docs/REQUIREMENTS.md`
+- Project blueprint: `PROJECT_BLUEPRINT.md`
+
 ## Important
 
-`_ref/` contains local client source materials and is never committed.
+`_ref/` contains local client source materials and is never committed or used as a runtime application directory.
