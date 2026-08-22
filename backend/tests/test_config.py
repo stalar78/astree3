@@ -31,6 +31,17 @@ def test_settings_preserves_explicit_psycopg_url(monkeypatch: pytest.MonkeyPatch
     assert settings.sqlalchemy_database_uri.startswith("postgresql+psycopg://")
 
 
+def test_settings_expose_admin_auth_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://user:pass@localhost:5432/astrea")
+
+    settings = Settings()
+
+    assert settings.admin_session_ttl_seconds == 28_800
+    assert settings.admin_login_rate_limit_requests == 10
+    assert settings.admin_login_rate_limit_window_seconds == 900
+
+
 def test_settings_rejects_non_postgresql_url(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("APP_ENV", "test")
     monkeypatch.setenv("DATABASE_URL", "mysql://user:pass@localhost:3306/astrea")

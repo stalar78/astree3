@@ -10,6 +10,15 @@ from argon2.low_level import Type
 
 PASSWORD_HASHER = PasswordHasher(type=Type.ID)
 _ADMIN_USERNAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]{2,79}$")
+_ADMIN_AUTH_TOKEN_PATTERN = re.compile(r"^[A-Za-z0-9_-]{32,128}$")
+_DUMMY_PASSWORD = "Dummy admin password 123!"
+DUMMY_PASSWORD_HASH = PASSWORD_HASHER.hash(_DUMMY_PASSWORD)
+
+SESSION_COOKIE_NAME = "astrea_admin_session"
+CSRF_COOKIE_NAME = "astrea_admin_csrf"
+CSRF_HEADER_NAME = "X-CSRF-Token"
+SESSION_COOKIE_PATH = "/api/v1/admin"
+CSRF_COOKIE_PATH = "/"
 
 
 def normalize_admin_username(username: str) -> str:
@@ -73,14 +82,25 @@ def hash_admin_csrf_token(token: str) -> str:
     return hash_admin_token(token)
 
 
+def is_valid_admin_auth_token(token: str | None) -> bool:
+    return isinstance(token, str) and _ADMIN_AUTH_TOKEN_PATTERN.fullmatch(token) is not None
+
+
 __all__ = [
+    "CSRF_COOKIE_NAME",
+    "CSRF_COOKIE_PATH",
+    "CSRF_HEADER_NAME",
+    "DUMMY_PASSWORD_HASH",
     "PASSWORD_HASHER",
+    "SESSION_COOKIE_NAME",
+    "SESSION_COOKIE_PATH",
     "admin_password_needs_rehash",
     "generate_admin_csrf_token",
     "generate_admin_session_token",
     "hash_admin_csrf_token",
     "hash_admin_password",
     "hash_admin_token",
+    "is_valid_admin_auth_token",
     "normalize_admin_username",
     "validate_admin_password",
     "verify_admin_password",
