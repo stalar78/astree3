@@ -186,6 +186,72 @@ def test_cleanup_failure_is_reported_generically() -> None:
     assert storage.deleted_keys == ["candidate-photos/00000000-0000-4000-8000-000000000000.jpg"]
 
 
+def test_non_sqlalchemy_pre_commit_failure_rolls_back_and_reraises_original() -> None:
+    db = FakeSession(flush_error=ValueError("synthetic programmer failure"))
+    storage = FakeStorage()
+
+    with pytest.raises(ValueError) as exc_info:
+        intake_candidate_application(
+            db,
+            storage,
+            CandidateSubmissionData(full_name="Test Candidate", email="test@example.com"),
+            _photo(),
+            CandidateConsentVersions("v1", "v2", "v3"),
+        )
+
+    assert str(exc_info.value) == "synthetic programmer failure"
+    assert db.rollback_calls == 1
+    assert storage.deleted_keys == ["candidate-photos/00000000-0000-4000-8000-000000000000.jpg"]
+    assert db.commit_calls == 0
+    assert db.operations == ["add", "flush", "rollback"]
+
+
+def test_rollback_failure_still_attempts_cleanup_and_returns_generic_error() -> None:
+    db = FakeSession(
+        flush_error=ValueError("synthetic programmer failure"),
+        rollback_error=RuntimeError("synthetic rollback failure"),
+    )
+    storage = FakeStorage()
+
+    with pytest.raises(CandidateIntakePersistenceError) as exc_info:
+        intake_candidate_application(
+            db,
+            storage,
+            CandidateSubmissionData(full_name="Test Candidate", email="test@example.com"),
+            _photo(),
+            CandidateConsentVersions("v1", "v2", "v3"),
+        )
+
+    assert str(exc_info.value) == "Candidate intake failed and transaction rollback failed"
+    assert "Test Candidate" not in str(exc_info.value)
+    assert "test@example.com" not in str(exc_info.value)
+    assert db.rollback_calls == 1
+    assert storage.deleted_keys == ["candidate-photos/00000000-0000-4000-8000-000000000000.jpg"]
+    assert db.commit_calls == 0
+    assert db.operations == ["add", "flush", "rollback"]
+
+
+def test_non_sqlalchemy_failure_with_cleanup_failure_returns_generic_cleanup_error() -> None:
+    db = FakeSession(flush_error=ValueError("synthetic programmer failure"))
+    storage = FakeStorage(delete_error=RuntimeError("delete failed /private/path"))
+
+    with pytest.raises(CandidateIntakePersistenceError) as exc_info:
+        intake_candidate_application(
+            db,
+            storage,
+            CandidateSubmissionData(full_name="Test Candidate", email="test@example.com"),
+            _photo(),
+            CandidateConsentVersions("v1", "v2", "v3"),
+        )
+
+    assert "Test Candidate" not in str(exc_info.value)
+    assert "test@example.com" not in str(exc_info.value)
+    assert "/private/path" not in str(exc_info.value)
+    assert "candidate-photos" not in str(exc_info.value)
+    assert db.rollback_calls == 1
+    assert storage.deleted_keys == ["candidate-photos/00000000-0000-4000-8000-000000000000.jpg"]
+
+
 @pytest.mark.parametrize(
     "versions",
     [
@@ -213,9 +279,11 @@ class FakeSession:
         *,
         flush_error: Exception | None = None,
         commit_error: Exception | None = None,
+        rollback_error: Exception | None = None,
     ) -> None:
         self.flush_error = flush_error
         self.commit_error = commit_error
+        self.rollback_error = rollback_error
         self.added: list[CandidateApplication] = []
         self.commit_calls = 0
         self.rollback_calls = 0
@@ -254,6 +322,8 @@ class FakeSession:
     def rollback(self) -> None:
         self.operations.append("rollback")
         self.rollback_calls += 1
+        if self.rollback_error is not None:
+            raise self.rollback_error
 
 
 class FakeStorage:

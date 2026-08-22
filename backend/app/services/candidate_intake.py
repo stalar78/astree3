@@ -88,8 +88,6 @@ def intake_candidate_application(
     except PrivatePhotoStorageError as exc:
         raise CandidateIntakeError("Candidate intake photo storage failed") from exc
 
-    application_id: int | None = None
-    rollback_error: Exception | None = None
     try:
         application = CandidateApplication(
             full_name=submission.full_name,
@@ -113,18 +111,18 @@ def intake_candidate_application(
 
         db.add(application)
         db.flush()
-        application_id = application.id
         db.commit()
-        return CandidateIntakeResult(application_id=application_id)
-    except SQLAlchemyError as exc:
+        return CandidateIntakeResult(application_id=application.id)
+    except Exception as exc:
+        rollback_error: Exception | None = None
         try:
             db.rollback()
-        except SQLAlchemyError as rollback_exc:  # pragma: no cover - defensive fallback
+        except Exception as rollback_exc:  # noqa: BLE001 - rollback cleanup must not skip unexpected failures
             rollback_error = rollback_exc
 
         try:
             storage.delete(storage_key)
-        except PrivatePhotoStorageError as cleanup_exc:
+        except Exception as cleanup_exc:
             raise CandidateIntakePersistenceError(
                 "Candidate intake failed and stored photo cleanup failed"
             ) from cleanup_exc
@@ -134,7 +132,10 @@ def intake_candidate_application(
                 "Candidate intake failed and transaction rollback failed"
             ) from rollback_error
 
-        raise CandidateIntakePersistenceError("Candidate intake failed") from exc
+        if isinstance(exc, SQLAlchemyError):
+            raise CandidateIntakePersistenceError("Candidate intake failed") from exc
+
+        raise
 
 
 def _build_application_consents(
