@@ -3,6 +3,7 @@ const ADMIN_AUTH_ROOT = `${API_ROOT}/admin/auth`;
 const ADMIN_CANDIDATES_ROOT = `${API_ROOT}/admin/candidates`;
 const CSRF_COOKIE_NAME = 'astrea_admin_csrf';
 const CSRF_HEADER_NAME = 'X-CSRF-Token';
+export const ADMIN_CANDIDATE_PAGE_SIZE = 20;
 
 export const ADMIN_CANDIDATE_STATUSES = ['new', 'in_review', 'contacted', 'closed', 'archived'] as const;
 
@@ -99,7 +100,7 @@ export async function listAdminCandidates(
   signal?: AbortSignal,
 ): Promise<AdminCandidateListResponse> {
   const query = new URLSearchParams();
-  query.set('limit', String(params.limit ?? 20));
+  query.set('limit', String(params.limit ?? ADMIN_CANDIDATE_PAGE_SIZE));
   query.set('offset', String(params.offset ?? 0));
   if (params.status) {
     query.set('status', params.status);
@@ -177,20 +178,8 @@ async function requestBlob(url: string, init: RequestInit = {}): Promise<Blob> {
 }
 
 async function createApiError(response: Response): Promise<AdminApiError> {
-  let detail = response.statusText || 'Request failed';
-  const text = await response.text();
-  if (text) {
-    try {
-      const parsed = JSON.parse(text) as unknown;
-      if (isDetailResponse(parsed)) {
-        detail = parsed.detail;
-      } else if (typeof parsed === 'string') {
-        detail = parsed;
-      }
-    } catch {
-      detail = text;
-    }
-  }
+  const parsed = await response.json().catch(() => undefined);
+  const detail = isDetailResponse(parsed) ? parsed.detail : 'Request failed';
   return new AdminApiError(response.status, detail);
 }
 

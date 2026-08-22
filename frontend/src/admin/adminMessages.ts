@@ -2,6 +2,8 @@ import { AdminApiError } from './adminApi';
 
 type AdminErrorScope = 'session' | 'login' | 'list' | 'detail' | 'photo' | 'update' | 'logout';
 
+export const SESSION_SECURITY_MESSAGE = 'Не удалось подтвердить безопасность сессии. Обновите страницу и повторите действие.';
+
 const SCOPE_MESSAGES: Record<AdminErrorScope, Record<number, string>> = {
   session: {
     401: 'Сеанс администратора недействителен.',
@@ -39,7 +41,7 @@ const SCOPE_MESSAGES: Record<AdminErrorScope, Record<number, string>> = {
   },
   update: {
     401: 'Сеанс администратора недействителен.',
-    403: 'Недостаточно прав или CSRF-токен недействителен.',
+    403: SESSION_SECURITY_MESSAGE,
     404: 'Кандидат не найден.',
     422: 'Запрос не прошёл проверку.',
     429: 'Слишком много запросов. Попробуйте позже.',
@@ -47,7 +49,7 @@ const SCOPE_MESSAGES: Record<AdminErrorScope, Record<number, string>> = {
   },
   logout: {
     401: 'Сеанс администратора недействителен.',
-    403: 'Сеанс администратора недействителен.',
+    403: SESSION_SECURITY_MESSAGE,
     503: 'Сервис авторизации временно недоступен.',
   },
 };

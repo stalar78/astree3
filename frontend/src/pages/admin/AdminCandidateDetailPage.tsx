@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   AdminApiError,
   ADMIN_CANDIDATE_STATUSES,
@@ -22,8 +22,15 @@ const DATE_FORMAT = new Intl.DateTimeFormat('ru-RU', {
   dateStyle: 'medium',
 });
 
+const CONSENT_LABELS: Record<string, string> = {
+  personal_data_processing: 'Согласие на обработку персональных данных',
+  privacy_policy_acknowledgement: 'Ознакомление с политикой конфиденциальности',
+  saint_petersburg_acknowledgement: 'Подтверждение подачи заявки в Санкт-Петербург',
+};
+
 export function AdminCandidateDetailPage() {
   const { candidateId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const numericId = Number(candidateId);
   const idIsValid = Number.isInteger(numericId) && numericId > 0;
@@ -70,7 +77,7 @@ export function AdminCandidateDetailPage() {
           return;
         }
         if (caughtError instanceof AdminApiError && (caughtError.status === 401 || caughtError.status === 403)) {
-          navigate('/admin/login', { replace: true, state: { from: `/admin/candidates/${numericId}` } });
+          navigate('/admin/login', { replace: true, state: { from: `${location.pathname}${location.search}` } });
           return;
         }
         setError(formatAdminError(caughtError, 'detail'));
@@ -85,7 +92,7 @@ export function AdminCandidateDetailPage() {
       active = false;
       controller.abort();
     };
-  }, [idIsValid, navigate, numericId]);
+  }, [idIsValid, location.pathname, location.search, navigate, numericId]);
 
   useEffect(() => {
     if (!candidate?.has_photo) {
@@ -111,7 +118,7 @@ export function AdminCandidateDetailPage() {
           return;
         }
         if (caughtError instanceof AdminApiError && (caughtError.status === 401 || caughtError.status === 403)) {
-          navigate('/admin/login', { replace: true, state: { from: `/admin/candidates/${candidate.id}` } });
+          navigate('/admin/login', { replace: true, state: { from: `${location.pathname}${location.search}` } });
           return;
         }
         setPhotoError(formatAdminError(caughtError, 'photo'));
@@ -128,7 +135,7 @@ export function AdminCandidateDetailPage() {
         URL.revokeObjectURL(currentUrl);
       }
     };
-  }, [candidate?.has_photo, candidate?.id, navigate]);
+  }, [candidate?.has_photo, candidate?.id, location.pathname, location.search, navigate]);
 
   if (loading) {
     return <CenteredDetailState title="Загрузка кандидата" message="Пожалуйста, подождите." />;
@@ -184,13 +191,17 @@ export function AdminCandidateDetailPage() {
 
           <Card title="Согласия">
             <div className="grid gap-4">
-              {candidate.consents.map((consent) => (
-                <div key={`${consent.consent_type}-${consent.document_version}`} className="rounded-2xl border border-brand-gray10/15 bg-brand-paper px-4 py-4">
-                  <p className="text-sm font-semibold uppercase tracking-[0.12em] text-brand-ink">{consent.consent_type}</p>
-                  <p className="mt-2 text-sm text-brand-ink/75">Версия: {consent.document_version}</p>
-                  <p className="mt-1 text-sm text-brand-ink/75">Принято: {DATE_TIME_FORMAT.format(new Date(consent.accepted_at))}</p>
-                </div>
-              ))}
+              {candidate.consents.length === 0 ? (
+                <p className="text-sm leading-6 text-brand-ink/70">Согласия не найдены.</p>
+              ) : (
+                candidate.consents.map((consent) => (
+                  <div key={`${consent.consent_type}-${consent.document_version}`} className="rounded-2xl border border-brand-gray10/15 bg-brand-paper px-4 py-4">
+                    <p className="text-sm font-semibold uppercase tracking-[0.12em] text-brand-ink">{labelConsentType(consent.consent_type)}</p>
+                    <p className="mt-2 text-sm text-brand-ink/75">Версия: {consent.document_version}</p>
+                    <p className="mt-1 text-sm text-brand-ink/75">Принято: {DATE_TIME_FORMAT.format(new Date(consent.accepted_at))}</p>
+                  </div>
+                ))
+              )}
             </div>
           </Card>
         </section>
@@ -201,7 +212,7 @@ export function AdminCandidateDetailPage() {
               <>
                 {photoLoading ? <p className="text-sm text-brand-ink/70">Загрузка фотографии...</p> : null}
                 {photoError ? <Notice>{photoError}</Notice> : null}
-                {photoUrl ? <img className="mt-4 w-full rounded-2xl border border-brand-gray10/15 object-cover" src={photoUrl} alt={candidate.full_name ?? `Кандидат #${candidate.id}`} /> : null}
+                {photoUrl ? <img className="mt-4 w-full rounded-2xl border border-brand-gray10/15 object-cover" src={photoUrl} alt="Фотография кандидата" /> : null}
               </>
             ) : (
               <p className="text-sm text-brand-ink/70">Фотография отсутствует.</p>
@@ -239,7 +250,11 @@ export function AdminCandidateDetailPage() {
                     setCandidate((current) => (current ? { ...current, status: response.status } : current));
                   } catch (caughtError) {
                     if (caughtError instanceof AdminApiError && (caughtError.status === 401 || caughtError.status === 403)) {
-                      navigate('/admin/login', { replace: true, state: { from: `/admin/candidates/${candidate.id}` } });
+                      if (caughtError.status === 401) {
+                        navigate('/admin/login', { replace: true, state: { from: `${location.pathname}${location.search}` } });
+                        return;
+                      }
+                      setSaveError(formatAdminError(caughtError, 'update'));
                       return;
                     }
                     setSaveError(formatAdminError(caughtError, 'update'));
@@ -256,6 +271,10 @@ export function AdminCandidateDetailPage() {
       </div>
     </div>
   );
+}
+
+function labelConsentType(consentType: string) {
+  return CONSENT_LABELS[consentType] ?? 'Зафиксированное согласие';
 }
 
 function Card({ title, children }: { title: string; children: ReactNode }) {

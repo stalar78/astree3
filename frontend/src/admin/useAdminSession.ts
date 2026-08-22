@@ -10,10 +10,12 @@ export type AdminSessionState =
 
 export function useAdminSession() {
   const [state, setState] = useState<AdminSessionState>({ status: 'loading' });
+  const [retryIndex, setRetryIndex] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
+    setState({ status: 'loading' });
 
     void getCurrentAdmin(controller.signal)
       .then((response) => {
@@ -36,7 +38,10 @@ export function useAdminSession() {
       active = false;
       controller.abort();
     };
-  }, []);
+  }, [retryIndex]);
 
-  return state;
+  return {
+    state,
+    retry: () => setRetryIndex((value) => value + 1),
+  };
 }
