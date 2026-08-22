@@ -1,6 +1,6 @@
 # Project Blueprint: Astrea
 
-Current stage: Stage 1 - Architecture & Design System
+Current stage: Stage 2 approved - public visual system frozen; Stage 3 frontend implementation next.
 
 ## Purpose
 
@@ -100,6 +100,8 @@ Key decisions:
 
 Detailed design baseline: `docs/DESIGN_SYSTEM.md`.
 
+Approved Stage 2 visual freeze and implementation handoff: `docs/STAGE_2_DESIGN_FREEZE.md`.
+
 Brand source: client Jubilee Repository, especially pages 4-5.
 
 Official palette references:
@@ -111,17 +113,18 @@ Official palette references:
 
 Working screen approximations are defined in `docs/DESIGN_SYSTEM.md`; Pantone remains the brand source of truth.
 
-Direction:
-- classical;
-- restrained;
-- status-oriented;
-- editorial/historical rather than SaaS;
-- slightly traditional/old-fashioned is acceptable;
+Approved visual direction:
+- monumental and institutional;
+- historical/editorial rather than SaaS or commercial landing-page design;
+- classical and restrained;
+- large margins and narrow text columns;
+- dark official header/internal heroes;
+- official client-supplied heraldry, standard and seal;
 - no generic occult styling;
 - no excessive animation;
-- hero uses the client-supplied Astrea standard on a dark background with subtle backlighting.
+- no invented Masonic symbols or stock imagery.
 
-Typography direction: classical Cyrillic-capable serif/antiqua for headings plus a highly readable Cyrillic-capable body/UI face. Final families are selected during prototype review.
+The approved Lovable prototype is the visual reference only. Production architecture remains the repository architecture baseline.
 
 ## Security
 
@@ -144,8 +147,8 @@ The `religion` field remains disabled until the client approves the legal wordin
 
 ## Current Next Steps
 
-1. Review/merge Stage 1 architecture and design baseline.
-2. Prepare Lovable prompt for the public-site visual prototype.
-3. Build and review the Home page visual direction first.
-4. Extend the approved system to internal public pages, news, video and candidate form.
-5. Scaffold application code only after visual direction is accepted.
+1. Port the approved Stage 2 public visual system into `frontend/` using React + TypeScript + Vite + Tailwind and the repository architecture baseline.
+2. Preserve visual parity with the approved Lovable prototype while removing Lovable-specific runtime/server dependencies.
+3. Verify all approved public routes on desktop and mobile, with build/lint/type checks and no fabricated content.
+4. Merge the public frontend only after visual and technical review.
+5. Start backend/API, candidate persistence, private uploads, email outbox and admin work after the frontend shell is accepted in the repository.
