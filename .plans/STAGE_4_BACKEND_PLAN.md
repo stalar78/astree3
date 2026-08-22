@@ -1,6 +1,6 @@
 # Stage 4 Backend Plan
 
-Status: in progress. Stage 4.1, Stage 4.2, Stage 4.3, Stage 4.4A and Stage 4.4B1 accepted; Stage 4.4B2 is next.
+Status: in progress. Stage 4.1, Stage 4.2, Stage 4.3, Stage 4.4A and Stage 4.4B accepted; Stage 4.4C is next.
 
 Stage 4 is intentionally split into small reviewed slices. The candidate workflow is high-risk because it handles personal data and photographs; it must not be implemented as one oversized change.
 
@@ -121,7 +121,7 @@ Activation remains deliberately deferred until approved privacy/consent document
 
 ## Stage 4.4 - Admin and operations
 
-Status: in progress. Stage 4.4A and Stage 4.4B1 accepted; Stage 4.4B2 is next.
+Status: in progress. Stage 4.4A and Stage 4.4B accepted; Stage 4.4C is next.
 
 ### Stage 4.4A - Admin authentication
 
@@ -152,7 +152,7 @@ Final reported quality gate from `backend/`:
 
 ### Stage 4.4B - Candidate administration
 
-Status: in progress. Stage 4.4B1 backend accepted; Stage 4.4B2 admin UI is next.
+Status: accepted.
 
 #### Stage 4.4B1 - Candidate administration backend
 
@@ -176,18 +176,32 @@ Final reported quality gate from `backend/`:
 
 #### Stage 4.4B2 - Candidate administration UI
 
-Status: next.
+Status: accepted.
 
-Implement:
-- protected admin shell using the accepted Stage 4.4A session-cookie authentication;
-- candidate list with pagination/status filtering;
-- candidate detail view with PII minimization appropriate to the task;
-- private-photo viewing only through the authenticated admin endpoint;
-- status controls using the accepted CSRF flow;
-- authentication-state handling for 401/403/503 without exposing sensitive details;
-- no candidate deletion/editing/export/bulk operations in MVP.
+Implemented:
+- protected `/admin` route tree separate from the public `PageShell`;
+- `/admin/login`, `/admin/candidates` and `/admin/candidates/:candidateId`;
+- real server-session verification through `/api/v1/admin/auth/me` before protected candidate data is rendered;
+- same-origin fetch-based API layer with no JWT, no browser auth-token storage and no JavaScript access to the `HttpOnly` session cookie;
+- candidate status filtering and offset pagination with page size 20 and no invented total count;
+- operational list state limited to non-sensitive `status`/`offset` URL parameters;
+- candidate detail with read-only PII and human-readable immutable consent evidence;
+- private photos fetched only by candidate application ID from the authenticated backend endpoint and rendered as revocable in-memory Blob URLs;
+- status updates and logout using the accepted CSRF cookie/header flow;
+- `401`, CSRF `403` and temporary `503`/network failures handled distinctly without false mutation/logout success;
+- retry controls for temporary session/list failures;
+- generic error presentation without raw server/proxy payload exposure;
+- development-only Vite `/api` proxy while production remains same-origin;
+- no candidate deletion/editing/export/bulk actions and no public link advertising admin access.
+
+Final reported quality gate from `frontend/`:
+- `npm run typecheck` passed;
+- `npm run lint` passed;
+- `npm run build` passed.
 
 ### Stage 4.4C - Content administration
+
+Status: next.
 
 Implement:
 - authenticated CRUD for news;
@@ -208,7 +222,7 @@ No public registration and no complex RBAC in MVP.
 
 Before candidate intake activation also complete:
 - approved privacy-policy and personal-data-consent text/version identifiers;
-- frontend candidate-form integration;
+- public frontend candidate-form integration;
 - deployment request-body limits at Nginx/ASGI boundary;
 - trusted proxy/client-IP configuration for production rate limiting.
 
