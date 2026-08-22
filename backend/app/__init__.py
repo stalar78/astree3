@@ -1,0 +1,1 @@
+"""Astrea backend application package."""

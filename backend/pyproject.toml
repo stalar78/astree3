@@ -1,0 +1,31 @@
+[project]
+name = "astrea-backend"
+version = "0.1.0"
+description = "Backend foundation for the Astrea website"
+requires-python = ">=3.11"
+dependencies = [
+  "alembic>=1.16.0",
+  "fastapi>=0.116.0",
+  "psycopg[binary]>=3.2.0",
+  "pydantic-settings>=2.10.0",
+  "sqlalchemy>=2.0.0",
+  "uvicorn[standard]>=0.35.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.28.0",
+  "pytest>=8.4.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+exclude = ["alembic*", "tests*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
