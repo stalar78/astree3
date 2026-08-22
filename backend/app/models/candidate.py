@@ -17,6 +17,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 from app.models.mixins import TimestampMixin
 from app.services.candidate_contracts import (
+    CANDIDATE_STATUS_NEW,
+    CANDIDATE_STATUSES,
     CONSENT_TYPES,
     EMAIL_OUTBOX_EVENT_TYPES,
     EMAIL_OUTBOX_STATUSES,
@@ -33,6 +35,10 @@ class CandidateApplication(TimestampMixin, Base):
         CheckConstraint(
             "photo_size_bytes IS NULL OR photo_size_bytes >= 0",
             name="ck_candidate_applications_photo_size_non_negative",
+        ),
+        CheckConstraint(
+            f"status IN ({_sql_values(CANDIDATE_STATUSES)})",
+            name="ck_candidate_applications_status",
         ),
     )
 
@@ -51,6 +57,13 @@ class CandidateApplication(TimestampMixin, Base):
     photo_storage_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
     photo_media_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
     photo_size_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    status: Mapped[str] = mapped_column(
+        String(32),
+        default=CANDIDATE_STATUS_NEW,
+        server_default=CANDIDATE_STATUS_NEW,
+        index=True,
+        nullable=False,
+    )
 
     consents: Mapped[list["ApplicationConsent"]] = relationship(
         back_populates="application",

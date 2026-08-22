@@ -1,3 +1,4 @@
+import os
 from io import BytesIO
 from pathlib import Path
 
@@ -126,6 +127,52 @@ def test_storage_saves_below_private_root_and_deletes(tmp_path: Path) -> None:
     storage.delete(key)
     assert not path.exists()
     storage.delete(key)
+
+
+def test_storage_reads_saved_photo(tmp_path: Path) -> None:
+    storage = PrivatePhotoStorage(tmp_path)
+    prepared = prepare_candidate_photo(_image_bytes("JPEG"), _limits())
+
+    key = storage.save(prepared)
+
+    assert storage.read(key) == prepared.normalized_bytes
+
+
+def test_storage_read_rejects_missing_file(tmp_path: Path) -> None:
+    storage = PrivatePhotoStorage(tmp_path)
+    prepared = prepare_candidate_photo(_image_bytes("JPEG"), _limits())
+
+    with pytest.raises(PrivatePhotoStorageError):
+        storage.read(prepared.storage_key)
+
+
+def test_storage_read_rejects_directory_target(tmp_path: Path) -> None:
+    storage = PrivatePhotoStorage(tmp_path)
+    prepared = prepare_candidate_photo(_image_bytes("JPEG"), _limits())
+    path = storage.resolve_key(prepared.storage_key)
+    path.mkdir(parents=True)
+
+    with pytest.raises(PrivatePhotoStorageError):
+        storage.read(prepared.storage_key)
+
+
+def test_storage_read_rejects_final_symlink_when_supported(tmp_path: Path) -> None:
+    if not hasattr(os, "symlink"):
+        pytest.skip("symlink support is unavailable on this platform")
+
+    storage = PrivatePhotoStorage(tmp_path)
+    prepared = prepare_candidate_photo(_image_bytes("JPEG"), _limits())
+    path = storage.resolve_key(prepared.storage_key)
+    target = tmp_path / "symlink-target.jpg"
+    target.write_bytes(prepared.normalized_bytes)
+
+    try:
+        path.symlink_to(target)
+    except OSError:
+        pytest.skip("symlink creation is unavailable on this platform")
+
+    with pytest.raises(PrivatePhotoStorageError):
+        storage.read(prepared.storage_key)
 
 
 def test_storage_rejects_overwrite(tmp_path: Path) -> None:
