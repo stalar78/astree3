@@ -1,6 +1,6 @@
 # Stage 4 Backend Plan
 
-Status: in progress. Stage 4.1 and Stage 4.2 accepted; Stage 4.3 is next.
+Status: in progress. Stage 4.1, Stage 4.2 and Stage 4.3 accepted; Stage 4.4 is next.
 
 Stage 4 is intentionally split into small reviewed slices. The candidate workflow is high-risk because it handles personal data and photographs; it must not be implemented as one oversized change.
 
@@ -65,37 +65,63 @@ Acceptance completed:
 
 ## Stage 4.3 - Candidate intake and private media
 
-Status: next.
+Status: accepted.
 
-Treat as a security-sensitive transaction.
+Implemented in reviewed sub-slices:
+- `candidate_applications`, `application_consents` and `email_outbox` persistence contracts;
+- exact Saint Petersburg acknowledgement contract;
+- private candidate-photo decoding, validation, metadata stripping and JPEG normalization;
+- generated `candidate-photos/<uuid>.jpg` storage keys and private filesystem storage outside public roots;
+- path-traversal protection, exclusive writes and cleanup support;
+- transactional intake service creating one candidate application, exactly three consent rows and one pending outbox row;
+- rollback/photo-cleanup guarantees for every pre-commit failure after photo storage;
+- disabled-by-default multipart candidate POST endpoint;
+- server-controlled legal document version identifiers;
+- strict explicit consent parsing;
+- honeypot protection;
+- process-local MVP rate limiting without IP persistence;
+- bounded upload reading before image decode;
+- generic candidate validation/error responses that do not echo submitted PII.
 
-Required flow:
+Accepted flow:
 
 ```text
-multipart request
+feature-gated multipart request
  -> authoritative server validation
- -> anti-spam/rate-limit checks
+ -> honeypot / rate-limit checks
+ -> bounded upload read
  -> image decode/validation/normalization
  -> private generated file identity
  -> single DB transaction:
       candidate application
-      consent records
-      email outbox row
- -> success response
+      exactly three consent records
+      one pending email outbox row
+ -> generic success response
 ```
 
-Rules:
+Acceptance rules:
 - PostgreSQL is the source of truth;
-- accepted applications are persisted before email is attempted;
-- failed email cannot lose an application;
+- candidate + consent + outbox persistence occurs before any email delivery attempt;
+- failed email delivery cannot lose an accepted application;
 - private photographs remain outside the public web root;
-- original upload filenames are not storage identifiers;
-- actual image decoding is required, not extension-only validation;
-- normalize/re-encode images and strip unnecessary metadata;
-- consent records capture type, timestamp and document/policy version;
+- original upload filenames and original image bytes are never persisted;
+- image content is validated by actual Pillow decoding, not extension/MIME alone;
+- normalized candidate photos are re-encoded as JPEG with unnecessary metadata removed;
+- legal document versions come only from server settings, never from the client;
+- `CANDIDATE_INTAKE_ENABLED` defaults to `false` and the candidate route is not registered when disabled;
+- enabling intake requires all three configured legal version identifiers;
+- no public candidate GET/photo route exists;
 - `religion` remains disabled pending separate legal approval.
 
+Final reported quality gate:
+- 123 pytest tests passed;
+- Ruff passed.
+
+Activation remains deliberately deferred until approved privacy/consent documents, frontend wiring and deployment/security review are complete.
+
 ## Stage 4.4 - Admin and operations
+
+Status: next.
 
 Implement:
 - closed admin authentication;
@@ -108,6 +134,12 @@ Implement:
 - persistent email-outbox worker/retry handling.
 
 No public registration and no complex RBAC in MVP.
+
+Before candidate intake activation also complete:
+- approved privacy-policy and personal-data-consent text/version identifiers;
+- frontend candidate-form integration;
+- deployment request-body limits at Nginx/ASGI boundary;
+- trusted proxy/client-IP configuration for production rate limiting.
 
 ## Review rule
 
