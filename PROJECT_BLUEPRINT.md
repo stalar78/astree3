@@ -1,6 +1,6 @@
 # Project Blueprint: Astrea
 
-Current stage: Stage 4.4B1 candidate administration backend accepted; Stage 4.4B2 protected candidate admin UI next.
+Current stage: Stage 4.4B candidate administration accepted; Stage 4.4C content administration next.
 
 ## Purpose
 
@@ -234,6 +234,24 @@ The backend now includes the protected candidate-administration API:
 
 Stage 4.4B1 was accepted after candidate-PII/private-media/security review. Final reported backend quality gate from `backend/`: 194 pytest tests passed, 1 platform-dependent symlink test skipped, and Ruff passed.
 
+## Accepted Stage 4.4B2 Candidate Administration UI
+
+The production frontend now includes a protected candidate-administration interface:
+- `/admin/login` and a separate protected `/admin` route tree outside the public `PageShell`;
+- session verification through `GET /api/v1/admin/auth/me` before protected PII is rendered;
+- no JWT, no `localStorage`/`sessionStorage` auth, and no JavaScript access to the `HttpOnly` session cookie;
+- candidate list with status filtering, `limit=20` offset pagination and operational URL state limited to `status`/`offset`;
+- candidate detail with read-only PII and human-readable immutable consent evidence;
+- private candidate photos fetched only through the authenticated candidate-photo API and rendered via revocable in-memory Blob URLs;
+- explicit status updates and logout using the accepted readable CSRF cookie plus `X-CSRF-Token` header;
+- distinct handling of invalid sessions (`401`), CSRF failures (`403`) and temporary backend/network failures without false success states;
+- retry controls for temporary session/list failures;
+- generic frontend error messages without raw server/proxy text exposure;
+- development-only Vite `/api` proxy while production requests remain same-origin relative `/api/v1` calls;
+- no candidate deletion/editing/export/bulk operations and no public admin navigation.
+
+Stage 4.4B2 was accepted after corrective pagination, CSRF/logout semantics, private-photo, PII/storage and error-boundary review. Final reported frontend quality gate from `frontend/`: `npm run typecheck`, `npm run lint` and `npm run build` all passed.
+
 ## Security
 
 Main security risk: candidate forms contain personal data and photos.
@@ -261,8 +279,7 @@ Stage 4 is split into small reviewed slices; see `.plans/STAGE_4_BACKEND_PLAN.md
 2. Stage 4.2 - accepted: structured public content persistence/read API for pages, news and approved RuTube videos.
 3. Stage 4.3 - accepted: guarded candidate intake persistence, private photo pipeline, transactional consent/outbox aggregate and disabled-by-default public ingress.
 4. Stage 4.4A - accepted: closed admin identity/bootstrap, Argon2id passwords, server-side sessions, secure cookies, CSRF protection and auth dependencies.
-5. Stage 4.4B1 - accepted: authenticated candidate list/detail/status API and private-photo access.
-6. Stage 4.4B2 - next: protected admin candidate UI using the accepted auth, private-photo and CSRF APIs.
-7. Stage 4.4C - authenticated administration for news, video and approved editable page content.
-8. Stage 4.4D - persistent email-outbox worker/retry delivery.
-9. Before candidate intake activation: approve legal documents/version identifiers, integrate the public frontend form, and complete deployment request-body/client-IP security configuration.
+5. Stage 4.4B - accepted: authenticated candidate list/detail/status/private-photo API plus protected candidate admin UI.
+6. Stage 4.4C - next: authenticated administration for news, video and approved editable page content.
+7. Stage 4.4D - persistent email-outbox worker/retry delivery.
+8. Before candidate intake activation: approve legal documents/version identifiers, integrate the public frontend form, and complete deployment request-body/client-IP security configuration.
