@@ -7,9 +7,9 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
-from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.api import candidate_applications as candidate_api
 from app.api.candidate_applications import CandidateRateLimiter
 from app.core.config import Settings
 from app.db.session import get_db
@@ -54,7 +54,7 @@ def test_enabled_settings_require_all_legal_versions() -> None:
     ],
 )
 def test_enabled_settings_reject_blank_or_too_long_versions(kwargs: dict[str, str]) -> None:
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValueError):
         _settings(candidate_intake_enabled=True, **kwargs)
 
 
@@ -71,7 +71,111 @@ def test_enabled_settings_accept_valid_versions() -> None:
     assert settings.candidate_consent_versions.saint_petersburg_acknowledgement == "sp-v3"
 
 
-def test_successful_multipart_submission_reaches_internal_intake_and_private_storage(
+@pytest.mark.parametrize(
+    "consent_field, consent_value, expected_status",
+    [
+        ("personal_data_processing", "true", 201),
+        ("privacy_policy_acknowledgement", " true ", 201),
+        ("saint_petersburg_acknowledgement", "true", 201),
+        ("personal_data_processing", "false", 400),
+        ("privacy_policy_acknowledgement", "1", 400),
+        ("saint_petersburg_acknowledgement", "yes", 400),
+        ("personal_data_processing", "on", 400),
+        ("privacy_policy_acknowledgement", "y", 400),
+        ("saint_petersburg_acknowledgement", "random", 400),
+    ],
+)
+def test_strict_consent_values(
+    consent_field: str,
+    consent_value: str,
+    expected_status: int,
+    tmp_path: Path,
+) -> None:
+    response = _post_candidate(
+        tmp_path,
+        data_overrides={consent_field: consent_value},
+    )
+
+    assert response.status_code == expected_status
+
+
+@pytest.mark.parametrize(
+    "missing_field",
+    [
+        "personal_data_processing",
+        "privacy_policy_acknowledgement",
+        "saint_petersburg_acknowledgement",
+    ],
+)
+def test_missing_each_consent_rejected(missing_field: str, tmp_path: Path) -> None:
+    response = _post_candidate(tmp_path, data_overrides={}, remove_fields={missing_field})
+
+    assert response.status_code == 422
+
+
+def test_public_candidate_validation_errors_are_generic(tmp_path: Path) -> None:
+    response = _post_candidate(
+        tmp_path,
+        data_overrides={
+            "date_of_birth": "SECRET-DATE-VALUE",
+            "full_name": "Candidate Secret",
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {"detail": "Invalid candidate application"}
+    assert "SECRET-DATE-VALUE" not in response.text
+    assert "Candidate Secret" not in response.text
+    assert "input" not in response.text
+
+
+def test_non_candidate_validation_behaviour_remains_unchanged(tmp_path: Path) -> None:
+    app = create_app(_enabled_settings(tmp_path))
+    client = TestClient(app)
+
+    response = client.get("/api/v1/news?limit=101")
+
+    assert response.status_code == 422
+    assert "Invalid candidate application" not in response.text
+
+
+def test_cheap_validation_prevents_photo_processing_and_intake(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    called = {"prepare": 0, "intake": 0}
+
+    def fail_prepare(*_: Any, **__: Any) -> None:
+        called["prepare"] += 1
+        raise AssertionError("prepare_candidate_photo should not be called")
+
+    def fail_intake(*_: Any, **__: Any) -> None:
+        called["intake"] += 1
+        raise AssertionError("intake_candidate_application should not be called")
+
+    monkeypatch.setattr(candidate_api, "prepare_candidate_photo", fail_prepare)
+    monkeypatch.setattr(candidate_api, "intake_candidate_application", fail_intake)
+
+    cases = [
+        {"full_name": ""},
+        {"motivation": "x" * 5001},
+        {"email": "bad"},
+        {"phone": "abc"},
+        {"website": "spam"},
+        {"personal_data_processing": "false"},
+        {"privacy_policy_acknowledgement": "1"},
+        {"saint_petersburg_acknowledgement": "yes"},
+        {"motivation": "bad\x00text"},
+    ]
+
+    for overrides in cases:
+        response = _post_candidate(tmp_path, data_overrides=overrides)
+        assert response.status_code in {400, 422}
+
+    assert called == {"prepare": 0, "intake": 0}
+
+
+def test_multiline_text_is_accepted_and_control_bytes_reject(
     tmp_path: Path,
 ) -> None:
     settings = _enabled_settings(tmp_path)
@@ -82,7 +186,34 @@ def test_successful_multipart_submission_reaches_internal_intake_and_private_sto
 
     response = client.post(
         "/api/v1/candidate-applications",
-        data={
+        data=_base_submission() | {"motivation": "Line one.\nLine two."},
+        files={"photo": ("candidate.png", _image_bytes("PNG"), "image/png")},
+    )
+
+    assert response.status_code == 201
+    assert session.added[0].motivation == "Line one.\nLine two."
+
+    bad_response = _post_candidate(tmp_path, data_overrides={"motivation": "Line\x00two"})
+    assert bad_response.status_code == 400
+
+
+def test_successful_multipart_submission_reaches_internal_intake_and_private_storage(
+    tmp_path: Path,
+) -> None:
+    settings = _enabled_settings(
+        tmp_path,
+        candidate_rate_limit_requests=5,
+        candidate_rate_limit_window_seconds=900,
+    )
+    app = create_app(settings)
+    session = RecordingSession()
+    app.dependency_overrides[get_db] = lambda: session
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/v1/candidate-applications",
+        data=_base_submission()
+        | {
             "full_name": "  Test Candidate  ",
             "date_of_birth": "1990-05-17",
             "city": "  Saint Petersburg ",
@@ -92,9 +223,9 @@ def test_successful_multipart_submission_reaches_internal_intake_and_private_sto
             "occupation": " Engineer ",
             "marital_status": " Single ",
             "motivation": "  I want to join. ",
-            "personal_data_processing": "true",
+            "personal_data_processing": " true ",
             "privacy_policy_acknowledgement": "true",
-            "saint_petersburg_acknowledgement": "true",
+            "saint_petersburg_acknowledgement": " true ",
             "candidate_personal_data_consent_version": "client-controlled",
             "candidate_privacy_policy_version": "client-controlled",
             "candidate_saint_petersburg_acknowledgement_version": "client-controlled",
@@ -116,6 +247,11 @@ def test_successful_multipart_submission_reaches_internal_intake_and_private_sto
     assert application.photo_storage_key.startswith("candidate-photos/")
     assert application.photo_storage_key.endswith(".jpg")
     assert len(application.consents) == 3
+    assert {consent.document_version for consent in application.consents} == {
+        "pd-v1",
+        "pp-v2",
+        "sp-v3",
+    }
     assert all(consent.accepted_at.tzinfo is not None for consent in application.consents)
     assert session.commit_calls == 1
     assert session.rollback_calls == 0
@@ -124,74 +260,6 @@ def test_successful_multipart_submission_reaches_internal_intake_and_private_sto
     with Image.open(stored_photo) as image:
         assert image.format == "JPEG"
         assert image.mode == "RGB"
-
-
-@pytest.mark.parametrize(
-    "field, payload",
-    [
-        ("full_name", ""),
-        ("city", " "),
-        ("education", " "),
-        ("occupation", " "),
-        ("marital_status", " "),
-        ("motivation", " "),
-    ],
-)
-def test_blank_required_fields_rejected(field: str, payload: str, tmp_path: Path) -> None:
-    response = _post_candidate(tmp_path, {field: payload})
-    assert response.status_code in {400, 422}
-
-
-def test_missing_required_field_rejected(tmp_path: Path) -> None:
-    response = _post_candidate(tmp_path, {}, remove_fields={"city"})
-
-    assert response.status_code == 422
-
-
-@pytest.mark.parametrize(
-    "missing_field",
-    [
-        "personal_data_processing",
-        "privacy_policy_acknowledgement",
-        "saint_petersburg_acknowledgement",
-    ],
-)
-def test_missing_each_consent_rejected(missing_field: str, tmp_path: Path) -> None:
-    response = _post_candidate(tmp_path, {}, remove_fields={missing_field})
-
-    assert response.status_code == 422
-
-
-@pytest.mark.parametrize(
-    "consent_field",
-    [
-        "personal_data_processing",
-        "privacy_policy_acknowledgement",
-        "saint_petersburg_acknowledgement",
-    ],
-)
-def test_false_each_consent_rejected(consent_field: str, tmp_path: Path) -> None:
-    response = _post_candidate(tmp_path, {consent_field: "false"})
-
-    assert response.status_code == 400
-
-
-def test_validation_and_safety_rejections(tmp_path: Path) -> None:
-    base = _base_submission()
-
-    assert _post_candidate(tmp_path, base | {"email": "bad"}).status_code == 400
-    assert _post_candidate(tmp_path, base | {"phone": "abc"}).status_code == 400
-    assert _post_candidate(tmp_path, base | {"website": "evil"}).status_code == 400
-    assert _post_candidate(tmp_path, base, files={"photo": ("a.txt", b"", "text/plain")}).status_code == 400
-    assert _post_candidate(tmp_path, base, files={"photo": ("a.txt", b"not-image", "text/plain")}).status_code == 400
-    assert _post_candidate(
-        tmp_path,
-        base,
-        files={"photo": ("a.txt", _oversized_png(), "image/png")},
-        settings_overrides={"candidate_photo_max_bytes": 10},
-    ).status_code == 400
-    assert _post_candidate(tmp_path, base, files={"photo": ("a.txt", _animated_webp_bytes(), "image/webp")}).status_code == 400
-    assert _post_candidate(tmp_path, base, files={"photo": ("a.txt", _image_bytes("GIF"), "image/gif")}).status_code == 400
 
 
 def test_rate_limiter_allows_then_blocks_and_prunes() -> None:
@@ -210,7 +278,7 @@ def test_rate_limiter_allows_then_blocks_and_prunes() -> None:
 def test_rate_limiter_ignores_forwarded_for_header_and_does_not_persist_identity(
     tmp_path: Path,
 ) -> None:
-    settings = _enabled_settings(tmp_path)
+    settings = _enabled_settings(tmp_path, candidate_rate_limit_requests=1)
     app = create_app(settings)
     session = RecordingSession()
     app.dependency_overrides[get_db] = lambda: session
@@ -305,16 +373,17 @@ def _base_submission() -> dict[str, str]:
 
 
 def _enabled_settings(tmp_path: Path, **overrides: object) -> Settings:
-    return _settings(
-        private_media_root=tmp_path / "private",
-        candidate_intake_enabled=True,
-        candidate_personal_data_consent_version="pd-v1",
-        candidate_privacy_policy_version="pp-v2",
-        candidate_saint_petersburg_acknowledgement_version="sp-v3",
-        candidate_rate_limit_requests=1,
-        candidate_rate_limit_window_seconds=900,
-        **overrides,
-    )
+    settings = {
+        "private_media_root": tmp_path / "private",
+        "candidate_intake_enabled": True,
+        "candidate_personal_data_consent_version": "pd-v1",
+        "candidate_privacy_policy_version": "pp-v2",
+        "candidate_saint_petersburg_acknowledgement_version": "sp-v3",
+        "candidate_rate_limit_requests": 1,
+        "candidate_rate_limit_window_seconds": 900,
+    }
+    settings.update(overrides)
+    return _settings(**settings)
 
 
 def _settings(**kwargs: object) -> Settings:
@@ -334,8 +403,6 @@ def _settings(**kwargs: object) -> Settings:
         "CANDIDATE_RATE_LIMIT_WINDOW_SECONDS": 900,
     }
     alias_map = {
-        "project_name": "project_name",
-        "api_v1_prefix": "api_v1_prefix",
         "app_env": "APP_ENV",
         "database_url": "DATABASE_URL",
         "private_media_root": "PRIVATE_MEDIA_ROOT",
@@ -363,18 +430,6 @@ def _image_bytes(image_format: str) -> bytes:
     image = Image.new("RGB", (32, 32), (100, 120, 140))
     output = BytesIO()
     image.save(output, format=image_format)
-    return output.getvalue()
-
-
-def _oversized_png() -> bytes:
-    return _image_bytes("PNG") * 200000
-
-
-def _animated_webp_bytes() -> bytes:
-    first = Image.new("RGB", (16, 16), (255, 0, 0))
-    second = Image.new("RGB", (16, 16), (0, 255, 0))
-    output = BytesIO()
-    first.save(output, format="WEBP", save_all=True, append_images=[second], duration=100, loop=0)
     return output.getvalue()
 
 

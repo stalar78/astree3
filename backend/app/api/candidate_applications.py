@@ -97,9 +97,9 @@ async def create_candidate_application(
     marital_status: Annotated[str, Form(...)],
     motivation: Annotated[str, Form(...)],
     photo: Annotated[UploadFile, File(...)],
-    personal_data_processing: Annotated[bool, Form(...)],
-    privacy_policy_acknowledgement: Annotated[bool, Form(...)],
-    saint_petersburg_acknowledgement: Annotated[bool, Form(...)],
+    personal_data_processing: Annotated[str, Form(...)],
+    privacy_policy_acknowledgement: Annotated[str, Form(...)],
+    saint_petersburg_acknowledgement: Annotated[str, Form(...)],
     other_organizations: Annotated[str | None, Form()] = "",
     social_links: Annotated[str | None, Form()] = "",
     website: Annotated[str, Form()] = "",
@@ -109,6 +109,19 @@ async def create_candidate_application(
         personal_data_processing,
         privacy_policy_acknowledgement,
         saint_petersburg_acknowledgement,
+    )
+    submission = CandidateSubmissionData(
+        full_name=_clean_required_text(full_name, 255),
+        date_of_birth=date_of_birth,
+        city=_clean_required_text(city, 120),
+        phone=_validate_phone(phone),
+        email=_validate_email(email),
+        education=_clean_required_text(education, MAX_TEXT_FIELD_LENGTH),
+        occupation=_clean_required_text(occupation, MAX_TEXT_FIELD_LENGTH),
+        marital_status=_clean_required_text(marital_status, 120),
+        other_organizations=_clean_optional_text(other_organizations),
+        social_links=_clean_optional_text(social_links),
+        motivation=_clean_required_text(motivation, MAX_TEXT_FIELD_LENGTH),
     )
     _apply_rate_limit(request)
 
@@ -127,19 +140,6 @@ async def create_candidate_application(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid candidate photo") from exc
     finally:
         await photo.close()
-    submission = CandidateSubmissionData(
-        full_name=_clean_required_text(full_name, 255),
-        date_of_birth=date_of_birth,
-        city=_clean_required_text(city, 120),
-        phone=_validate_phone(phone),
-        email=_validate_email(email),
-        education=_clean_required_text(education, MAX_TEXT_FIELD_LENGTH),
-        occupation=_clean_required_text(occupation, MAX_TEXT_FIELD_LENGTH),
-        marital_status=_clean_required_text(marital_status, 120),
-        other_organizations=_clean_optional_text(other_organizations),
-        social_links=_clean_optional_text(social_links),
-        motivation=_clean_required_text(motivation, MAX_TEXT_FIELD_LENGTH),
-    )
 
     try:
         intake_candidate_application(
@@ -176,15 +176,15 @@ def _reject_honeypot(website: str) -> None:
 
 
 def _reject_missing_consents(
-    personal_data_processing: bool,
-    privacy_policy_acknowledgement: bool,
-    saint_petersburg_acknowledgement: bool,
+    personal_data_processing: str,
+    privacy_policy_acknowledgement: str,
+    saint_petersburg_acknowledgement: str,
 ) -> None:
     if not all(
         (
-            personal_data_processing,
-            privacy_policy_acknowledgement,
-            saint_petersburg_acknowledgement,
+            _is_strict_true(personal_data_processing),
+            _is_strict_true(privacy_policy_acknowledgement),
+            _is_strict_true(saint_petersburg_acknowledgement),
         )
     ):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid candidate application")
@@ -245,4 +245,8 @@ def _validate_phone(value: str) -> str:
 
 
 def _contains_control_characters(value: str) -> bool:
-    return any(ord(char) < 32 for char in value)
+    return any((ord(char) < 32 and char not in {"\n", "\r", "\t"}) or ord(char) == 127 for char in value)
+
+
+def _is_strict_true(value: str) -> bool:
+    return value.strip().lower() == "true"
