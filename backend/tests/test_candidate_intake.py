@@ -4,6 +4,7 @@ from dataclasses import fields
 from datetime import UTC, date
 
 import pytest
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.models.candidate import CandidateApplication
 from app.services.candidate_contracts import (
@@ -125,7 +126,7 @@ def test_storage_failure_prevents_database_work() -> None:
 
 
 def test_flush_failure_rolls_back_and_deletes_photo() -> None:
-    db = FakeSession(flush_error=RuntimeError("synthetic flush failure"))
+    db = FakeSession(flush_error=SQLAlchemyError("synthetic flush failure"))
     storage = FakeStorage()
 
     with pytest.raises(CandidateIntakePersistenceError) as exc_info:
@@ -146,7 +147,7 @@ def test_flush_failure_rolls_back_and_deletes_photo() -> None:
 
 
 def test_commit_failure_rolls_back_and_deletes_photo() -> None:
-    db = FakeSession(commit_error=RuntimeError("synthetic commit failure"))
+    db = FakeSession(commit_error=SQLAlchemyError("synthetic commit failure"))
     storage = FakeStorage()
 
     with pytest.raises(CandidateIntakePersistenceError) as exc_info:
@@ -166,7 +167,7 @@ def test_commit_failure_rolls_back_and_deletes_photo() -> None:
 
 
 def test_cleanup_failure_is_reported_generically() -> None:
-    db = FakeSession(flush_error=RuntimeError("synthetic flush failure"))
+    db = FakeSession(flush_error=SQLAlchemyError("synthetic flush failure"))
     storage = FakeStorage(delete_error=PrivatePhotoStorageError("delete failed /private/path"))
 
     with pytest.raises(CandidateIntakePersistenceError) as exc_info:

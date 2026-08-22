@@ -116,7 +116,7 @@ def intake_candidate_application(
         application_id = application.id
         db.commit()
         return CandidateIntakeResult(application_id=application_id)
-    except Exception as exc:
+    except SQLAlchemyError as exc:
         try:
             db.rollback()
         except SQLAlchemyError as rollback_exc:  # pragma: no cover - defensive fallback
