@@ -21,7 +21,7 @@ export function SiteFooter() {
           </div>
         </div>
         <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs uppercase text-brand-gray10 md:flex-row md:justify-between">
-          <p>© Astrea</p>
+          <p>© {new Date().getFullYear()} Д.·.Л.·. «Астрея» № 3</p>
           <p>MDCCLXXV</p>
         </div>
       </div>

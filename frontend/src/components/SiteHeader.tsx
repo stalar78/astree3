@@ -36,7 +36,7 @@ export function SiteHeader() {
             <p className="mt-2 text-xs uppercase text-brand-gray6 md:text-sm">на Востоке Санкт-Петербурга</p>
           </div>
           <NavLink to="/" aria-label="На главную" className="justify-self-end">
-            <img className="h-14 w-14 object-contain md:h-20 md:w-20" src="/brand/province-northwest-emblem.png" alt="Эмблема Северо-Западной Провинции" />
+            <img className="h-14 w-14 object-contain md:h-20 md:w-20" src="/brand/province-northwest-emblem.png" alt="Эмблема Провинции Северо-Запад" />
           </NavLink>
         </div>
         <div className="my-6">

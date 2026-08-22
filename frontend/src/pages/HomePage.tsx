@@ -33,26 +33,110 @@ export function HomePage() {
         </div>
       </section>
       <Section>
-        <div className="mx-auto max-w-4xl text-center">
-          <div className="text-left">
-            <MonumentHeading title="Официальное пространство для утвержденных материалов" lead="Структура сайта подготовлена для публичных разделов, новостей, видео и кандидатского обращения без выдуманного содержания." />
+        <div className="mx-auto max-w-3xl">
+          <MonumentHeading eyebrow="Официальное обращение" title="О ложе" />
+          <div className="mt-10 space-y-6 font-serifBody text-lg leading-8 text-brand-ink/80">
+            <p>Настоящий сайт является официальным представительством Достопочтенной Ложи «Астрея» № 3, работающей на Востоке города Санкт-Петербурга.</p>
+            <p>На сайте размещаются сведения о ложе, исторические и информационные материалы, официальные сообщения, видеозаписи и информация для тех, кто желает обратиться с заявлением о вступлении.</p>
           </div>
-          <div className="mt-12 space-y-8">
-            <EditorialNote>Исторические, организационные и правовые тексты будут опубликованы после утверждения клиентом.</EditorialNote>
+          <div className="mt-12">
             <OrnamentDivider />
           </div>
         </div>
       </Section>
       <Section tone="dark">
-        <div className="grid gap-10 md:grid-cols-3">
-          {['Новости', 'Видео', 'Вступление'].map((item) => (
-            <div key={item} className="border-t border-white/20 pt-6">
-              <p className="font-display text-3xl">{item}</p>
-              <p className="mt-4 text-sm leading-6 text-brand-gray6">Раздел подготовлен в утвержденной институциональной композиции и ожидает проверенных материалов.</p>
-            </div>
-          ))}
+        <div className="mx-auto max-w-4xl">
+          <MonumentHeading
+            eyebrow="История и преемственность"
+            title="Хронология"
+            lead="Раздел находится в редакционной подготовке. Документальные подтверждения и архивные материалы будут опубликованы по мере проверки источников."
+          />
+          <div className="mt-14">
+            <ChronologyRow
+              marker="MDCCLXXV"
+              meta="Дата на символике"
+              text="Дата, присутствующая на официальной символике ложи. Историческое пояснение будет добавлено после редакционной проверки материалов."
+            />
+            <ChronologyRow marker="Архив" meta="Материалы готовятся" text="Исторические тексты и документы будут перенесены после отбора и проверки заказчиком." />
+          </div>
+        </div>
+      </Section>
+      <Section tone="alternate">
+        <div className="mx-auto max-w-4xl">
+          <MonumentHeading
+            eyebrow="Положение ложи"
+            title="Место в масонской структуре"
+            lead="На сайте используется официальная символика Великой Ложи России и Провинции Северо-Запад. Достопочтенная Ложа «Астрея» № 3 работает на Востоке Санкт-Петербурга."
+          />
+          <div className="mt-14 grid gap-10 md:grid-cols-2">
+            <SymbolBlock src="/brand/grand-lodge-russia-emblem.png" alt="Эмблема Великой Ложи России" caption="Великая Ложа России" />
+            <SymbolBlock src="/brand/province-northwest-emblem.png" alt="Эмблема Провинции Северо-Запад" caption="Провинция Северо-Запад" />
+          </div>
+        </div>
+      </Section>
+      <Section>
+        <div className="mx-auto max-w-3xl">
+          <MonumentHeading eyebrow="Официальные сообщения" title="Новости ложи" />
+          <div className="mt-10">
+            <EditorialNote>Официальные сообщения будут опубликованы после предоставления и редакционной проверки материалов.</EditorialNote>
+          </div>
+          <div className="mt-8">
+            <Action to="/novosti" variant="secondary">Все сообщения</Action>
+          </div>
+        </div>
+      </Section>
+      <Section tone="dark">
+        <div className="mx-auto max-w-3xl">
+          <MonumentHeading eyebrow="Собрание материалов" title="Видеоархив" lead="Раздел для публикации согласованных видеоматериалов." />
+          <div className="mt-10 border-y border-white/15 py-8">
+            <p className="font-serifBody text-lg leading-8 text-brand-gray6">Видеоматериалы будут добавлены после согласования ссылок. Основной источник размещения — RuTube.</p>
+          </div>
+        </div>
+      </Section>
+      <Section>
+        <div className="mx-auto max-w-4xl">
+          <MonumentHeading eyebrow="Кандидатам" title="О подаче прошения" />
+          <div className="mt-14">
+            {[
+              ['I', 'Ознакомиться с информацией о вступлении и требованиями, которые будут перенесены с действующего сайта и утверждены заказчиком.'],
+              ['II', 'Подтвердить понимание, что заявление подаётся в ложу, работающую в Санкт-Петербурге.'],
+              ['III', 'Заполнить анкету и при необходимости приложить фотографию и ссылки на публичные профили.'],
+              ['IV', 'Подтвердить необходимые согласия на обработку персональных данных и политику конфиденциальности.'],
+            ].map(([marker, text]) => (
+              <div key={marker} className="grid gap-4 border-t border-brand-gray10/30 py-7 md:grid-cols-[90px_1fr]">
+                <p className="font-display text-3xl text-brand-red">{marker}</p>
+                <p className="font-serifBody text-lg leading-8 text-brand-ink/80">{text}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-10">
+            <Action to="/vstuplenie">Раздел для кандидатов</Action>
+            <p className="mt-4 font-serifBody text-sm text-brand-ink/65">Форма прошения будет открыта позднее</p>
+          </div>
         </div>
       </Section>
     </>
+  );
+}
+
+function ChronologyRow({ marker, meta, text }: { marker: string; meta: string; text: string }) {
+  return (
+    <div className="grid gap-5 border-t border-white/15 py-8 md:grid-cols-[160px_180px_1fr]">
+      <p className="font-display text-3xl text-white">{marker}</p>
+      <p className="text-sm uppercase text-brand-gray6">{meta}</p>
+      <p className="font-serifBody text-lg leading-8 text-brand-gray6">{text}</p>
+    </div>
+  );
+}
+
+function SymbolBlock({ src, alt, caption }: { src: string; alt: string; caption: string }) {
+  return (
+    <figure className="border-t border-brand-gray10/30 pt-8 text-center">
+      <img className="mx-auto h-32 w-32 object-contain md:h-40 md:w-40" src={src} alt={alt} />
+      <figcaption className="mt-6">
+        <p className="font-display text-3xl text-brand-ink">{caption}</p>
+        <p className="mt-3 font-serifBody text-base leading-7 text-brand-ink/70">Официальная символика, используемая на сайте.</p>
+      </figcaption>
+    </figure>
   );
 }
