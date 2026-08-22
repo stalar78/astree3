@@ -16,6 +16,7 @@ dependencies = [
 dev = [
   "httpx>=0.28.0",
   "pytest>=8.4.0",
+  "ruff>=0.14.0",
 ]
 
 [tool.pytest.ini_options]
