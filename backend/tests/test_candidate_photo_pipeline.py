@@ -91,6 +91,27 @@ def test_truncated_image_rejected() -> None:
         prepare_candidate_photo(payload, _limits())
 
 
+def test_decompression_bomb_warning_becomes_domain_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 1)
+
+    with pytest.raises(CandidatePhotoValidationError) as exc_info:
+        prepare_candidate_photo(_image_bytes("JPEG", size=(2, 1)), _limits(max_pixels=100))
+
+    assert str(exc_info.value) == "Candidate photo is not a valid supported image"
+
+
+def test_decompression_bomb_error_becomes_domain_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    def raise_decompression_bomb_error(_: BytesIO):
+        raise Image.DecompressionBombError("synthetic decompression bomb")
+
+    monkeypatch.setattr(Image, "open", raise_decompression_bomb_error)
+
+    with pytest.raises(CandidatePhotoValidationError) as exc_info:
+        prepare_candidate_photo(b"synthetic-image-bytes", _limits())
+
+    assert str(exc_info.value) == "Candidate photo is not a valid supported image"
+
+
 def test_storage_saves_below_private_root_and_deletes(tmp_path: Path) -> None:
     storage = PrivatePhotoStorage(tmp_path)
     prepared = prepare_candidate_photo(_image_bytes("JPEG"), _limits())

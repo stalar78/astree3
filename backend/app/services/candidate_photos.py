@@ -1,8 +1,9 @@
+import warnings
 from dataclasses import dataclass
 from io import BytesIO
 from uuid import uuid4
 
-from PIL import Image, ImageOps, ImageSequence, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 ACCEPTED_IMAGE_FORMATS = {"JPEG", "PNG", "WEBP"}
 NORMALIZED_MEDIA_TYPE = "image/jpeg"
@@ -40,11 +41,19 @@ def prepare_candidate_photo(upload_bytes: bytes, limits: CandidatePhotoLimits) -
         raise CandidatePhotoValidationError("Candidate photo exceeds the maximum byte size")
 
     try:
-        with Image.open(BytesIO(upload_bytes)) as image:
-            _validate_image_object(image, limits)
-        with Image.open(BytesIO(upload_bytes)) as image:
-            normalized_bytes, width, height = _normalize_image(image, limits.output_max_edge)
-    except (UnidentifiedImageError, OSError, ValueError) as exc:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(BytesIO(upload_bytes)) as image:
+                _validate_image_object(image, limits)
+            with Image.open(BytesIO(upload_bytes)) as image:
+                normalized_bytes, width, height = _normalize_image(image, limits.output_max_edge)
+    except (
+        Image.DecompressionBombError,
+        Image.DecompressionBombWarning,
+        UnidentifiedImageError,
+        OSError,
+        ValueError,
+    ) as exc:
         raise CandidatePhotoValidationError("Candidate photo is not a valid supported image") from exc
 
     return PreparedCandidatePhoto(
@@ -114,7 +123,4 @@ def _normalize_image(image: Image.Image, output_max_edge: int) -> tuple[bytes, i
 
 
 def _frame_count(image: Image.Image) -> int:
-    try:
-        return sum(1 for _ in ImageSequence.Iterator(image))
-    except Exception as exc:
-        raise CandidatePhotoValidationError("Candidate photo frame structure is invalid") from exc
+    return int(getattr(image, "n_frames", 1))
