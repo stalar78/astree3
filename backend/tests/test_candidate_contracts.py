@@ -23,6 +23,8 @@ EXPECTED_TABLES = {
     "candidate_applications",
     "application_consents",
     "email_outbox",
+    "admin_users",
+    "admin_sessions",
 }
 
 

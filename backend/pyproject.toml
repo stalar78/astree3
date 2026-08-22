@@ -5,6 +5,7 @@ description = "Backend foundation for the Astrea website"
 requires-python = ">=3.11"
 dependencies = [
   "alembic>=1.16.0",
+  "argon2-cffi>=25.1.0",
   "fastapi>=0.116.0",
   "Pillow>=11.0.0",
   "psycopg[binary]>=3.2.0",

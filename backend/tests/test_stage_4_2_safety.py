@@ -17,6 +17,8 @@ def test_metadata_contains_only_stage_4_2_tables() -> None:
         "candidate_applications",
         "application_consents",
         "email_outbox",
+        "admin_users",
+        "admin_sessions",
     }
 
 
@@ -27,10 +29,10 @@ def test_no_write_content_routes_exist() -> None:
         assert decorator not in route_source
 
 
-def test_no_admin_or_standalone_email_models_introduced() -> None:
+def test_admin_models_are_present_and_standalone_email_models_are_not() -> None:
     model_files = {path.stem for path in Path("app/models").glob("*.py")}
 
-    assert "admin" not in model_files
+    assert "admin" in model_files
     assert "email" not in model_files
 
 

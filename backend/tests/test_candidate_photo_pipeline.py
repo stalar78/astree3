@@ -172,6 +172,8 @@ def test_metadata_and_no_public_photo_api_or_static_mount() -> None:
         "candidate_applications",
         "application_consents",
         "email_outbox",
+        "admin_users",
+        "admin_sessions",
     }
     api_source = ""
     for path in Path("app/api").glob("*.py"):

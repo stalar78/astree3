@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, PositiveInt, PostgresDsn, model_validator
+from pydantic import Field, PositiveInt, PostgresDsn, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.services.candidate_intake import CandidateConsentVersions
@@ -18,6 +18,20 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     app_env: str = Field(default="local", alias="APP_ENV")
     database_url: PostgresDsn = Field(alias="DATABASE_URL")
+    admin_initial_username: str | None = Field(default=None, alias="ADMIN_INITIAL_USERNAME")
+    admin_initial_password: SecretStr | None = Field(
+        default=None,
+        alias="ADMIN_INITIAL_PASSWORD",
+    )
+    admin_session_ttl_seconds: PositiveInt = Field(default=28_800, alias="ADMIN_SESSION_TTL_SECONDS")
+    admin_login_rate_limit_requests: PositiveInt = Field(
+        default=10,
+        alias="ADMIN_LOGIN_RATE_LIMIT_REQUESTS",
+    )
+    admin_login_rate_limit_window_seconds: PositiveInt = Field(
+        default=900,
+        alias="ADMIN_LOGIN_RATE_LIMIT_WINDOW_SECONDS",
+    )
     private_media_root: Path = Field(default=Path("var/private"), alias="PRIVATE_MEDIA_ROOT")
     candidate_photo_max_bytes: PositiveInt = Field(
         default=10 * 1024 * 1024,
