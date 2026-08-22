@@ -1,6 +1,7 @@
 from functools import lru_cache
+from pathlib import Path
 
-from pydantic import Field, PostgresDsn
+from pydantic import Field, PositiveInt, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,6 +16,20 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     app_env: str = Field(default="local", alias="APP_ENV")
     database_url: PostgresDsn = Field(alias="DATABASE_URL")
+    private_media_root: Path = Field(default=Path("var/private"), alias="PRIVATE_MEDIA_ROOT")
+    candidate_photo_max_bytes: PositiveInt = Field(
+        default=10 * 1024 * 1024,
+        alias="CANDIDATE_PHOTO_MAX_BYTES",
+    )
+    candidate_photo_max_pixels: PositiveInt = Field(
+        default=20_000_000,
+        alias="CANDIDATE_PHOTO_MAX_PIXELS",
+    )
+    candidate_photo_max_edge: PositiveInt = Field(default=6000, alias="CANDIDATE_PHOTO_MAX_EDGE")
+    candidate_photo_output_max_edge: PositiveInt = Field(
+        default=2048,
+        alias="CANDIDATE_PHOTO_OUTPUT_MAX_EDGE",
+    )
 
     @property
     def debug(self) -> bool:
