@@ -2,11 +2,11 @@
 
 Astrea is the new official website for D.L. Astrea No. 3 in Saint Petersburg, replacing and evolving the existing mason-astrea.ru website.
 
-Current stage: Stage 2 visual system approved; Stage 3 public frontend implementation is next.
+Current stage: Stage 3 public frontend accepted; Stage 4 backend foundation is next.
 
-The approved public design is documented in `docs/STAGE_2_DESIGN_FREEZE.md`. Production application code is being introduced only after the visual system has been accepted.
+The approved public design is documented in `docs/STAGE_2_DESIGN_FREEZE.md`. The production public frontend now lives in `frontend/` and was accepted after visual and technical review.
 
-## Planned Application
+## Application Scope
 
 - Public informational website
 - News section
@@ -19,7 +19,7 @@ The approved public design is documented in `docs/STAGE_2_DESIGN_FREEZE.md`. Pro
 - SEO
 - Responsive desktop/tablet/mobile UI
 
-## Planned Stack
+## Stack
 
 Frontend: React + TypeScript + Vite + Tailwind CSS
 
@@ -34,8 +34,15 @@ Infrastructure: Linux VPS + Docker Compose + Nginx + SSL
 - Application architecture: `.architecture/ARCHITECTURE.md`
 - Design system: `docs/DESIGN_SYSTEM.md`
 - Approved Stage 2 visual freeze: `docs/STAGE_2_DESIGN_FREEZE.md`
+- Stage 4 backend plan: `.plans/STAGE_4_BACKEND_PLAN.md`
 - Requirements: `docs/REQUIREMENTS.md`
 - Project blueprint: `PROJECT_BLUEPRINT.md`
+
+## Current Implementation
+
+- `frontend/` - accepted production public frontend
+- `backend/` - Stage 4 implementation target
+- `infra/` - deployment/runtime configuration target
 
 ## Important
 
