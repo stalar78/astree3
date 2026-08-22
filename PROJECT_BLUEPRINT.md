@@ -1,6 +1,6 @@
 # Project Blueprint: Astrea
 
-Current stage: Stage 4.1 backend foundation accepted; Stage 4.2 public content domain next.
+Current stage: Stage 4.2 public content domain accepted; Stage 4.3 candidate intake and private media next.
 
 ## Purpose
 
@@ -148,11 +148,30 @@ The production backend foundation is implemented in `backend/` with:
 - environment-based settings through `pydantic-settings`;
 - PostgreSQL DSN validation and explicit psycopg 3 URL normalization;
 - SQLAlchemy 2.x engine/session foundation;
-- Alembic metadata/configuration without domain tables;
+- Alembic metadata/configuration;
 - pytest backend tests;
 - Ruff quality gate.
 
 Stage 4.1 contains no candidate intake, uploads, email, admin authentication or content CRUD.
+
+## Accepted Stage 4.2 Public Content Domain
+
+The backend now includes structured public content for:
+- predefined editable pages;
+- news posts;
+- external videos.
+
+Accepted behavior:
+- PostgreSQL models and one Alembic migration for `pages`, `news_posts` and `videos`;
+- published-only public read endpoints under `/api/v1`;
+- stable, model-level validated page keys and news slugs;
+- bounded pagination and deterministic ordering for news/video lists;
+- strict HTTPS RuTube validation with canonical source URLs and derived embed URLs;
+- no arbitrary iframe/embed HTML;
+- RuTube provider consistency enforced at model and database-constraint level;
+- no public write endpoints, admin CRUD, candidate models, email models or frontend integration in this slice.
+
+Stage 4.2 was accepted after corrective validation hardening and migration regression review.
 
 ## Security
 
@@ -178,7 +197,7 @@ The `religion` field remains disabled until the client approves the legal wordin
 Stage 4 is split into small reviewed slices; see `.plans/STAGE_4_BACKEND_PLAN.md`.
 
 1. Stage 4.1 - accepted: FastAPI backend foundation, settings, PostgreSQL/SQLAlchemy integration, Alembic, health endpoint and backend tests.
-2. Stage 4.2 - next: implement structured public content models/API for pages, news and external videos.
-3. Stage 4.3 - implement the high-risk candidate intake transaction: authoritative validation, consent persistence, private image handling and persistent email outbox.
+2. Stage 4.2 - accepted: structured public content persistence/read API for pages, news and approved RuTube videos.
+3. Stage 4.3 - next: implement the high-risk candidate intake transaction: authoritative validation, consent persistence, private image handling and persistent email outbox.
 4. Stage 4.4 - implement closed admin authentication and candidate/content administration.
 5. Integrate the accepted frontend with backend APIs only after each backend slice passes review.
