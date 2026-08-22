@@ -31,7 +31,8 @@ def test_metadata_contains_stage_4_3a_tables() -> None:
 
 
 def test_candidate_application_expected_fields_and_exclusions() -> None:
-    columns = set(CandidateApplication.__table__.columns.keys())
+    table = CandidateApplication.__table__
+    columns = set(table.columns.keys())
 
     assert {
         "id",
@@ -58,15 +59,25 @@ def test_candidate_application_expected_fields_and_exclusions() -> None:
     assert "photo_blob" not in columns
     assert "photo_binary" not in columns
     assert "ip_address" not in columns
+    assert "ck_candidate_applications_photo_size_non_negative" in _constraint_names(
+        table,
+        CheckConstraint,
+    )
 
 
 def test_consent_constraints_and_constant() -> None:
     table = ApplicationConsent.__table__
 
     assert _has_fk_to(table, "candidate_applications.id")
+    assert _fk_ondelete_values(table, "candidate_applications.id") == {"CASCADE"}
     assert _constraint_names(table, UniqueConstraint) == {"uq_application_consents_type"}
     assert "ck_application_consents_type" in _constraint_names(table, CheckConstraint)
     assert "ck_application_consents_document_version" in _constraint_names(table, CheckConstraint)
+    document_version_constraint = _constraint_by_name(
+        table,
+        "ck_application_consents_document_version",
+    )
+    assert "btrim(document_version)" in str(document_version_constraint.sqltext)
     assert table.c.document_version.nullable is False
     assert set(CONSENT_TYPES) == {
         "personal_data_processing",
@@ -84,9 +95,11 @@ def test_email_outbox_constraints_defaults_and_exclusions() -> None:
     columns = set(table.columns.keys())
 
     assert _has_fk_to(table, "candidate_applications.id")
+    assert _fk_ondelete_values(table, "candidate_applications.id") == {"CASCADE"}
     assert "ck_email_outbox_event_type" in _constraint_names(table, CheckConstraint)
     assert "ck_email_outbox_status" in _constraint_names(table, CheckConstraint)
     assert "ck_email_outbox_attempts_non_negative" in _constraint_names(table, CheckConstraint)
+    assert table.c.last_error.type.length == 2000
     assert EmailOutbox().status is None
     assert table.c.status.default.arg == EMAIL_OUTBOX_STATUS_PENDING
     assert table.c.attempts.default.arg == 0
@@ -129,6 +142,27 @@ def test_candidate_migration_structure(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "photo_blob" not in _all_column_names(created_tables)
     assert "original_filename" not in _all_column_names(created_tables)
     assert "public_photo_url" not in _all_column_names(created_tables)
+    assert _migration_constraint_names(created_tables["candidate_applications"]) == {
+        "ck_candidate_applications_photo_size_non_negative"
+    }
+    assert _migration_constraint_names(created_tables["application_consents"]) == {
+        "ck_application_consents_type",
+        "ck_application_consents_document_version",
+        "uq_application_consents_type",
+    }
+    assert _migration_constraint_names(created_tables["email_outbox"]) == {
+        "ck_email_outbox_event_type",
+        "ck_email_outbox_status",
+        "ck_email_outbox_attempts_non_negative",
+    }
+    assert _migration_fk_ondelete_values(created_tables["application_consents"]) == {"CASCADE"}
+    assert _migration_fk_ondelete_values(created_tables["email_outbox"]) == {"CASCADE"}
+    assert _migration_column(created_tables["email_outbox"], "last_error").type.length == 2000
+    document_version_constraint = _migration_constraint_by_name(
+        created_tables["application_consents"],
+        "ck_application_consents_document_version",
+    )
+    assert "btrim(document_version)" in str(document_version_constraint.sqltext)
 
 
 def _constraint_names(table: Any, constraint_type: type[Any]) -> set[str | None]:
@@ -148,6 +182,23 @@ def _has_fk_to(table: Any, target: str) -> bool:
     )
 
 
+def _fk_ondelete_values(table: Any, target: str) -> set[str | None]:
+    return {
+        element.ondelete
+        for constraint in table.constraints
+        if isinstance(constraint, ForeignKeyConstraint)
+        for element in constraint.elements
+        if element.target_fullname == target
+    }
+
+
+def _constraint_by_name(table: Any, name: str) -> CheckConstraint:
+    for constraint in table.constraints:
+        if isinstance(constraint, CheckConstraint) and constraint.name == name:
+            return constraint
+    raise AssertionError(f"Missing constraint {name}")
+
+
 def _load_migration_module() -> ModuleType:
     path = Path("alembic/versions/20260822_0002_candidate_intake.py")
     spec = spec_from_file_location("candidate_intake_migration", path)
@@ -165,6 +216,40 @@ def _all_column_names(created_tables: dict[str, tuple[Any, ...]]) -> set[str]:
         for item in columns_and_constraints
         if hasattr(item, "name")
     }
+
+
+def _migration_constraint_names(columns_and_constraints: tuple[Any, ...]) -> set[str | None]:
+    return {
+        item.name
+        for item in columns_and_constraints
+        if isinstance(item, CheckConstraint | UniqueConstraint)
+    }
+
+
+def _migration_fk_ondelete_values(columns_and_constraints: tuple[Any, ...]) -> set[str | None]:
+    return {
+        element.ondelete
+        for item in columns_and_constraints
+        if isinstance(item, ForeignKeyConstraint)
+        for element in item.elements
+    }
+
+
+def _migration_column(columns_and_constraints: tuple[Any, ...], name: str) -> Any:
+    for item in columns_and_constraints:
+        if getattr(item, "name", None) == name:
+            return item
+    raise AssertionError(f"Missing column {name}")
+
+
+def _migration_constraint_by_name(
+    columns_and_constraints: tuple[Any, ...],
+    name: str,
+) -> CheckConstraint:
+    for item in columns_and_constraints:
+        if isinstance(item, CheckConstraint) and item.name == name:
+            return item
+    raise AssertionError(f"Missing constraint {name}")
 
 
 def _noop(*_: Any, **__: Any) -> None:

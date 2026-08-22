@@ -29,6 +29,12 @@ def _sql_values(values: tuple[str, ...]) -> str:
 
 class CandidateApplication(TimestampMixin, Base):
     __tablename__ = "candidate_applications"
+    __table_args__ = (
+        CheckConstraint(
+            "photo_size_bytes IS NULL OR photo_size_bytes >= 0",
+            name="ck_candidate_applications_photo_size_non_negative",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -66,7 +72,10 @@ class ApplicationConsent(Base):
             f"consent_type IN ({_sql_values(CONSENT_TYPES)})",
             name="ck_application_consents_type",
         ),
-        CheckConstraint("length(document_version) > 0", name="ck_application_consents_document_version"),
+        CheckConstraint(
+            "length(btrim(document_version)) > 0",
+            name="ck_application_consents_document_version",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -120,7 +129,7 @@ class EmailOutbox(TimestampMixin, Base):
         nullable=False,
     )
     attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
-    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    last_error: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     application: Mapped[CandidateApplication] = relationship(

@@ -37,6 +37,10 @@ def upgrade() -> None:
         sa.Column("photo_size_bytes", sa.BigInteger(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.CheckConstraint(
+            "photo_size_bytes IS NULL OR photo_size_bytes >= 0",
+            name="ck_candidate_applications_photo_size_non_negative",
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
 
@@ -56,7 +60,10 @@ def upgrade() -> None:
             ")",
             name="ck_application_consents_type",
         ),
-        sa.CheckConstraint("length(document_version) > 0", name="ck_application_consents_document_version"),
+        sa.CheckConstraint(
+            "length(btrim(document_version)) > 0",
+            name="ck_application_consents_document_version",
+        ),
         sa.ForeignKeyConstraint(["application_id"], ["candidate_applications.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("application_id", "consent_type", name="uq_application_consents_type"),
@@ -70,7 +77,7 @@ def upgrade() -> None:
         sa.Column("event_type", sa.String(length=80), server_default="candidate_application_received", nullable=False),
         sa.Column("status", sa.String(length=40), server_default="pending", nullable=False),
         sa.Column("attempts", sa.Integer(), server_default="0", nullable=False),
-        sa.Column("last_error", sa.Text(), nullable=True),
+        sa.Column("last_error", sa.String(length=2000), nullable=True),
         sa.Column("sent_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
