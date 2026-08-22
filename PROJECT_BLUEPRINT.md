@@ -1,6 +1,6 @@
 # Project Blueprint: Astrea
 
-Current stage: Stage 0 - Initialization
+Current stage: Stage 1 - Architecture & Design System
 
 ## Purpose
 
@@ -67,43 +67,61 @@ Candidate application:
 - External CRM integrations
 - AI features
 
-## High-Level Architecture
+## Architecture Baseline
 
-Visitor/Admin
-   -> React UI
-   -> FastAPI
-   -> PostgreSQL
-   -> private file storage
+Detailed architecture: `.architecture/ARCHITECTURE.md`.
 
-FastAPI
-   -> email provider / SMTP
+High-level runtime:
 
-Public video pages
-   -> external video provider URLs, primarily RuTube
+```text
+Browser
+ -> Nginx / HTTPS
+     -> React frontend
+     -> /api/v1 -> FastAPI
+                    -> PostgreSQL
+                    -> public editorial media
+                    -> private candidate media
+                    -> persistent email outbox
+
+Email worker -> SMTP / email provider
+Video pages -> approved external provider URLs, primarily RuTube
+```
+
+Key decisions:
+- PostgreSQL is the source of truth for candidate applications.
+- Candidate data is persisted before email delivery is attempted.
+- Candidate photos are private and never served as an open static directory.
+- Email delivery uses a persistent outbox and retryable worker.
+- Admin authentication uses secure server-side/session-cookie semantics; no privileged token storage in browser localStorage.
+- External video embeds are provider/domain allowlisted.
+- MVP stays a modular monolith; no Redis/Celery/microservices unless later justified.
 
 ## Design Direction
 
-- Classical
-- Restrained
-- Status-oriented
-- Deliberately slightly traditional/old-fashioned is acceptable
-- No futuristic SaaS aesthetic
-- No excessive animation
+Detailed design baseline: `docs/DESIGN_SYSTEM.md`.
 
-Official brand palette source: client Jubilee Repository, pages 4-5.
+Brand source: client Jubilee Repository, especially pages 4-5.
 
-Palette references:
+Official palette references:
 - Pantone 485 C - red accent
 - Pantone Cool Gray 6 C
 - Pantone Cool Gray 10 C
 - Pantone Process Black C
 - White
 
-Do not invent HEX conversions yet. Web color tokens will be calibrated during the design-system stage.
+Working screen approximations are defined in `docs/DESIGN_SYSTEM.md`; Pantone remains the brand source of truth.
 
-Hero direction: Astrea standard on a dark background with subtle backlighting.
+Direction:
+- classical;
+- restrained;
+- status-oriented;
+- editorial/historical rather than SaaS;
+- slightly traditional/old-fashioned is acceptable;
+- no generic occult styling;
+- no excessive animation;
+- hero uses the client-supplied Astrea standard on a dark background with subtle backlighting.
 
-Typography direction: classical serif / antiqua feeling for headings, highly readable Cyrillic-compatible text face for body copy. Exact fonts are not decided yet.
+Typography direction: classical Cyrillic-capable serif/antiqua for headings plus a highly readable Cyrillic-capable body/UI face. Final families are selected during prototype review.
 
 ## Security
 
@@ -117,16 +135,17 @@ Security requirements:
 - Secrets only through environment variables
 - Backup policy
 - Server-side validation
-- Upload validation
+- Upload validation and image normalization
 - Anti-spam/rate limiting
+- Persistent consent records
 - No production write access for agents without explicit approval
+
+The `religion` field remains disabled until the client approves the legal wording and processing basis for special-category personal data.
 
 ## Current Next Steps
 
-1. Complete project bootstrap.
-2. Create Idea-stage project memory.
-3. Architecture stage.
-4. Design-system specification.
-5. Lovable design prototype.
-6. Review and approval.
-7. Application scaffolding.
+1. Review/merge Stage 1 architecture and design baseline.
+2. Prepare Lovable prompt for the public-site visual prototype.
+3. Build and review the Home page visual direction first.
+4. Extend the approved system to internal public pages, news, video and candidate form.
+5. Scaffold application code only after visual direction is accepted.
