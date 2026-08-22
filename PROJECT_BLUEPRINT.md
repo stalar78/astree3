@@ -1,6 +1,6 @@
 # Project Blueprint: Astrea
 
-Current stage: Stage 4.3 candidate intake and private media accepted; Stage 4.4 admin and operations next.
+Current stage: Stage 4.4A admin authentication accepted; Stage 4.4B candidate administration next.
 
 ## Purpose
 
@@ -198,6 +198,26 @@ Stage 4.3 was accepted after dedicated persistence, image-safety, public-ingress
 
 The feature remains intentionally inactive until approved legal documents, frontend integration and deployment/security review are complete.
 
+## Accepted Stage 4.4A Admin Authentication
+
+The backend now includes the closed administrator authentication boundary:
+- `admin_users` and `admin_sessions` persistence with migration `20260822_0003`;
+- Argon2id password hashing and verification;
+- explicit initial-admin bootstrap only, with no automatic startup creation;
+- opaque server-issued session and CSRF tokens with only SHA-256 digests stored in PostgreSQL;
+- `POST /api/v1/admin/auth/login`, `POST /api/v1/admin/auth/logout` and `GET /api/v1/admin/auth/me`;
+- server-side session lookup and inactive/expired-session rejection;
+- `HttpOnly`, `SameSite=Strict` session cookie, `Secure` outside local/dev/test;
+- independent browser-readable CSRF cookie with `X-CSRF-Token` validation for logout and future state-changing admin routes;
+- fixed session TTL and no sliding extension;
+- process-local login rate limiting keyed by direct client host, without IP persistence or direct trust of `X-Forwarded-For`;
+- dummy Argon2 verification on missing/inactive users to reduce account-enumeration timing differences;
+- password rehash support in the same transaction as new session creation;
+- generic validation/auth/database failures without password/session/CSRF echo;
+- no JWT, no auth token in `localStorage`, no admin registration and no complex RBAC.
+
+Stage 4.4A was accepted after separate persistence/cryptography/bootstrap and HTTP session/CSRF reviews. Final reported backend quality gate from `backend/`: 165 pytest tests passed and Ruff passed.
+
 ## Security
 
 Main security risk: candidate forms contain personal data and photos.
@@ -224,5 +244,8 @@ Stage 4 is split into small reviewed slices; see `.plans/STAGE_4_BACKEND_PLAN.md
 1. Stage 4.1 - accepted: FastAPI backend foundation, settings, PostgreSQL/SQLAlchemy integration, Alembic, health endpoint and backend tests.
 2. Stage 4.2 - accepted: structured public content persistence/read API for pages, news and approved RuTube videos.
 3. Stage 4.3 - accepted: guarded candidate intake persistence, private photo pipeline, transactional consent/outbox aggregate and disabled-by-default public ingress.
-4. Stage 4.4 - next: implement closed admin authentication, candidate/content administration, authenticated private-photo access and persistent email-outbox worker/retry handling.
-5. Before candidate intake activation: approve legal documents/version identifiers, integrate the frontend form, and complete deployment request-body/client-IP security configuration.
+4. Stage 4.4A - accepted: closed admin identity/bootstrap, Argon2id passwords, server-side sessions, secure cookies, CSRF protection and auth dependencies.
+5. Stage 4.4B - next: authenticated candidate list/detail/status workflow and private-photo access.
+6. Stage 4.4C - authenticated administration for news, video and approved editable page content.
+7. Stage 4.4D - persistent email-outbox worker/retry delivery.
+8. Before candidate intake activation: approve legal documents/version identifiers, integrate the frontend form, and complete deployment request-body/client-IP security configuration.
