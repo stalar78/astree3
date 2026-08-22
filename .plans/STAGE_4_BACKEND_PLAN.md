@@ -1,6 +1,6 @@
 # Stage 4 Backend Plan
 
-Status: in progress. Stage 4.1, Stage 4.2 and Stage 4.3 accepted; Stage 4.4 is next.
+Status: in progress. Stage 4.1, Stage 4.2, Stage 4.3 and Stage 4.4A accepted; Stage 4.4B is next.
 
 Stage 4 is intentionally split into small reviewed slices. The candidate workflow is high-risk because it handles personal data and photographs; it must not be implemented as one oversized change.
 
@@ -121,17 +121,63 @@ Activation remains deliberately deferred until approved privacy/consent document
 
 ## Stage 4.4 - Admin and operations
 
+Status: in progress. Stage 4.4A accepted; Stage 4.4B is next.
+
+### Stage 4.4A - Admin authentication
+
+Status: accepted.
+
+Implemented in reviewed sub-slices:
+- `admin_users` and `admin_sessions` persistence with Alembic migration `20260822_0003`;
+- Argon2id password hashing and verification;
+- explicit one-time initial-admin bootstrap with no startup side effects;
+- opaque high-entropy session and CSRF tokens with only SHA-256 digests persisted;
+- server-side session lookup with inactive/expired-session rejection;
+- `POST /api/v1/admin/auth/login`;
+- `POST /api/v1/admin/auth/logout`;
+- `GET /api/v1/admin/auth/me`;
+- `HttpOnly` session cookie, `SameSite=Strict`, `Secure` outside local/dev/test;
+- separate browser-readable CSRF cookie and `X-CSRF-Token` verification;
+- CSRF-protected logout and reusable authenticated-admin/CSRF dependencies for later admin writes;
+- fixed session TTL with no sliding extension;
+- app-scoped process-local login rate limiting without IP persistence or direct trust of `X-Forwarded-For`;
+- dummy Argon2 verification for missing/inactive users to reduce username-enumeration timing differences;
+- password rehash support in the same transaction as session creation;
+- generic auth validation/credential/session/database errors without credential/token echo;
+- no JWT, no `localStorage` authentication, no public/admin registration and no complex RBAC.
+
+Final reported quality gate from `backend/`:
+- 165 pytest tests passed;
+- Ruff passed.
+
+### Stage 4.4B - Candidate administration
+
 Status: next.
 
 Implement:
-- closed admin authentication;
-- secure password hashing;
-- HttpOnly/Secure session-cookie model in production;
-- CSRF protection for state-changing authenticated requests as required;
-- candidate list/detail/status workflow;
+- authenticated candidate list;
+- authenticated candidate detail;
+- constrained candidate status workflow;
 - authenticated private-photo access;
-- news/video/page administration;
-- persistent email-outbox worker/retry handling.
+- no public candidate data/photo routes;
+- reuse Stage 4.4A auth and CSRF dependencies for state-changing operations.
+
+### Stage 4.4C - Content administration
+
+Implement:
+- authenticated CRUD for news;
+- authenticated CRUD for external videos;
+- constrained editing of approved page content;
+- no arbitrary page-builder/layout mutation.
+
+### Stage 4.4D - Email outbox operations
+
+Implement:
+- persistent outbox worker;
+- SMTP/provider delivery;
+- retry/status transitions;
+- bounded error recording without secrets/PII leakage;
+- no Redis/Celery unless later justified.
 
 No public registration and no complex RBAC in MVP.
 
