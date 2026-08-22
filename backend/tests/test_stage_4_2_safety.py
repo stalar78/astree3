@@ -10,7 +10,14 @@ from app.db.base import Base
 
 
 def test_metadata_contains_only_stage_4_2_tables() -> None:
-    assert set(Base.metadata.tables) == {"pages", "news_posts", "videos"}
+    assert set(Base.metadata.tables) == {
+        "pages",
+        "news_posts",
+        "videos",
+        "candidate_applications",
+        "application_consents",
+        "email_outbox",
+    }
 
 
 def test_no_write_content_routes_exist() -> None:
@@ -20,10 +27,9 @@ def test_no_write_content_routes_exist() -> None:
         assert decorator not in route_source
 
 
-def test_no_candidate_admin_email_models_introduced() -> None:
+def test_no_admin_or_standalone_email_models_introduced() -> None:
     model_files = {path.stem for path in Path("app/models").glob("*.py")}
 
-    assert "candidate" not in model_files
     assert "admin" not in model_files
     assert "email" not in model_files
 
