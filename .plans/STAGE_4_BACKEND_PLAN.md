@@ -1,27 +1,28 @@
 # Stage 4 Backend Plan
 
-Status: ready to start after Stage 3 public frontend acceptance.
+Status: in progress. Stage 4.1 accepted; Stage 4.2 is next.
 
 Stage 4 is intentionally split into small reviewed slices. The candidate workflow is high-risk because it handles personal data and photographs; it must not be implemented as one oversized change.
 
 ## Stage 4.1 - Backend foundation
 
+Status: accepted.
+
 Goal: establish a production-oriented FastAPI/PostgreSQL base without domain-feature sprawl.
 
-Implement:
+Implemented:
 - `backend/` application package;
 - FastAPI app factory / application entrypoint;
 - `/api/v1/health` endpoint;
 - environment-based settings with no committed secrets;
-- SQLAlchemy 2.x PostgreSQL integration;
+- SQLAlchemy 2.x PostgreSQL integration via psycopg 3;
+- plain `postgresql://` DSN normalization to the psycopg 3 dialect;
 - session/dependency management;
 - Alembic configuration and empty baseline migration capability;
-- consistent API error structure where appropriate;
 - backend test setup with pytest;
-- development CORS only through explicit configuration;
-- dependency lock/requirements files appropriate to the chosen Python workflow.
+- Ruff quality gate.
 
-Do not implement yet:
+Not implemented in this slice:
 - candidate submission;
 - uploads;
 - email sending/outbox processing;
@@ -30,15 +31,17 @@ Do not implement yet:
 - Redis/Celery;
 - production credentials.
 
-Acceptance:
-- application starts locally;
+Acceptance completed:
+- application foundation imports/creates successfully under test configuration;
 - health endpoint passes;
-- database connection/configuration is testable without hard-coded credentials;
-- Alembic can load project metadata and create/apply migrations;
-- tests pass;
+- database configuration is environment-driven and validated;
+- Alembic loads project metadata without domain tables or hard-coded credentials;
+- pytest and Ruff checks pass;
 - no secrets or generated local data committed.
 
 ## Stage 4.2 - Public content domain
+
+Status: next.
 
 Implement structured persistence/API for:
 - pages;
