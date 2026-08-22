@@ -1,6 +1,6 @@
 # Project Blueprint: Astrea
 
-Current stage: Stage 4.4A admin authentication accepted; Stage 4.4B candidate administration next.
+Current stage: Stage 4.4B1 candidate administration backend accepted; Stage 4.4B2 protected candidate admin UI next.
 
 ## Purpose
 
@@ -218,6 +218,22 @@ The backend now includes the closed administrator authentication boundary:
 
 Stage 4.4A was accepted after separate persistence/cryptography/bootstrap and HTTP session/CSRF reviews. Final reported backend quality gate from `backend/`: 165 pytest tests passed and Ruff passed.
 
+## Accepted Stage 4.4B1 Candidate Administration Backend
+
+The backend now includes the protected candidate-administration API:
+- operational candidate statuses `new`, `in_review`, `contacted`, `closed`, `archived`;
+- migration `20260822_0004` with required/defaulted/indexed/constrained candidate status;
+- authenticated candidate list with bounded pagination, deterministic newest-first ordering and optional status filtering;
+- summary-only list responses and a separate authenticated detail boundary for full review fields and immutable consent evidence;
+- authenticated private-photo access addressed only through candidate application ID;
+- private storage-key validation, root confinement, regular-file checks and final-symlink rejection where the platform supports it;
+- server-side JPEG media and recorded-size integrity checks before photo delivery;
+- sensitive admin responses marked `private, no-store`, with `nosniff` on photo responses;
+- CSRF-protected candidate status updates with generic persistence failures and rollback;
+- no candidate deletion/editing/export/bulk operations, no public candidate read/photo aliases and no exposure of private storage keys or filesystem paths.
+
+Stage 4.4B1 was accepted after candidate-PII/private-media/security review. Final reported backend quality gate from `backend/`: 194 pytest tests passed, 1 platform-dependent symlink test skipped, and Ruff passed.
+
 ## Security
 
 Main security risk: candidate forms contain personal data and photos.
@@ -245,7 +261,8 @@ Stage 4 is split into small reviewed slices; see `.plans/STAGE_4_BACKEND_PLAN.md
 2. Stage 4.2 - accepted: structured public content persistence/read API for pages, news and approved RuTube videos.
 3. Stage 4.3 - accepted: guarded candidate intake persistence, private photo pipeline, transactional consent/outbox aggregate and disabled-by-default public ingress.
 4. Stage 4.4A - accepted: closed admin identity/bootstrap, Argon2id passwords, server-side sessions, secure cookies, CSRF protection and auth dependencies.
-5. Stage 4.4B - next: authenticated candidate list/detail/status workflow and private-photo access.
-6. Stage 4.4C - authenticated administration for news, video and approved editable page content.
-7. Stage 4.4D - persistent email-outbox worker/retry delivery.
-8. Before candidate intake activation: approve legal documents/version identifiers, integrate the frontend form, and complete deployment request-body/client-IP security configuration.
+5. Stage 4.4B1 - accepted: authenticated candidate list/detail/status API and private-photo access.
+6. Stage 4.4B2 - next: protected admin candidate UI using the accepted auth, private-photo and CSRF APIs.
+7. Stage 4.4C - authenticated administration for news, video and approved editable page content.
+8. Stage 4.4D - persistent email-outbox worker/retry delivery.
+9. Before candidate intake activation: approve legal documents/version identifiers, integrate the public frontend form, and complete deployment request-body/client-IP security configuration.

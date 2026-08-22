@@ -1,6 +1,6 @@
 # Stage 4 Backend Plan
 
-Status: in progress. Stage 4.1, Stage 4.2, Stage 4.3 and Stage 4.4A accepted; Stage 4.4B is next.
+Status: in progress. Stage 4.1, Stage 4.2, Stage 4.3, Stage 4.4A and Stage 4.4B1 accepted; Stage 4.4B2 is next.
 
 Stage 4 is intentionally split into small reviewed slices. The candidate workflow is high-risk because it handles personal data and photographs; it must not be implemented as one oversized change.
 
@@ -121,7 +121,7 @@ Activation remains deliberately deferred until approved privacy/consent document
 
 ## Stage 4.4 - Admin and operations
 
-Status: in progress. Stage 4.4A accepted; Stage 4.4B is next.
+Status: in progress. Stage 4.4A and Stage 4.4B1 accepted; Stage 4.4B2 is next.
 
 ### Stage 4.4A - Admin authentication
 
@@ -152,15 +152,40 @@ Final reported quality gate from `backend/`:
 
 ### Stage 4.4B - Candidate administration
 
+Status: in progress. Stage 4.4B1 backend accepted; Stage 4.4B2 admin UI is next.
+
+#### Stage 4.4B1 - Candidate administration backend
+
+Status: accepted.
+
+Implemented:
+- neutral operational candidate statuses: `new`, `in_review`, `contacted`, `closed`, `archived`;
+- Alembic migration `20260822_0004` adding constrained/indexed candidate status with existing rows defaulted to `new`;
+- authenticated `GET /api/v1/admin/candidates` with bounded pagination, status filtering and summary-only PII exposure;
+- authenticated candidate detail with stored consent evidence and no outbox/internal storage disclosure;
+- authenticated private candidate-photo endpoint addressed only by candidate application ID;
+- private storage read through the existing storage abstraction with strict generated-key validation, traversal confinement, regular-file checks and final-symlink rejection where supported;
+- JPEG media/recorded-size integrity checks before serving a private photo;
+- `Cache-Control: private, no-store` and `X-Content-Type-Options: nosniff` on sensitive media responses;
+- CSRF-protected candidate status updates with one commit and generic rollback/error behavior;
+- no candidate deletion, editing, export, notes, bulk operations, public candidate reads or public photo aliases.
+
+Final reported quality gate from `backend/`:
+- 194 pytest tests passed, 1 platform-dependent symlink test skipped;
+- Ruff passed.
+
+#### Stage 4.4B2 - Candidate administration UI
+
 Status: next.
 
 Implement:
-- authenticated candidate list;
-- authenticated candidate detail;
-- constrained candidate status workflow;
-- authenticated private-photo access;
-- no public candidate data/photo routes;
-- reuse Stage 4.4A auth and CSRF dependencies for state-changing operations.
+- protected admin shell using the accepted Stage 4.4A session-cookie authentication;
+- candidate list with pagination/status filtering;
+- candidate detail view with PII minimization appropriate to the task;
+- private-photo viewing only through the authenticated admin endpoint;
+- status controls using the accepted CSRF flow;
+- authentication-state handling for 401/403/503 without exposing sensitive details;
+- no candidate deletion/editing/export/bulk operations in MVP.
 
 ### Stage 4.4C - Content administration
 

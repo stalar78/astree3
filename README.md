@@ -2,9 +2,9 @@
 
 Astrea is the new official website for D.L. Astrea No. 3 in Saint Petersburg, replacing and evolving the existing mason-astrea.ru website.
 
-Current stage: Stage 4.4A admin authentication accepted; Stage 4.4B candidate administration is next.
+Current stage: Stage 4.4B1 candidate administration backend accepted; Stage 4.4B2 admin candidate UI is next.
 
-The approved public design is documented in `docs/STAGE_2_DESIGN_FREEZE.md`. The production public frontend lives in `frontend/` and was accepted after visual and technical review. The backend foundation, public content domain, guarded candidate-intake pipeline and closed admin authentication live in `backend/`.
+The approved public design is documented in `docs/STAGE_2_DESIGN_FREEZE.md`. The production public frontend lives in `frontend/` and was accepted after visual and technical review. The backend foundation, public content domain, guarded candidate-intake pipeline, closed admin authentication and candidate administration API live in `backend/`.
 
 ## Application Scope
 
@@ -40,11 +40,13 @@ Infrastructure: Linux VPS + Docker Compose + Nginx + SSL
 
 ## Current Implementation
 
-- `frontend/` - accepted production public frontend; candidate submission UI remains intentionally inactive pending legal approval and integration
-- `backend/` - accepted FastAPI/PostgreSQL foundation, Stage 4.2 public content API, Stage 4.3 guarded candidate-intake/private-photo pipeline, and Stage 4.4A closed server-side admin authentication
+- `frontend/` - accepted production public frontend; candidate submission UI remains intentionally inactive pending legal approval and integration; protected admin UI is not implemented yet
+- `backend/` - accepted FastAPI/PostgreSQL foundation, Stage 4.2 public content API, Stage 4.3 guarded candidate-intake/private-photo pipeline, Stage 4.4A closed server-side admin authentication, and Stage 4.4B1 authenticated candidate administration/private-photo API
 - `infra/` - deployment/runtime configuration target
 
 Admin authentication uses Argon2id passwords, explicit initial-admin bootstrap, server-side opaque sessions, `HttpOnly` session cookies, separate CSRF tokens and process-local login rate limiting. There is no public/admin registration, JWT or browser `localStorage` authentication.
+
+Candidate administration is available only under authenticated `/api/v1/admin/candidates` routes. Candidate photo storage keys and private filesystem paths are not exposed by the API, and status mutations require CSRF protection.
 
 Candidate intake is disabled by default. `CANDIDATE_INTAKE_ENABLED` must remain false until the approved privacy/consent documents, server-controlled legal version identifiers, frontend wiring and deployment/security review are complete.
 
