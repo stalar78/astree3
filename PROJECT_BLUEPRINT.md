@@ -1,6 +1,6 @@
 # Project Blueprint: Astrea
 
-Current stage: Stage 3 public frontend accepted; Stage 4 backend foundation next.
+Current stage: Stage 4.1 backend foundation accepted; Stage 4.2 public content domain next.
 
 ## Purpose
 
@@ -141,6 +141,19 @@ The production public frontend is implemented in `frontend/` with:
 
 Stage 3 was merged only after build, lint, typecheck and visual-structure review.
 
+## Accepted Stage 4.1 Backend Foundation
+
+The production backend foundation is implemented in `backend/` with:
+- FastAPI application factory and `/api/v1/health`;
+- environment-based settings through `pydantic-settings`;
+- PostgreSQL DSN validation and explicit psycopg 3 URL normalization;
+- SQLAlchemy 2.x engine/session foundation;
+- Alembic metadata/configuration without domain tables;
+- pytest backend tests;
+- Ruff quality gate.
+
+Stage 4.1 contains no candidate intake, uploads, email, admin authentication or content CRUD.
+
 ## Security
 
 Main security risk: candidate forms contain personal data and photos.
@@ -164,8 +177,8 @@ The `religion` field remains disabled until the client approves the legal wordin
 
 Stage 4 is split into small reviewed slices; see `.plans/STAGE_4_BACKEND_PLAN.md`.
 
-1. Stage 4.1 - create the FastAPI backend foundation, settings, PostgreSQL/SQLAlchemy integration, Alembic migrations, health endpoint and backend tests.
-2. Stage 4.2 - implement structured public content models/API for pages, news and external videos.
+1. Stage 4.1 - accepted: FastAPI backend foundation, settings, PostgreSQL/SQLAlchemy integration, Alembic, health endpoint and backend tests.
+2. Stage 4.2 - next: implement structured public content models/API for pages, news and external videos.
 3. Stage 4.3 - implement the high-risk candidate intake transaction: authoritative validation, consent persistence, private image handling and persistent email outbox.
 4. Stage 4.4 - implement closed admin authentication and candidate/content administration.
 5. Integrate the accepted frontend with backend APIs only after each backend slice passes review.
