@@ -1,6 +1,6 @@
 # Stage 4 Backend Plan
 
-Status: in progress. Stage 4.1 accepted; Stage 4.2 is next.
+Status: in progress. Stage 4.1 and Stage 4.2 accepted; Stage 4.3 is next.
 
 Stage 4 is intentionally split into small reviewed slices. The candidate workflow is high-risk because it handles personal data and photographs; it must not be implemented as one oversized change.
 
@@ -41,22 +41,31 @@ Acceptance completed:
 
 ## Stage 4.2 - Public content domain
 
-Status: next.
+Status: accepted.
 
-Implement structured persistence/API for:
-- pages;
-- news posts;
-- external videos.
+Implemented:
+- structured `pages`, `news_posts` and `videos` persistence;
+- one Alembic migration creating only those three tables;
+- published-only public read endpoints under `/api/v1`;
+- stable validated news slugs and page keys;
+- bounded `limit`/`offset` listing for news and videos;
+- deterministic published-content ordering;
+- RuTube-only external video validation with HTTPS, canonical 32-hex video IDs and derived embed URLs;
+- no arbitrary iframe/embed HTML storage;
+- provider consistency enforced in both the SQLAlchemy model and database constraint;
+- public response schemas separated from persistence models.
 
-Requirements:
-- draft/published state where applicable;
-- stable news slugs;
-- approved external video URLs only;
-- provider/domain allowlist, initially focused on RuTube;
-- no arbitrary iframe HTML;
-- public read endpoints separated from future admin writes.
+Acceptance completed:
+- draft/unpublished content is not returned publicly;
+- no public content write routes exist;
+- `Base.metadata` contains only `pages`, `news_posts`, `videos` for this domain slice;
+- the video provider constraint is placed on `videos`, with regression coverage;
+- no candidate/admin/email models or frontend changes were introduced;
+- final reported checks: 54 pytest tests passed and Ruff passed.
 
 ## Stage 4.3 - Candidate intake and private media
+
+Status: next.
 
 Treat as a security-sensitive transaction.
 
