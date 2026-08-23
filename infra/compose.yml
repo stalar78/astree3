@@ -17,14 +17,25 @@ x-backend-env: &backend-env
   TMPDIR: /tmp
   XDG_CACHE_HOME: /tmp/.cache
 
+x-db-env: &db-env
+  POSTGRES_DB: ${POSTGRES_DB:-astrea}
+  POSTGRES_USER: ${POSTGRES_USER:-astrea}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+
+x-ops-env: &ops-env
+  <<: *db-env
+  ASTREA_BACKUP_ROOT: /backups
+  PRIVATE_MEDIA_ROOT: /var/lib/astrea/private
+  HOME: /tmp
+  TMPDIR: /tmp
+  XDG_CACHE_HOME: /tmp/.cache
+
 services:
   db:
     image: postgres:16.4-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-astrea}
-      POSTGRES_USER: ${POSTGRES_USER:-astrea}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      <<: *db-env
     volumes:
       - astrea-postgres-data:/var/lib/postgresql/data
     networks:
@@ -35,6 +46,67 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+
+  backup:
+    build:
+      context: ./ops
+      dockerfile: Dockerfile
+    profiles:
+      - ops
+    environment:
+      <<: *ops-env
+      ASTREA_BACKUP_ID: ${ASTREA_BACKUP_ID:-}
+      ASTREA_BACKUP_QUIESCED: ${ASTREA_BACKUP_QUIESCED:-}
+    volumes:
+      - ${ASTREA_BACKUP_ROOT:-../backups}:/backups
+      - astrea-private-media:/var/lib/astrea/private:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - data
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /var/tmp:rw,noexec,nosuid,size=16m
+    user: "10001:10001"
+    entrypoint: ["/usr/local/bin/backup.sh"]
+    restart: "no"
+
+  restore:
+    build:
+      context: ./ops
+      dockerfile: Dockerfile
+    profiles:
+      - ops
+    environment:
+      <<: *ops-env
+      ASTREA_RESTORE_CONFIRM: ${ASTREA_RESTORE_CONFIRM:-}
+      ASTREA_RESTORE_QUIESCED: ${ASTREA_RESTORE_QUIESCED:-}
+      ASTREA_BACKUP_ID: ${ASTREA_BACKUP_ID:-}
+    volumes:
+      - ${ASTREA_BACKUP_ROOT:-../backups}:/backups:ro
+      - astrea-private-media:/var/lib/astrea/private
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - data
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /var/tmp:rw,noexec,nosuid,size=16m
+    user: "10001:10001"
+    entrypoint: ["/usr/local/bin/restore.sh"]
+    restart: "no"
 
   migrate:
     build: *backend-build
