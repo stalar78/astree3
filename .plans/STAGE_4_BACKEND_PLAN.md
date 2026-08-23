@@ -244,11 +244,12 @@ Implemented:
 - RuTube video list/create/edit/delete with no provider selector, iframe editor, embed HTML or automatic external preview;
 - predefined page list/edit limited to existing immutable keys and title/content/publication state, with no create/delete controls or page-builder surface;
 - accepted same-origin session-cookie authentication and exact CSRF cookie/header flow reused for every write;
-- `401`, CSRF `403` and temporary `503`/network failures handled distinctly without false mutation/logout success;
-- retry controls for temporary session/list failures;
-- generic error presentation without raw server/proxy payload exposure;
-- development-only Vite `/api` proxy while production remains same-origin;
-- no candidate deletion/editing/export/bulk actions and no public link advertising admin access.
+- `401` redirects to login while write `403` remains in the editor with the accepted session-security message;
+- mutation errors keep current in-memory form values visible/editable and are never automatically retried;
+- explicit retry controls for temporary/network list and detail GET failures;
+- generic user-facing mutation/load errors without displaying raw backend response detail;
+- unpublished editorial draft state kept only in React component memory: no `localStorage`, `sessionStorage`, IndexedDB, cookies, URL content payloads, console logging or autosave;
+- no public-site changes and no new frontend dependencies.
 
 Final reported quality gate from `frontend/`:
 - `npm run typecheck` passed;
