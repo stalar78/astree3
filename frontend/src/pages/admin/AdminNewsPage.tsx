@@ -33,6 +33,15 @@ function ContentListPage({ entity }: { entity: 'news' | 'video' }) {
   }, [entity]);
 
   useEffect(() => {
+    const canonical = new URLSearchParams();
+    if (published) canonical.set('published', published);
+    if (offset > 0) canonical.set('offset', String(offset));
+    if (searchParams.toString() !== canonical.toString()) {
+      setSearchParams(canonical, { replace: true });
+    }
+  }, [offset, published, searchParams, setSearchParams]);
+
+  useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
     setError(null);
@@ -161,5 +170,7 @@ function normalizePublished(value: string | null): PublishedFilter {
 }
 
 function normalizeOffset(value: string | null): number {
-  return value && /^\d+$/.test(value) ? Number(value) : 0;
+  if (!value || !/^\d+$/.test(value)) return 0;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : 0;
 }

@@ -48,10 +48,13 @@ function NewsEditor({ create, id }: { create: boolean; id: number | null }) {
   const [baseline, setBaseline] = useState<NewsPayload>(emptyNews());
   const [item, setItem] = useState<AdminNewsDetail | null>(null);
   const [loading, setLoading] = useState(!create);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadErrorStatus, setLoadErrorStatus] = useState<number | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [deleteArmed, setDeleteArmed] = useState(false);
+  const [loadRetryIndex, setLoadRetryIndex] = useState(0);
 
   useEffect(() => {
     document.title = `${create ? 'Новая новость' : 'Редактирование новости'} | Astrea Admin`;
@@ -61,12 +64,15 @@ function NewsEditor({ create, id }: { create: boolean; id: number | null }) {
     if (create) return;
     if (!id) {
       setLoading(false);
-      setError('Запрос не прошёл проверку.');
+      setLoadError('Запрос не прошёл проверку.');
+      setLoadErrorStatus(422);
       return;
     }
     const controller = new AbortController();
     setLoading(true);
-    setError(null);
+    setLoadError(null);
+    setLoadErrorStatus(null);
+    setMutationError(null);
     void getAdminNews(id, controller.signal)
       .then((value) => {
         const next = newsPayload(value);
@@ -80,18 +86,19 @@ function NewsEditor({ create, id }: { create: boolean; id: number | null }) {
           navigate('/admin/login', { replace: true, state: { from: `${location.pathname}${location.search}` } });
           return;
         }
-        setError(formatContentLoadError(caughtError, 'detail'));
+        setLoadError(formatContentLoadError(caughtError, 'detail'));
+        setLoadErrorStatus(caughtError instanceof AdminApiError ? caughtError.status : null);
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [create, id, location.pathname, location.search, navigate]);
+  }, [create, id, loadRetryIndex, location.pathname, location.search, navigate]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
-    setError(null);
+    setMutationError(null);
     setSaved(false);
     try {
       const response = create ? await createAdminNews(form) : await updateAdminNews(id!, changed(form, baseline));
@@ -106,7 +113,7 @@ function NewsEditor({ create, id }: { create: boolean; id: number | null }) {
         navigate('/admin/login', { replace: true, state: { from: `${location.pathname}${location.search}` } });
         return;
       }
-      setError(formatContentMutationError(caughtError, 'news', create ? 'create' : 'update'));
+      setMutationError(formatContentMutationError(caughtError, 'news', create ? 'create' : 'update'));
     } finally {
       setBusy(false);
     }
@@ -115,7 +122,7 @@ function NewsEditor({ create, id }: { create: boolean; id: number | null }) {
   async function remove() {
     if (!id) return;
     setBusy(true);
-    setError(null);
+    setMutationError(null);
     try {
       await deleteAdminNews(id);
       navigate('/admin/news', { replace: true });
@@ -124,7 +131,7 @@ function NewsEditor({ create, id }: { create: boolean; id: number | null }) {
         navigate('/admin/login', { replace: true, state: { from: `${location.pathname}${location.search}` } });
         return;
       }
-      setError(formatContentMutationError(caughtError, 'news', 'delete'));
+      setMutationError(formatContentMutationError(caughtError, 'news', 'delete'));
       setDeleteArmed(false);
     } finally {
       setBusy(false);
@@ -132,35 +139,37 @@ function NewsEditor({ create, id }: { create: boolean; id: number | null }) {
   }
 
   return (
-    <EditorLayout title={create ? 'Новая новость' : 'Редактирование новости'} backTo="/admin/news" loading={loading} error={error}>
+    <EditorLayout
+      title={create ? 'Новая новость' : 'Редактирование новости'}
+      backTo="/admin/news"
+      loading={loading}
+      loadError={loadError}
+      loadErrorStatus={loadErrorStatus}
+      onRetry={create ? undefined : () => setLoadRetryIndex((value) => value + 1)}
+      mutationError={mutationError}
+    >
       <form onSubmit={save} className="space-y-7">
         <AdminField label="Заголовок" required>
-          <AdminInput required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          <AdminInput required value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
         </AdminField>
         <AdminField label="Slug" required help="Строчные латинские буквы, цифры и дефисы.">
-          <AdminInput required value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
+          <AdminInput required value={form.slug} onChange={(event) => setForm({ ...form, slug: event.target.value })} />
         </AdminField>
         <AdminField label="Анонс" required>
-          <AdminTextarea required value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} />
+          <AdminTextarea required value={form.excerpt} onChange={(event) => setForm({ ...form, excerpt: event.target.value })} />
         </AdminField>
         <AdminField label="Текст" required>
-          <AdminTextarea required className="min-h-[22rem]" value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} />
+          <AdminTextarea required className="min-h-[22rem]" value={form.body} onChange={(event) => setForm({ ...form, body: event.target.value })} />
         </AdminField>
-        <AdminField label="URL изображения" help="Сохраняется только URL. Файл не загружается.">
-          <AdminInput type="url" value={form.image_url ?? ''} onChange={(e) => setForm({ ...form, image_url: e.target.value || null })} />
+        <AdminField label="URL изображения" help="HTTPS-ссылка или путь сайта, начинающийся с /.">
+          <AdminInput type="text" inputMode="url" value={form.image_url ?? ''} onChange={(event) => setForm({ ...form, image_url: event.target.value || null })} />
         </AdminField>
         <PublicationToggle value={form.is_published} onChange={(value) => setForm({ ...form, is_published: value })} />
         <EditorActions busy={busy} saved={saved} dirty={create || JSON.stringify(form) !== JSON.stringify(baseline)} />
       </form>
       {!create && id ? (
         <div className="pt-6">
-          <AdminDeleteControl
-            armed={deleteArmed}
-            busy={busy}
-            onArm={() => setDeleteArmed(true)}
-            onCancel={() => setDeleteArmed(false)}
-            onConfirm={remove}
-          />
+          <AdminDeleteControl armed={deleteArmed} busy={busy} onArm={() => setDeleteArmed(true)} onCancel={() => setDeleteArmed(false)} onConfirm={remove} />
         </div>
       ) : null}
       {item ? <AdminMeta items={meta(item)} /> : null}
@@ -175,10 +184,13 @@ function VideoEditor({ create, id }: { create: boolean; id: number | null }) {
   const [baseline, setBaseline] = useState<VideoPayload>(emptyVideo());
   const [item, setItem] = useState<AdminVideoDetail | null>(null);
   const [loading, setLoading] = useState(!create);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadErrorStatus, setLoadErrorStatus] = useState<number | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [deleteArmed, setDeleteArmed] = useState(false);
+  const [loadRetryIndex, setLoadRetryIndex] = useState(0);
 
   useEffect(() => {
     document.title = `${create ? 'Новое видео' : 'Редактирование видео'} | Astrea Admin`;
@@ -188,12 +200,15 @@ function VideoEditor({ create, id }: { create: boolean; id: number | null }) {
     if (create) return;
     if (!id) {
       setLoading(false);
-      setError('Запрос не прошёл проверку.');
+      setLoadError('Запрос не прошёл проверку.');
+      setLoadErrorStatus(422);
       return;
     }
     const controller = new AbortController();
     setLoading(true);
-    setError(null);
+    setLoadError(null);
+    setLoadErrorStatus(null);
+    setMutationError(null);
     void getAdminVideo(id, controller.signal)
       .then((value) => {
         const next = videoPayload(value);
@@ -207,18 +222,19 @@ function VideoEditor({ create, id }: { create: boolean; id: number | null }) {
           navigate('/admin/login', { replace: true, state: { from: `${location.pathname}${location.search}` } });
           return;
         }
-        setError(formatContentLoadError(caughtError, 'detail'));
+        setLoadError(formatContentLoadError(caughtError, 'detail'));
+        setLoadErrorStatus(caughtError instanceof AdminApiError ? caughtError.status : null);
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [create, id, location.pathname, location.search, navigate]);
+  }, [create, id, loadRetryIndex, location.pathname, location.search, navigate]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
-    setError(null);
+    setMutationError(null);
     setSaved(false);
     try {
       const response = create ? await createAdminVideo(form) : await updateAdminVideo(id!, changed(form, baseline));
@@ -233,7 +249,7 @@ function VideoEditor({ create, id }: { create: boolean; id: number | null }) {
         navigate('/admin/login', { replace: true, state: { from: `${location.pathname}${location.search}` } });
         return;
       }
-      setError(formatContentMutationError(caughtError, 'video', create ? 'create' : 'update'));
+      setMutationError(formatContentMutationError(caughtError, 'video', create ? 'create' : 'update'));
     } finally {
       setBusy(false);
     }
@@ -242,7 +258,7 @@ function VideoEditor({ create, id }: { create: boolean; id: number | null }) {
   async function remove() {
     if (!id) return;
     setBusy(true);
-    setError(null);
+    setMutationError(null);
     try {
       await deleteAdminVideo(id);
       navigate('/admin/videos', { replace: true });
@@ -251,7 +267,7 @@ function VideoEditor({ create, id }: { create: boolean; id: number | null }) {
         navigate('/admin/login', { replace: true, state: { from: `${location.pathname}${location.search}` } });
         return;
       }
-      setError(formatContentMutationError(caughtError, 'video', 'delete'));
+      setMutationError(formatContentMutationError(caughtError, 'video', 'delete'));
       setDeleteArmed(false);
     } finally {
       setBusy(false);
@@ -259,29 +275,31 @@ function VideoEditor({ create, id }: { create: boolean; id: number | null }) {
   }
 
   return (
-    <EditorLayout title={create ? 'Новое видео' : 'Редактирование видео'} backTo="/admin/videos" loading={loading} error={error}>
+    <EditorLayout
+      title={create ? 'Новое видео' : 'Редактирование видео'}
+      backTo="/admin/videos"
+      loading={loading}
+      loadError={loadError}
+      loadErrorStatus={loadErrorStatus}
+      onRetry={create ? undefined : () => setLoadRetryIndex((value) => value + 1)}
+      mutationError={mutationError}
+    >
       <form onSubmit={save} className="space-y-7">
         <AdminField label="Заголовок" required>
-          <AdminInput required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          <AdminInput required value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
         </AdminField>
         <AdminField label="Описание" required>
-          <AdminTextarea required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          <AdminTextarea required value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
         </AdminField>
         <AdminField label="Ссылка RuTube" required help="Используйте ссылку на видео RuTube.">
-          <AdminInput required type="url" value={form.source_url} onChange={(e) => setForm({ ...form, source_url: e.target.value })} />
+          <AdminInput required type="url" value={form.source_url} onChange={(event) => setForm({ ...form, source_url: event.target.value })} />
         </AdminField>
         <PublicationToggle value={form.is_published} onChange={(value) => setForm({ ...form, is_published: value })} />
         <EditorActions busy={busy} saved={saved} dirty={create || JSON.stringify(form) !== JSON.stringify(baseline)} />
       </form>
       {!create && id ? (
         <div className="pt-6">
-          <AdminDeleteControl
-            armed={deleteArmed}
-            busy={busy}
-            onArm={() => setDeleteArmed(true)}
-            onCancel={() => setDeleteArmed(false)}
-            onConfirm={remove}
-          />
+          <AdminDeleteControl armed={deleteArmed} busy={busy} onArm={() => setDeleteArmed(true)} onCancel={() => setDeleteArmed(false)} onConfirm={remove} />
         </div>
       ) : null}
       {item ? <AdminMeta items={meta(item)} /> : null}
@@ -296,9 +314,12 @@ function PageEditor({ pageKey }: { pageKey: string }) {
   const [baseline, setBaseline] = useState<PagePayload>(form);
   const [item, setItem] = useState<AdminPageDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadErrorStatus, setLoadErrorStatus] = useState<number | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [loadRetryIndex, setLoadRetryIndex] = useState(0);
 
   useEffect(() => {
     document.title = 'Редактирование страницы | Astrea Admin';
@@ -307,7 +328,9 @@ function PageEditor({ pageKey }: { pageKey: string }) {
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
-    setError(null);
+    setLoadError(null);
+    setLoadErrorStatus(null);
+    setMutationError(null);
     void getAdminPage(pageKey, controller.signal)
       .then((value) => {
         const next = { title: value.title, content: value.content, is_published: value.is_published };
@@ -321,18 +344,19 @@ function PageEditor({ pageKey }: { pageKey: string }) {
           navigate('/admin/login', { replace: true, state: { from: `${location.pathname}${location.search}` } });
           return;
         }
-        setError(formatContentLoadError(caughtError, 'detail'));
+        setLoadError(formatContentLoadError(caughtError, 'detail'));
+        setLoadErrorStatus(caughtError instanceof AdminApiError ? caughtError.status : null);
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [location.pathname, location.search, navigate, pageKey]);
+  }, [loadRetryIndex, location.pathname, location.search, navigate, pageKey]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
-    setError(null);
+    setMutationError(null);
     setSaved(false);
     try {
       const response = await updateAdminPage(pageKey, changed(form, baseline));
@@ -346,23 +370,31 @@ function PageEditor({ pageKey }: { pageKey: string }) {
         navigate('/admin/login', { replace: true, state: { from: `${location.pathname}${location.search}` } });
         return;
       }
-      setError(formatContentMutationError(caughtError, 'page', 'update'));
+      setMutationError(formatContentMutationError(caughtError, 'page', 'update'));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <EditorLayout title="Редактирование страницы" backTo="/admin/pages" loading={loading} error={error}>
+    <EditorLayout
+      title="Редактирование страницы"
+      backTo="/admin/pages"
+      loading={loading}
+      loadError={loadError}
+      loadErrorStatus={loadErrorStatus}
+      onRetry={() => setLoadRetryIndex((value) => value + 1)}
+      mutationError={mutationError}
+    >
       <div className="mb-6 border border-brand-gray10/20 bg-brand-paper px-4 py-3 text-sm">
         Ключ страницы: <code>{pageKey}</code>
       </div>
       <form onSubmit={save} className="space-y-7">
         <AdminField label="Заголовок" required>
-          <AdminInput required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          <AdminInput required value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
         </AdminField>
         <AdminField label="Содержание" required>
-          <AdminTextarea required className="min-h-[28rem]" value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} />
+          <AdminTextarea required className="min-h-[28rem]" value={form.content} onChange={(event) => setForm({ ...form, content: event.target.value })} />
         </AdminField>
         <PublicationToggle value={form.is_published} onChange={(value) => setForm({ ...form, is_published: value })} />
         <EditorActions busy={busy} saved={saved} dirty={JSON.stringify(form) !== JSON.stringify(baseline)} />
@@ -372,13 +404,47 @@ function PageEditor({ pageKey }: { pageKey: string }) {
   );
 }
 
-function EditorLayout({ title, backTo, loading, error, children }: { title: string; backTo: string; loading: boolean; error: string | null; children: ReactNode }) {
+function EditorLayout({
+  title,
+  backTo,
+  loading,
+  loadError,
+  loadErrorStatus,
+  onRetry,
+  mutationError,
+  children,
+}: {
+  title: string;
+  backTo: string;
+  loading: boolean;
+  loadError: string | null;
+  loadErrorStatus: number | null;
+  onRetry?: () => void;
+  mutationError: string | null;
+  children: ReactNode;
+}) {
+  const showEditor = !loading && !loadError;
   return (
     <div className="space-y-7">
       <AdminBackLink to={backTo}>К списку</AdminBackLink>
       <h2 className="font-display text-5xl">{title}</h2>
-      {error ? <AdminNotice>{error}</AdminNotice> : null}
-      {loading ? <AdminLoadingState /> : error ? null : <section className="border border-brand-gray10/20 bg-white p-5 shadow-formal sm:p-8">{children}</section>}
+      {loading ? <AdminLoadingState /> : null}
+      {!loading && loadError ? (
+        <div className="space-y-3">
+          <AdminNotice>{loadError}</AdminNotice>
+          {onRetry && (loadErrorStatus === null || loadErrorStatus === 503) ? (
+            <button type="button" onClick={onRetry} className="border border-brand-red px-5 py-2 text-sm font-semibold uppercase tracking-[0.1em] text-brand-red">
+              Повторить
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      {showEditor ? (
+        <section className="border border-brand-gray10/20 bg-white p-5 shadow-formal sm:p-8">
+          {mutationError ? <div className="mb-6"><AdminNotice>{mutationError}</AdminNotice></div> : null}
+          {children}
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -386,7 +452,7 @@ function EditorLayout({ title, backTo, loading, error, children }: { title: stri
 function PublicationToggle({ value, onChange }: { value: boolean; onChange: (value: boolean) => void }) {
   return (
     <label className="flex items-center gap-3 text-sm font-semibold">
-      <input type="checkbox" checked={value} onChange={(e) => onChange(e.target.checked)} className="h-5 w-5 accent-brand-red" />
+      <input type="checkbox" checked={value} onChange={(event) => onChange(event.target.checked)} className="h-5 w-5 accent-brand-red" />
       Опубликовано
     </label>
   );
