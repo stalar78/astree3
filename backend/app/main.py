@@ -1,5 +1,5 @@
-from fastapi import FastAPI
-from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi import FastAPI, HTTPException
+from fastapi.exception_handlers import http_exception_handler, request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.requests import Request
 from fastapi.responses import JSONResponse
@@ -18,10 +18,28 @@ def _scoped_validation_handler(path_details: tuple[tuple[str, str], ...]):
                 return JSONResponse(
                     status_code=422,
                     content={"detail": detail},
+                    headers=_private_headers() if path.endswith("/admin/content") else None,
                 )
         return await request_validation_exception_handler(request, exc)
 
     return handler
+
+
+def _scoped_http_exception_handler(path: str):
+    async def handler(request: Request, exc: HTTPException):
+        if request.url.path == path or request.url.path.startswith(f"{path}/"):
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={"detail": exc.detail},
+                headers=_private_headers(),
+            )
+        return await http_exception_handler(request, exc)
+
+    return handler
+
+
+def _private_headers() -> dict[str, str]:
+    return {"Cache-Control": "private, no-store", "Pragma": "no-cache"}
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -46,15 +64,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     candidate_path = f"{app_settings.api_v1_prefix}/candidate-applications"
     admin_auth_path = f"{app_settings.api_v1_prefix}/admin/auth"
+    admin_content_path = f"{app_settings.api_v1_prefix}/admin/content"
     app.add_exception_handler(
         RequestValidationError,
         _scoped_validation_handler(
             (
                 (candidate_path, "Invalid candidate application"),
                 (admin_auth_path, "Invalid admin authentication request"),
+                (admin_content_path, "Invalid admin content request"),
             ),
         ),
     )
+    app.add_exception_handler(HTTPException, _scoped_http_exception_handler(admin_content_path))
 
     app.include_router(api_router, prefix=app_settings.api_v1_prefix)
     if app_settings.candidate_intake_enabled:
