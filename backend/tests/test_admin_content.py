@@ -103,7 +103,7 @@ def test_news_crud_public_interop_and_publication_semantics(tmp_path: Path) -> N
     assert client.get("/api/v1/news/draft").status_code == 404
     assert client.get("/api/v1/news/live").status_code == 200
 
-    listing = client.get("/api/v1/admin/content/news?is_published=false")
+    listing = client.get("/api/v1/admin/content/news?published=false")
     assert listing.status_code == 200
     assert [item["slug"] for item in listing.json()["items"]] == ["draft"]
     assert "body" not in listing.text
@@ -119,7 +119,7 @@ def test_news_crud_public_interop_and_publication_semantics(tmp_path: Path) -> N
         json={"is_published": False},
     )
     assert unpublished.status_code == 200
-    assert unpublished.json()["published_at"] == first_published_at
+    assert _parse_timestamp(unpublished.json()["published_at"]) == _parse_timestamp(first_published_at)
     assert client.get("/api/v1/news/live").status_code == 404
 
     republished = client.patch(
@@ -128,7 +128,7 @@ def test_news_crud_public_interop_and_publication_semantics(tmp_path: Path) -> N
         json={"is_published": True, "title": "Republished"},
     )
     assert republished.status_code == 200
-    assert republished.json()["published_at"] == first_published_at
+    assert _parse_timestamp(republished.json()["published_at"]) == _parse_timestamp(first_published_at)
 
     deleted = client.delete(f"/api/v1/admin/content/news/{draft.json()['id']}", headers={CSRF_HEADER_NAME: csrf})
     assert deleted.status_code == 204
@@ -216,7 +216,7 @@ def test_video_crud_strict_rutube_and_public_interop(tmp_path: Path) -> None:
     assert published.json()["published_at"] is not None
     assert client.get(f"/api/v1/videos/{body['id']}").status_code == 200
 
-    listing = client.get("/api/v1/admin/content/videos?is_published=true")
+    listing = client.get("/api/v1/admin/content/videos?published=true")
     assert listing.status_code == 200
     assert [item["id"] for item in listing.json()["items"]] == [body["id"]]
 
@@ -243,13 +243,25 @@ def test_video_crud_strict_rutube_and_public_interop(tmp_path: Path) -> None:
 
 
 def test_page_admin_update_existing_only_and_public_interop(tmp_path: Path) -> None:
-    client, _ = _client(tmp_path, pages=[_page("about", is_published=False)], authenticated=True)
+    client, _ = _client(
+        tmp_path,
+        pages=[
+            _page("zeta", is_published=True, updated_at=datetime(2026, 8, 1, tzinfo=UTC)),
+            _page("about", is_published=False, updated_at=datetime(2026, 8, 22, tzinfo=UTC)),
+        ],
+        authenticated=True,
+    )
     csrf = _csrf(client)
 
     assert client.get("/api/v1/pages/about").status_code == 404
     listing = client.get("/api/v1/admin/content/pages")
     assert listing.status_code == 200
-    assert listing.json()["items"][0]["key"] == "about"
+    assert [item["key"] for item in listing.json()["items"]] == ["about", "zeta"]
+    assert all("content" not in item for item in listing.json()["items"])
+    assert "limit" not in listing.json()
+    assert "offset" not in listing.json()
+    assert "limit" not in {param["name"] for param in client.get("/openapi.json").json()["paths"]["/api/v1/admin/content/pages"]["get"].get("parameters", [])}
+    assert "offset" not in {param["name"] for param in client.get("/openapi.json").json()["paths"]["/api/v1/admin/content/pages"]["get"].get("parameters", [])}
 
     updated = client.patch(
         "/api/v1/admin/content/pages/about",
@@ -266,6 +278,76 @@ def test_page_admin_update_existing_only_and_public_interop(tmp_path: Path) -> N
         headers={CSRF_HEADER_NAME: csrf},
         json={"title": "Missing"},
     ).status_code == 404
+
+    key_in_payload = client.patch(
+        "/api/v1/admin/content/pages/about",
+        headers={CSRF_HEADER_NAME: csrf},
+        json={"key": "renamed"},
+    )
+    assert key_in_payload.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "method, path, payload",
+    [
+        (
+            "POST",
+            "/api/v1/admin/content/news",
+            {
+                "slug": "csrf-news",
+                "title": "Title",
+                "excerpt": "Excerpt",
+                "body": "Body",
+            },
+        ),
+        ("PATCH", "/api/v1/admin/content/news/1", {"title": "Changed"}),
+        ("DELETE", "/api/v1/admin/content/news/1", None),
+        (
+            "POST",
+            "/api/v1/admin/content/videos",
+            {
+                "title": "Video",
+                "description": "Description",
+                "source_url": "https://rutube.ru/video/0123456789abcdef0123456789abcdef/",
+            },
+        ),
+        ("PATCH", "/api/v1/admin/content/videos/1", {"title": "Changed"}),
+        ("DELETE", "/api/v1/admin/content/videos/1", None),
+        ("PATCH", "/api/v1/admin/content/pages/about", {"title": "Changed"}),
+    ],
+)
+def test_all_admin_write_families_require_csrf(
+    method: str,
+    path: str,
+    payload: dict[str, Any] | None,
+    tmp_path: Path,
+) -> None:
+    client, _ = _client(tmp_path, pages=[_page("about")], authenticated=True)
+
+    response = client.request(method, path, json=payload)
+
+    assert response.status_code == 403
+
+
+def test_post_commit_mutations_do_not_refresh(tmp_path: Path) -> None:
+    client, _ = _client(tmp_path, authenticated=True)
+    csrf = _csrf(client)
+    FailingSession.fail_refresh = True
+
+    created = client.post(
+        "/api/v1/admin/content/news",
+        headers={CSRF_HEADER_NAME: csrf},
+        json=_news_payload(slug="no-refresh"),
+    )
+    updated = client.patch(
+        "/api/v1/admin/content/news/1",
+        headers={CSRF_HEADER_NAME: csrf},
+        json={"title": "Updated"},
+    )
+
+    FailingSession.fail_refresh = False
+    assert created.status_code == 201
+    assert updated.status_code == 200
 
 
 def test_admin_content_validation_privacy_and_strict_booleans(tmp_path: Path) -> None:
@@ -381,6 +463,7 @@ def _client(
 class FailingSession(Session):
     fail_execute = False
     fail_commit = False
+    fail_refresh = False
 
     def execute(self, *args: Any, **kwargs: Any) -> Any:
         if self.fail_execute:
@@ -391,6 +474,11 @@ class FailingSession(Session):
         if self.fail_commit:
             raise SQLAlchemyError("commit")
         return super().commit()
+
+    def refresh(self, instance: Any, *args: Any, **kwargs: Any) -> None:
+        if self.fail_refresh:
+            raise SQLAlchemyError("refresh")
+        return super().refresh(instance, *args, **kwargs)
 
 
 def _settings() -> Settings:
@@ -419,6 +507,10 @@ def _csrf(client: TestClient) -> str:
 
 def _csrf_token() -> str:
     return "astrea-admin-csrf-token"
+
+
+def _parse_timestamp(value: str) -> datetime:
+    return datetime.fromisoformat(value.removesuffix("Z"))
 
 
 def _fake_admin() -> AuthenticatedAdmin:
@@ -457,8 +549,13 @@ def _payload_for(path: str) -> dict[str, Any]:
     return _news_payload()
 
 
-def _page(key: str, *, is_published: bool = True) -> Page:
+def _page(
+    key: str,
+    *,
+    is_published: bool = True,
+    updated_at: datetime | None = None,
+) -> Page:
     page = Page(key=key, title="Title", content="Content", is_published=is_published)
     page.created_at = datetime(2026, 8, 22, tzinfo=UTC)
-    page.updated_at = datetime(2026, 8, 22, tzinfo=UTC)
+    page.updated_at = updated_at or datetime(2026, 8, 22, tzinfo=UTC)
     return page

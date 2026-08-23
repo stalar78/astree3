@@ -231,5 +231,3 @@ class AdminVideoListResponse(_AdminSchema):
 
 class AdminPageListResponse(_AdminSchema):
     items: list[AdminPageListItem]
-    limit: int
-    offset: int

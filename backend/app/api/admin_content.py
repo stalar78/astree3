@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, Query, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-from sqlalchemy import desc, select
+from sqlalchemy import asc, desc, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -51,11 +51,11 @@ def list_news(
     admin: AdminRead,
     limit: Annotated[int, Query(ge=1, le=MAX_LIMIT)] = DEFAULT_LIMIT,
     offset: Annotated[int, Query(ge=0)] = 0,
-    is_published: bool | None = None,
+    published: bool | None = None,
 ) -> JSONResponse:
     statement = _ordered(select(NewsPost), NewsPost).limit(limit).offset(offset)
-    if is_published is not None:
-        statement = statement.where(NewsPost.is_published.is_(is_published))
+    if published is not None:
+        statement = statement.where(NewsPost.is_published.is_(published))
     try:
         posts = db.execute(statement).scalars().all()
     except SQLAlchemyError:
@@ -82,7 +82,6 @@ def create_news(payload: AdminNewsCreate, admin: AdminWrite, db: DbSession) -> J
     db.add(post)
     try:
         db.commit()
-        db.refresh(post)
     except IntegrityError as exc:
         _rollback_safely(db)
         if is_news_slug_conflict(exc):
@@ -132,7 +131,6 @@ def update_news(
         apply_publication_state(post, payload.is_published)  # type: ignore[arg-type]
     try:
         db.commit()
-        db.refresh(post)
     except IntegrityError as exc:
         _rollback_safely(db)
         if is_news_slug_conflict(exc):
@@ -168,11 +166,11 @@ def list_videos(
     admin: AdminRead,
     limit: Annotated[int, Query(ge=1, le=MAX_LIMIT)] = DEFAULT_LIMIT,
     offset: Annotated[int, Query(ge=0)] = 0,
-    is_published: bool | None = None,
+    published: bool | None = None,
 ) -> JSONResponse:
     statement = _ordered(select(Video), Video).limit(limit).offset(offset)
-    if is_published is not None:
-        statement = statement.where(Video.is_published.is_(is_published))
+    if published is not None:
+        statement = statement.where(Video.is_published.is_(published))
     try:
         videos = db.execute(statement).scalars().all()
     except SQLAlchemyError:
@@ -199,7 +197,6 @@ def create_video(payload: AdminVideoCreate, admin: AdminWrite, db: DbSession) ->
     db.add(video)
     try:
         db.commit()
-        db.refresh(video)
     except SQLAlchemyError:
         _rollback_safely(db)
         return _error_response(503, "Content administration temporarily unavailable")
@@ -243,7 +240,6 @@ def update_video(
         apply_publication_state(video, payload.is_published)  # type: ignore[arg-type]
     try:
         db.commit()
-        db.refresh(video)
     except SQLAlchemyError:
         _rollback_safely(db)
         return _error_response(503, "Content administration temporarily unavailable")
@@ -272,13 +268,8 @@ def delete_video(video_id: VideoIdPath, admin: AdminWrite, db: DbSession) -> Res
 def list_pages(
     db: DbSession,
     admin: AdminRead,
-    limit: Annotated[int, Query(ge=1, le=MAX_LIMIT)] = DEFAULT_LIMIT,
-    offset: Annotated[int, Query(ge=0)] = 0,
-    is_published: bool | None = None,
 ) -> JSONResponse:
-    statement = select(Page).order_by(desc(Page.updated_at), desc(Page.id)).limit(limit).offset(offset)
-    if is_published is not None:
-        statement = statement.where(Page.is_published.is_(is_published))
+    statement = select(Page).order_by(asc(Page.key))
     try:
         pages = db.execute(statement).scalars().all()
     except SQLAlchemyError:
@@ -287,8 +278,6 @@ def list_pages(
     return _json_response(
         AdminPageListResponse(
             items=[_page_list_item(page) for page in pages],
-            limit=limit,
-            offset=offset,
         ),
     )
 
@@ -328,7 +317,6 @@ def update_page(
             setattr(page, field, getattr(payload, field))
     try:
         db.commit()
-        db.refresh(page)
     except SQLAlchemyError:
         _rollback_safely(db)
         return _error_response(503, "Content administration temporarily unavailable")
