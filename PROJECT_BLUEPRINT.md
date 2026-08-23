@@ -1,6 +1,6 @@
 # Project Blueprint: Astrea
 
-Current stage: Stage 4.4B candidate administration accepted; Stage 4.4C content administration next.
+Current stage: Stage 4.4C1 content administration backend accepted; Stage 4.4C2 protected content admin UI next.
 
 ## Purpose
 
@@ -252,6 +252,25 @@ The production frontend now includes a protected candidate-administration interf
 
 Stage 4.4B2 was accepted after corrective pagination, CSRF/logout semantics, private-photo, PII/storage and error-boundary review. Final reported frontend quality gate from `frontend/`: `npm run typecheck`, `npm run lint` and `npm run build` all passed.
 
+## Accepted Stage 4.4C1 Content Administration Backend
+
+The backend now includes authenticated administration of the accepted Stage 4.2 content models under `/api/v1/admin/content`:
+- news list/detail/create/update/delete, with bounded pagination, optional `published` filtering and deterministic admin ordering;
+- server-managed publication timestamps where first publish sets UTC time and later unpublish/republish preserves the original timestamp;
+- duplicate news slugs mapped safely to `409` with rollback;
+- optional news image references restricted to safe HTTPS absolute URLs or root-relative same-origin paths, with no network fetching or storage side effects;
+- video list/detail/create/update/delete using the existing strict RuTube validator, canonical source URLs and server-derived provider/embed URLs;
+- no arbitrary iframe HTML, arbitrary provider input or client-controlled publication timestamps;
+- predefined page administration limited to list/detail/update of existing rows, with immutable keys and no page create/delete route;
+- accepted Stage 4.4A session authentication for reads and CSRF protection for every content write;
+- strict request schemas, scoped validation privacy and `private, no-store` admin response caching;
+- generic database failure handling with rollback and no SQL/DSN/constraint leakage;
+- mutation responses finalized as `flush -> refresh -> commit -> serialize`, with regression tests proving no database access after successful commit and rollback-safe pre-commit refresh failures;
+- existing public Stage 4.2 APIs remain published-only and operate on the same PostgreSQL rows;
+- no migration `0005`, no new content/revision/audit tables and no schema expansion.
+
+Stage 4.4C1 was accepted after dedicated draft/public-boundary, page-identity, RuTube-validation, CSRF, validation-privacy and post-commit transaction review. Final reported backend quality gate from `backend/`: 231 pytest tests passed, 1 skipped, and Ruff passed.
+
 ## Security
 
 Main security risk: candidate forms contain personal data and photos.
@@ -280,6 +299,7 @@ Stage 4 is split into small reviewed slices; see `.plans/STAGE_4_BACKEND_PLAN.md
 3. Stage 4.3 - accepted: guarded candidate intake persistence, private photo pipeline, transactional consent/outbox aggregate and disabled-by-default public ingress.
 4. Stage 4.4A - accepted: closed admin identity/bootstrap, Argon2id passwords, server-side sessions, secure cookies, CSRF protection and auth dependencies.
 5. Stage 4.4B - accepted: authenticated candidate list/detail/status/private-photo API plus protected candidate admin UI.
-6. Stage 4.4C - next: authenticated administration for news, video and approved editable page content.
-7. Stage 4.4D - persistent email-outbox worker/retry delivery.
-8. Before candidate intake activation: approve legal documents/version identifiers, integrate the public frontend form, and complete deployment request-body/client-IP security configuration.
+6. Stage 4.4C1 - accepted: authenticated backend administration for news, RuTube video and predefined editable page content.
+7. Stage 4.4C2 - next: protected content administration UI using the accepted Stage 4.4C1 API.
+8. Stage 4.4D - persistent email-outbox worker/retry delivery.
+9. Before candidate intake activation: approve legal documents/version identifiers, integrate the public frontend form, and complete deployment request-body/client-IP security configuration.
