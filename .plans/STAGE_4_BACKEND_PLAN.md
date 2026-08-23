@@ -1,6 +1,6 @@
 # Stage 4 Backend Plan
 
-Status: in progress. Stage 4.1, Stage 4.2, Stage 4.3, Stage 4.4A, Stage 4.4B and Stage 4.4C accepted; Stage 4.4D is next.
+Status: in progress. Stage 4.1, Stage 4.2, Stage 4.3, Stage 4.4A, Stage 4.4B, Stage 4.4C and Stage 4.4D1 accepted; Stage 4.4D2 is next.
 
 Stage 4 is intentionally split into small reviewed slices. The candidate workflow is high-risk because it handles personal data and photographs; it must not be implemented as one oversized change.
 
@@ -121,7 +121,7 @@ Activation remains deliberately deferred until approved privacy/consent document
 
 ## Stage 4.4 - Admin and operations
 
-Status: in progress. Stage 4.4A, Stage 4.4B and Stage 4.4C accepted; Stage 4.4D is next.
+Status: in progress. Stage 4.4A, Stage 4.4B, Stage 4.4C and Stage 4.4D1 accepted; Stage 4.4D2 is next.
 
 ### Stage 4.4A - Admin authentication
 
@@ -258,13 +258,44 @@ Final reported quality gate from `frontend/`:
 
 ### Stage 4.4D - Email outbox operations
 
+Status: in progress. Stage 4.4D1 accepted; Stage 4.4D2 is next.
+
+#### Stage 4.4D1 - Persistent outbox state machine
+
+Status: accepted.
+
+Implemented:
+- Alembic migration `20260823_0005` extending the existing `email_outbox` table only with timezone-aware `processing_started_at` and `next_attempt_at` fields;
+- migration backfill for already-processing rows before applying the processing timestamp invariant;
+- matching ORM/migration composite claim index `ix_email_outbox_status_next_attempt_id(status, next_attempt_at, id)` with the accepted eight-table metadata surface unchanged;
+- configurable batch size, max attempts, retry base/max delay and stale-processing timeout policy with safe defaults and validation;
+- due-only deterministic oldest-first claiming with short committed transactions and PostgreSQL `FOR UPDATE SKIP LOCKED` for concurrent workers;
+- immutable non-PII claim descriptors containing outbox/application/event identity and incremented attempt generation only;
+- guarded success/failure transitions requiring exact `id + status=processing + attempts=attempt_number`, preventing stale workers from mutating a newer claim generation;
+- `sent` as terminal successful state and `failed` as terminal exhausted/permanent-failure state, while retryable work returns to `pending` with deterministic bounded exponential backoff;
+- bounded stale `processing` recovery, requeueing below max attempts and terminally failing at max attempts;
+- closed machine-safe failure codes only in `last_error`, with arbitrary raw exception/PII/secret strings rejected;
+- claim/state transactions remain separate from future external delivery, so no database transaction will be held open during SMTP I/O;
+- candidate intake remains unchanged: one candidate + three consents + one `pending`, attempts=0 outbox row in one transaction, with new delivery-state fields null initially;
+- explicit at-least-once delivery semantics: a future SMTP accept followed by process death before `sent` persistence may cause a duplicate retry; no false exactly-once guarantee is claimed.
+
+Final reported quality gate from `backend/`:
+- 247 pytest tests passed, 1 skipped;
+- 14 pre-existing Starlette `TestClient` deprecation warnings remained, with no new D1 warnings;
+- Ruff passed.
+
+#### Stage 4.4D2 - SMTP delivery and worker execution
+
 Status: next.
 
 Implement:
-- persistent outbox worker;
-- SMTP/provider delivery;
-- retry/status transitions;
-- bounded error recording without secrets/PII leakage;
+- SMTP/provider transport using environment-backed credentials only;
+- structured candidate-application notification rendering without persisting duplicate body/recipient payload in the outbox;
+- one bounded worker execution cycle: stale recovery -> claim committed batch -> delivery outside DB transaction -> guarded success/failure persistence;
+- failure classification into the accepted D1 machine-safe codes without storing/logging raw secrets or candidate PII;
+- retry/status transitions exclusively through the accepted D1 state machine;
+- explicit CLI/process boundary suitable for cron/systemd scheduling, without a hidden in-process web-server loop;
+- deterministic tests with fake transport only; no live SMTP/network dependency in the test suite;
 - no Redis/Celery unless later justified.
 
 No public registration and no complex RBAC in MVP.

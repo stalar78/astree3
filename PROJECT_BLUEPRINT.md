@@ -1,6 +1,6 @@
 # Project Blueprint: Astrea
 
-Current stage: Stage 4.4C content administration accepted; Stage 4.4D email outbox operations next.
+Current stage: Stage 4.4D1 persistent email outbox state machine accepted; Stage 4.4D2 SMTP delivery and worker execution next.
 
 ## Purpose
 
@@ -292,6 +292,26 @@ The production frontend now includes protected content administration inside the
 
 Stage 4.4C2 was accepted after corrective review of mutation-error form visibility, temporary detail-load retry, root-relative image URL compatibility and browser URL-state canonicalization. Final reported frontend quality gate from `frontend/`: `npm run typecheck`, `npm run lint` and `npm run build` all passed.
 
+## Accepted Stage 4.4D1 Persistent Email Outbox State Machine
+
+The backend now includes the durable persistence contract required before real email delivery:
+- migration `20260823_0005` adds only `processing_started_at` and `next_attempt_at` to the existing `email_outbox` table and preserves the accepted eight-table schema surface;
+- already-processing rows are backfilled before the processing timestamp check constraint is applied;
+- ORM metadata and migration share the same composite claim index `ix_email_outbox_status_next_attempt_id(status, next_attempt_at, id)`;
+- environment-backed policy controls batch size, max attempts, retry base/max delay and processing timeout with safe defaults and validation;
+- only due `pending` rows are claimed, oldest first, with bounded batches and PostgreSQL `FOR UPDATE SKIP LOCKED`;
+- claiming increments `attempts`, marks `processing`, records `processing_started_at`, clears retry scheduling and commits before future external delivery;
+- immutable claim descriptors contain only outbox/application/event identity and attempt number, not candidate PII;
+- success/failure transitions are atomically guarded by `id + status=processing + attempts=attempt_number`, so a stale worker cannot overwrite a newer generation;
+- retryable failures below max attempts return to `pending` with deterministic capped exponential backoff, while permanent/exhausted failures become terminal `failed`;
+- stale `processing` rows are recovered in bounded batches, requeued below max attempts or terminally failed at max attempts;
+- `last_error` accepts only closed machine-safe codes such as temporary/permanent/unexpected delivery failure and processing timeout; raw exception text, SMTP details, PII and secrets are not persisted there;
+- candidate intake remains the source of new outbox work and still creates exactly one `pending`, attempts=0 outbox entry in the same transaction as candidate/consent persistence;
+- no SMTP transport, email rendering, worker CLI, daemon loop or network delivery exists in D1;
+- delivery semantics are intentionally at-least-once around future SMTP: a provider may accept a message before a process dies and before `sent` is committed, so duplicate retry remains possible rather than being hidden behind a false exactly-once claim.
+
+Stage 4.4D1 was accepted after dedicated schema/metadata alignment, PostgreSQL claim-query, stale-generation, backoff-cap, stale-recovery, failure-privacy and DB-failure review. Final reported backend quality gate from `backend/`: 247 pytest tests passed, 1 skipped, 14 pre-existing Starlette `TestClient` deprecation warnings remained, and Ruff passed.
+
 ## Security
 
 Main security risk: candidate forms contain personal data and photos.
@@ -321,5 +341,6 @@ Stage 4 is split into small reviewed slices; see `.plans/STAGE_4_BACKEND_PLAN.md
 4. Stage 4.4A - accepted: closed admin identity/bootstrap, Argon2id passwords, server-side sessions, secure cookies, CSRF protection and auth dependencies.
 5. Stage 4.4B - accepted: authenticated candidate list/detail/status/private-photo API plus protected candidate admin UI.
 6. Stage 4.4C - accepted: authenticated backend and protected frontend administration for news, RuTube video and predefined editable page content.
-7. Stage 4.4D - next: persistent email-outbox worker/retry delivery.
-8. Before candidate intake activation: approve legal documents/version identifiers, integrate the public frontend form, and complete deployment request-body/client-IP security configuration.
+7. Stage 4.4D1 - accepted: persistent outbox claim/retry/recovery state machine with PostgreSQL concurrency protection and safe failure codes.
+8. Stage 4.4D2 - next: SMTP transport, structured notification rendering and explicit worker execution using the accepted D1 state machine.
+9. Before candidate intake activation: approve legal documents/version identifiers, integrate the public frontend form, and complete deployment request-body/client-IP security configuration.
