@@ -1,6 +1,6 @@
 # Stage 5 Deployment Plan
 
-Status: accepted through Stage 5.2. Remaining operations, controlled acceptance and production deployment work is intentionally split into reviewed slices before candidate activation.
+Status: accepted through Stage 5.3A. Remaining operations, SMTP readiness, controlled acceptance and production deployment work is intentionally split into reviewed slices before candidate activation.
 
 ## Stage 5.1 - Production-like runtime foundation
 
@@ -71,21 +71,75 @@ Validated locally:
 Production note:
 - the accepted trusted-proxy model assumes the container Nginx is the direct client-facing reverse proxy. If a CDN, load balancer or additional reverse proxy is introduced in Stage 5.5, client-IP trust must be re-evaluated against that actual topology rather than blindly extending the trusted chain.
 
-## Stage 5.3 - Backup and operations
+## Stage 5.3A - Backup and restore foundation
+
+Status: accepted.
+
+Goal: prove that PostgreSQL and private candidate media can be captured and restored together as one explicitly managed backup set before adding scheduling, pruning or production provisioning.
+
+Implemented:
+- profile-only one-shot `backup` and `restore` Compose services using PostgreSQL 16.4 operational tooling;
+- operations services attach only to the internal `data` network, expose no host ports and never start with the ordinary runtime unless the `ops` profile is explicitly selected;
+- backup output defaults to the ignored host `backups/` path through `ASTREA_BACKUP_ROOT`;
+- backup private-media mount is read-only, while restore receives the required read-write private-media mount;
+- both operations run as uid/gid `10001:10001`, matching the accepted backend private-media owner model;
+- backup uses restrictive `umask 077`, PostgreSQL custom-format `pg_dump --no-owner --no-acl`, compressed private-media archive, non-secret metadata and SHA-256 checksums;
+- safe generated/operator backup IDs are path-restricted; incomplete sets stay under `.incomplete.*` and the final directory appears only after dump, media archive, metadata and checksums all exist;
+- backup refuses to run unless the operator explicitly acknowledges that application writes are quiesced;
+- restore refuses to run without an explicit backup ID, destructive confirmation and backend-stopped acknowledgement;
+- restore validates exactly one checksum each for the known `database.dump` and `private-media.tar.gz` paths, rejects unknown/duplicate manifest entries and never lets manifest filenames select arbitrary filesystem paths;
+- metadata identity is validated without sourcing executable metadata;
+- `pg_restore --list`, checksum validation, archive-path/type validation and isolated media staging complete before the first destructive restore action;
+- archive restore rejects traversal, symlinks, hardlinks and non-regular/non-directory special entries;
+- PostgreSQL restore uses `--clean --if-exists --no-owner --no-acl --single-transaction --exit-on-error`;
+- media replacement occurs only from the already validated staging tree;
+- no Docker socket, privileged mode, application source mount, automatic retention deletion, scheduler, SMTP, TLS, legal version or candidate activation is introduced.
+
+Validated in disposable project `astrea-backup-review` only:
+- normal and `ops` Compose configuration rendered successfully;
+- backup/restore operations image build passed and shell syntax checks passed;
+- synthetic private-media probe used production-like uid 10001 ownership, directory mode `0700` and file mode `0600`, and was successfully archived/read;
+- valid backup set contained database dump, private-media archive, metadata and checksums with restrictive permissions and no leftover incomplete directory;
+- backup without quiescence acknowledgement failed without creating a final backup set;
+- restore without destructive confirmation or without backend-stopped acknowledgement failed before any data change;
+- incomplete checksum manifest, deliberately corrupted artifact and an unsafe archive with a recomputed valid checksum were all rejected before `pg_restore`, leaving database and media unchanged;
+- database state was changed `before-backup -> after-backup -> before-backup` by restore;
+- private-media probe was changed `before-backup -> after-backup -> before-backup` by restore;
+- restored backend became healthy as uid 10001 and could read the restored probe file;
+- only disposable `astrea-backup-review_*` containers/volumes were destructively removed; normal `astrea` volumes were not used or deleted;
+- both candidate activation gates remained `false`.
+
+Known production provisioning requirement:
+- the real VPS host backup directory must be provisioned writable by uid 10001 before production backup execution. This is intentionally deferred to Stage 5.3B/5.5 rather than weakening the operations container.
+
+## Stage 5.3B - Operations, retention and scheduling
 
 Status: pending.
 
-Goal: make the accepted runtime operable and recoverable.
+Goal: make the accepted runtime and backup foundation operable on a real host without embedding long-running operational loops into FastAPI.
 
 Planned scope:
-- PostgreSQL backup procedure and retention baseline;
-- private candidate-media backup procedure and retention baseline;
-- documented restore verification for database + private media as one recoverable dataset;
+- define backup cadence and retention/pruning policy, with destructive pruning kept explicit and independently reviewable;
+- production host provisioning for the backup directory and ownership/permissions;
 - production environment/secrets provisioning approach without committing real `.env` files;
-- explicit external scheduling for the finite `process-email-outbox` command, such as systemd timer or cron;
-- worker execution/logging/failure visibility without converting it into an in-process daemon;
-- production SMTP credential/connectivity verification;
-- basic operational health/log inspection and restart procedures.
+- explicit external scheduling for finite backup execution and the finite `process-email-outbox` command, such as systemd timers or cron;
+- define safe write-quiescence orchestration around backup execution;
+- worker/backup execution logging, failure visibility and alert/inspection expectations;
+- basic operational health/log inspection, restart and restore procedures;
+- no in-process daemon loop and no Docker socket based orchestration.
+
+## Stage 5.3C - SMTP readiness
+
+Status: pending.
+
+Goal: provision and verify the external mail path required for administrator notifications without committing credentials or coupling SMTP delivery to FastAPI startup.
+
+Planned scope:
+- production/test SMTP credential provisioning outside Git;
+- provider connectivity and TLS-mode verification through the accepted finite worker;
+- sender/recipient configuration verification;
+- operational failure visibility for email processing;
+- no candidate activation solely because SMTP connectivity succeeds.
 
 ## Stage 5.4 - Controlled end-to-end acceptance
 
@@ -117,10 +171,10 @@ Planned scope:
 - install/runtime prerequisites and production Docker Compose deployment;
 - configure Nginx TLS/SSL using the approved domain and certificate process;
 - re-verify the trusted client-IP/proxy chain against the actual Internet-facing topology;
-- provision production PostgreSQL/private-media volumes and real environment secrets;
+- provision production PostgreSQL/private-media volumes, backup directory and real environment secrets;
 - run migrations once and bootstrap the initial administrator explicitly;
-- configure SMTP and external email-worker schedule;
-- verify backups before public candidate activation;
+- configure SMTP and external email-worker/backup schedules;
+- verify backups and a recoverable restore procedure before public candidate activation;
 - smoke-test public routes, admin authentication, content administration and private-media boundaries;
 - activate candidate intake only after legal, security and acceptance sign-off;
 - retain a rollback path and backup of the existing site during cutover.
