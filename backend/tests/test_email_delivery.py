@@ -303,3 +303,152 @@ def test_smtp_failures_are_classified_without_provider_text(monkeypatch: pytest.
         SmtpEmailTransport(config).send(EmailMessage())
     assert str(exc_info.value) == "Email delivery failed temporarily"
     assert "provider" not in str(exc_info.value)
+
+
+def test_smtp_transport_check_connection_starttls_uses_verified_context_and_login(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, object]] = []
+    context = object()
+
+    class FakeSmtp:
+        def __init__(self, host, port, timeout):
+            calls.append(("init", (host, port, timeout)))
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def ehlo(self):
+            calls.append(("ehlo", None))
+
+        def starttls(self, context):
+            calls.append(("starttls", context))
+
+        def login(self, username, password):
+            calls.append(("login", (username, password)))
+
+        def send_message(self, message):
+            calls.append(("send", message))
+
+    monkeypatch.setattr("smtplib.SMTP", FakeSmtp)
+    monkeypatch.setattr("ssl.create_default_context", lambda: context)
+    config = smtp_delivery_config_from_settings(_settings(SMTP_USERNAME="user", SMTP_PASSWORD="secret"))
+
+    SmtpEmailTransport(config).check_connection()
+
+    assert calls == [
+        ("init", ("smtp.example.test", 587, 15)),
+        ("ehlo", None),
+        ("starttls", context),
+        ("ehlo", None),
+        ("login", ("user", "secret")),
+    ]
+    assert not any(call[0] == "send" for call in calls)
+
+
+def test_smtp_transport_check_connection_ssl_uses_ssl_context_and_skips_starttls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, object]] = []
+    context = object()
+
+    class FakeSmtpSsl:
+        def __init__(self, host, port, timeout, context=None):
+            calls.append(("init", (host, port, timeout, context)))
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def login(self, username, password):
+            calls.append(("login", (username, password)))
+
+        def send_message(self, message):
+            calls.append(("send", message))
+
+    monkeypatch.setattr("smtplib.SMTP_SSL", FakeSmtpSsl)
+    monkeypatch.setattr("ssl.create_default_context", lambda: context)
+    config = smtp_delivery_config_from_settings(_settings(SMTP_SECURITY="ssl", SMTP_USERNAME="user", SMTP_PASSWORD="secret"))
+
+    SmtpEmailTransport(config).check_connection()
+
+    assert calls == [
+        ("init", ("smtp.example.test", 587, 15, context)),
+        ("login", ("user", "secret")),
+    ]
+    assert not any(call[0] == "send" for call in calls)
+
+
+@pytest.mark.parametrize(
+    ("failure_stage", "exc_factory", "expected_type", "expected_message", "configure_credentials"),
+    [
+        ("starttls", lambda: TimeoutError("provider secret"), EmailDeliveryTemporaryError, "Email delivery failed temporarily", False),
+        (
+            "login",
+            lambda: smtplib.SMTPAuthenticationError(535, "provider secret"),
+            EmailDeliveryPermanentError,
+            "Email delivery failed permanently",
+            True,
+        ),
+        (
+            "starttls",
+            lambda: smtplib.SMTPNotSupportedError("provider secret"),
+            EmailDeliveryPermanentError,
+            "Email delivery failed permanently",
+            False,
+        ),
+        (
+            "starttls",
+            lambda: smtplib.SMTPResponseException(421, "provider secret"),
+            EmailDeliveryTemporaryError,
+            "Email delivery failed temporarily",
+            False,
+        ),
+    ],
+)
+def test_smtp_transport_check_connection_classifies_failures(
+    monkeypatch: pytest.MonkeyPatch,
+    failure_stage,
+    exc_factory,
+    expected_type,
+    expected_message,
+    configure_credentials,
+) -> None:
+    class FailingSmtp:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def ehlo(self):
+            pass
+
+        def starttls(self, context):
+            if failure_stage == "starttls":
+                raise exc_factory()
+
+        def login(self, username, password):
+            if failure_stage == "login":
+                raise exc_factory()
+
+        def send_message(self, message):
+            raise AssertionError("send_message must not be called")
+
+    monkeypatch.setattr("smtplib.SMTP", FailingSmtp)
+    overrides = {"SMTP_USERNAME": "user", "SMTP_PASSWORD": "secret"} if configure_credentials else {}
+    config = smtp_delivery_config_from_settings(_settings(**overrides))
+
+    with pytest.raises(expected_type) as exc_info:
+        SmtpEmailTransport(config).check_connection()
+
+    assert str(exc_info.value) == expected_message
+    assert "provider" not in str(exc_info.value)

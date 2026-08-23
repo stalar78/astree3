@@ -3,6 +3,7 @@ from __future__ import annotations
 import html
 import smtplib
 import ssl
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from email.message import EmailMessage
@@ -124,6 +125,12 @@ class SmtpEmailTransport:
         self.config = config
 
     def send(self, message: EmailMessage) -> None:
+        self._run_secure_session(lambda smtp: smtp.send_message(message))
+
+    def check_connection(self) -> None:
+        self._run_secure_session(lambda _smtp: None)
+
+    def _run_secure_session(self, action: Callable[[object], None]) -> None:
         try:
             context = ssl.create_default_context()
             if self.config.security == SMTP_SECURITY_SSL:
@@ -133,13 +140,15 @@ class SmtpEmailTransport:
                     timeout=self.config.timeout_seconds,
                     context=context,
                 ) as smtp:
-                    self._login_and_send(smtp, message)
+                    self._login(smtp)
+                    action(smtp)
             else:
                 with smtplib.SMTP(self.config.host, self.config.port, timeout=self.config.timeout_seconds) as smtp:
                     smtp.ehlo()
                     smtp.starttls(context=context)
                     smtp.ehlo()
-                    self._login_and_send(smtp, message)
+                    self._login(smtp)
+                    action(smtp)
         except (EmailDeliveryTemporaryError, EmailDeliveryPermanentError):
             raise
         except smtplib.SMTPAuthenticationError as exc:
@@ -157,10 +166,9 @@ class SmtpEmailTransport:
         except (TimeoutError, OSError, smtplib.SMTPServerDisconnected) as exc:
             raise EmailDeliveryTemporaryError("Email delivery failed temporarily") from exc
 
-    def _login_and_send(self, smtp, message: EmailMessage) -> None:
+    def _login(self, smtp) -> None:
         if self.config.username and self.config.password:
             smtp.login(self.config.username, self.config.password.get_secret_value())
-        smtp.send_message(message)
 
 
 def _render_text(snapshot: CandidateNotificationSnapshot, config: SmtpDeliveryConfig) -> str:

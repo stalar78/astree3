@@ -103,6 +103,36 @@ services:
         condition: service_healthy
     networks:
       - data
+      - mail-egress
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /var/tmp:rw,noexec,nosuid,size=16m
+    user: "10001:10001"
+    restart: "no"
+
+  smtp-check:
+    build: *backend-build
+    profiles:
+      - ops
+    command: ["python", "-m", "app.cli", "check-smtp"]
+    environment:
+      <<: *backend-env
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      APPLICATION_NOTIFICATION_EMAIL: ${APPLICATION_NOTIFICATION_EMAIL:-info@mason-astrea.ru}
+      SMTP_SECURITY: ${SMTP_SECURITY:-starttls}
+      SMTP_TIMEOUT_SECONDS: ${SMTP_TIMEOUT_SECONDS:-15}
+      SITE_BASE_URL: ${SITE_BASE_URL:-}
+    networks:
+      - mail-egress
     read_only: true
     cap_drop:
       - ALL
@@ -275,3 +305,4 @@ networks:
         - subnet: ${ASTREA_EDGE_SUBNET:-172.30.250.0/24}
   data:
     internal: true
+  mail-egress: {}

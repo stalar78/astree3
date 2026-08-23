@@ -196,6 +196,14 @@ run_email_worker() {
     return "$status"
 }
 
+run_smtp_check() {
+    set +e
+    compose run --rm smtp-check
+    status=$?
+    set -e
+    return "$status"
+}
+
 run_prune() {
     set +e
     compose run --rm \
@@ -208,7 +216,7 @@ run_prune() {
     return "$status"
 }
 
-[ $# -eq 1 ] || fail "Usage: astrea-ops.sh {backup|email-worker|prune}"
+[ $# -eq 1 ] || fail "Usage: astrea-ops.sh {backup|email-worker|smtp-check|prune}"
 
 command=$1
 
@@ -230,7 +238,7 @@ trap on_exit EXIT
 trap on_signal HUP INT TERM
 
 case "$command" in
-    backup|email-worker|prune)
+    backup|email-worker|smtp-check|prune)
         ;;
     *)
         fail "Unsupported command."
@@ -252,6 +260,14 @@ case "$command" in
     email-worker)
         printf 'astrea-ops email-worker: started\n'
         if run_email_worker; then
+            :
+        else
+            status=$?
+        fi
+        ;;
+    smtp-check)
+        printf 'astrea-ops smtp-check: started\n'
+        if run_smtp_check; then
             :
         else
             status=$?
@@ -282,6 +298,9 @@ if [ "$status" -eq 0 ] && [ "$backend_restart_failed" -eq 0 ]; then
         email-worker)
             printf 'astrea-ops email-worker: completed\n'
             ;;
+        smtp-check)
+            printf 'astrea-ops smtp-check: completed\n'
+            ;;
         prune)
             printf 'astrea-ops prune: completed\n'
             ;;
@@ -293,6 +312,9 @@ else
             ;;
         email-worker)
             printf 'astrea-ops email-worker: failed\n' >&2
+            ;;
+        smtp-check)
+            printf 'astrea-ops smtp-check: failed\n' >&2
             ;;
         prune)
             printf 'astrea-ops prune: failed\n' >&2

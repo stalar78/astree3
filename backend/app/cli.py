@@ -9,6 +9,13 @@ from pydantic import ValidationError
 from app.core.config import get_settings
 from app.db.session import SessionLocal
 from app.services.admin_bootstrap import AdminBootstrapError, bootstrap_initial_admin
+from app.services.email_delivery import (
+    EmailDeliveryConfigError,
+    EmailDeliveryPermanentError,
+    EmailDeliveryTemporaryError,
+    SmtpEmailTransport,
+    smtp_delivery_config_from_settings,
+)
 from app.services.email_worker import (
     EmailWorkerConfigurationError,
     EmailWorkerError,
@@ -22,6 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("bootstrap-admin", help="Create the initial admin user if needed.")
     subparsers.add_parser("process-email-outbox", help="Run one finite email outbox processing pass.")
+    subparsers.add_parser("check-smtp", help="Verify SMTP readiness without sending mail.")
     return parser
 
 
@@ -63,6 +71,27 @@ def main(argv: Sequence[str] | None = None) -> int:
             f"sent={result.sent} "
             f"delivery_failures={result.delivery_failures}"
         )
+        return 0
+
+    if args.command == "check-smtp":
+        try:
+            settings = get_settings()
+            config = smtp_delivery_config_from_settings(settings)
+            SmtpEmailTransport(config).check_connection()
+        except ValidationError:
+            print("SMTP readiness configuration is invalid.", file=sys.stderr)
+            return 1
+        except EmailDeliveryConfigError:
+            print("SMTP readiness configuration is invalid.", file=sys.stderr)
+            return 1
+        except (EmailDeliveryTemporaryError, EmailDeliveryPermanentError, OSError, TimeoutError):
+            print("SMTP readiness check failed.", file=sys.stderr)
+            return 1
+        except Exception:  # noqa: BLE001
+            print("SMTP readiness check failed.", file=sys.stderr)
+            return 1
+
+        print("SMTP readiness check succeeded.")
         return 0
 
     parser.error("Unsupported command")
