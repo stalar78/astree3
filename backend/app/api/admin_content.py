@@ -80,16 +80,9 @@ def create_news(payload: AdminNewsCreate, admin: AdminWrite, db: DbSession) -> J
     )
     apply_publication_state(post, payload.is_published, is_new=True)
     db.add(post)
-    try:
-        db.commit()
-    except IntegrityError as exc:
-        _rollback_safely(db)
-        if is_news_slug_conflict(exc):
-            return _error_response(409, "News slug already exists")
-        return _error_response(503, "Content administration temporarily unavailable")
-    except SQLAlchemyError:
-        _rollback_safely(db)
-        return _error_response(503, "Content administration temporarily unavailable")
+    error = _finalize_mutation(db, post, slug_conflict=True)
+    if error is not None:
+        return error
     return _json_response(_news_detail(post), status_code=201)
 
 
@@ -129,16 +122,9 @@ def update_news(
             setattr(post, field, getattr(payload, field))
     if "is_published" in fields:
         apply_publication_state(post, payload.is_published)  # type: ignore[arg-type]
-    try:
-        db.commit()
-    except IntegrityError as exc:
-        _rollback_safely(db)
-        if is_news_slug_conflict(exc):
-            return _error_response(409, "News slug already exists")
-        return _error_response(503, "Content administration temporarily unavailable")
-    except SQLAlchemyError:
-        _rollback_safely(db)
-        return _error_response(503, "Content administration temporarily unavailable")
+    error = _finalize_mutation(db, post, slug_conflict=True)
+    if error is not None:
+        return error
     return _json_response(_news_detail(post))
 
 
@@ -195,11 +181,9 @@ def create_video(payload: AdminVideoCreate, admin: AdminWrite, db: DbSession) ->
     )
     apply_publication_state(video, payload.is_published, is_new=True)
     db.add(video)
-    try:
-        db.commit()
-    except SQLAlchemyError:
-        _rollback_safely(db)
-        return _error_response(503, "Content administration temporarily unavailable")
+    error = _finalize_mutation(db, video)
+    if error is not None:
+        return error
     return _json_response(_video_detail(video), status_code=201)
 
 
@@ -238,11 +222,9 @@ def update_video(
             setattr(video, field, getattr(payload, field))
     if "is_published" in fields:
         apply_publication_state(video, payload.is_published)  # type: ignore[arg-type]
-    try:
-        db.commit()
-    except SQLAlchemyError:
-        _rollback_safely(db)
-        return _error_response(503, "Content administration temporarily unavailable")
+    error = _finalize_mutation(db, video)
+    if error is not None:
+        return error
     return _json_response(_video_detail(video))
 
 
@@ -315,11 +297,9 @@ def update_page(
     for field in ("title", "content", "is_published"):
         if field in fields:
             setattr(page, field, getattr(payload, field))
-    try:
-        db.commit()
-    except SQLAlchemyError:
-        _rollback_safely(db)
-        return _error_response(503, "Content administration temporarily unavailable")
+    error = _finalize_mutation(db, page)
+    if error is not None:
+        return error
     return _json_response(_page_detail(page))
 
 
@@ -403,6 +383,38 @@ def _reject_nulls(payload, fields: set[str]) -> JSONResponse | None:
     for field in fields:
         if field in payload.model_fields_set and getattr(payload, field) is None:
             return _error_response(422, "Invalid admin content request")
+    return None
+
+
+def _finalize_mutation(db: Session, entity, *, slug_conflict: bool = False) -> JSONResponse | None:
+    try:
+        db.flush()
+    except IntegrityError as exc:
+        _rollback_safely(db)
+        if slug_conflict and is_news_slug_conflict(exc):
+            return _error_response(409, "News slug already exists")
+        return _error_response(503, "Content administration temporarily unavailable")
+    except SQLAlchemyError:
+        _rollback_safely(db)
+        return _error_response(503, "Content administration temporarily unavailable")
+
+    try:
+        db.refresh(entity)
+    except SQLAlchemyError:
+        _rollback_safely(db)
+        return _error_response(503, "Content administration temporarily unavailable")
+
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        _rollback_safely(db)
+        if slug_conflict and is_news_slug_conflict(exc):
+            return _error_response(409, "News slug already exists")
+        return _error_response(503, "Content administration temporarily unavailable")
+    except SQLAlchemyError:
+        _rollback_safely(db)
+        return _error_response(503, "Content administration temporarily unavailable")
+
     return None
 
 

@@ -329,10 +329,10 @@ def test_all_admin_write_families_require_csrf(
     assert response.status_code == 403
 
 
-def test_post_commit_mutations_do_not_refresh(tmp_path: Path) -> None:
+def test_post_commit_mutations_do_not_execute_sql_after_commit(tmp_path: Path) -> None:
     client, _ = _client(tmp_path, authenticated=True)
     csrf = _csrf(client)
-    FailingSession.fail_refresh = True
+    FailingSession.forbid_sql_after_commit = True
 
     created = client.post(
         "/api/v1/admin/content/news",
@@ -345,9 +345,60 @@ def test_post_commit_mutations_do_not_refresh(tmp_path: Path) -> None:
         json={"title": "Updated"},
     )
 
-    FailingSession.fail_refresh = False
     assert created.status_code == 201
     assert updated.status_code == 200
+    FailingSession.forbid_sql_after_commit = False
+
+
+@pytest.mark.parametrize(
+    "method, path, payload, setup",
+    [
+        (
+            "post",
+            "/api/v1/admin/content/news",
+            {
+                "slug": "refresh-fail",
+                "title": "Title",
+                "excerpt": "Excerpt",
+                "body": "Body",
+            },
+            None,
+        ),
+        (
+            "patch",
+            "/api/v1/admin/content/news/1",
+            {"title": "Still original"},
+            lambda client, csrf: client.post(
+                "/api/v1/admin/content/news",
+                headers={CSRF_HEADER_NAME: csrf},
+                json=_news_payload(slug="original"),
+            ),
+        ),
+    ],
+)
+def test_pre_commit_refresh_failure_rolls_back(
+    method: str,
+    path: str,
+    payload: dict[str, Any],
+    setup,
+    tmp_path: Path,
+) -> None:
+    client, session_factory = _client(tmp_path, authenticated=True)
+    csrf = _csrf(client)
+    if setup is not None:
+        setup(client, csrf)
+    FailingSession.fail_refresh = True
+
+    response = client.request(method.upper(), path, headers={CSRF_HEADER_NAME: csrf}, json=payload)
+
+    FailingSession.fail_refresh = False
+    assert response.status_code == 503
+    assert response.json() == {"detail": "Content administration temporarily unavailable"}
+    with session_factory() as session:
+        if method == "post":
+            assert session.query(NewsPost).filter_by(slug="refresh-fail").one_or_none() is None
+        else:
+            assert session.query(NewsPost).filter_by(slug="original").one().title == "Title"
 
 
 def test_admin_content_validation_privacy_and_strict_booleans(tmp_path: Path) -> None:
@@ -464,21 +515,25 @@ class FailingSession(Session):
     fail_execute = False
     fail_commit = False
     fail_refresh = False
+    forbid_sql_after_commit = False
 
     def execute(self, *args: Any, **kwargs: Any) -> Any:
-        if self.fail_execute:
+        if self.fail_execute or (self.forbid_sql_after_commit and self._commit_succeeded):
             raise SQLAlchemyError("lookup")
         return super().execute(*args, **kwargs)
 
     def commit(self) -> None:
         if self.fail_commit:
             raise SQLAlchemyError("commit")
-        return super().commit()
+        super().commit()
+        self._commit_succeeded = True
 
     def refresh(self, instance: Any, *args: Any, **kwargs: Any) -> None:
         if self.fail_refresh:
             raise SQLAlchemyError("refresh")
         return super().refresh(instance, *args, **kwargs)
+
+    _commit_succeeded = False
 
 
 def _settings() -> Settings:
