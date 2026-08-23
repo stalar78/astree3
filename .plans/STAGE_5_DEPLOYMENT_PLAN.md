@@ -1,6 +1,6 @@
 # Stage 5 Deployment Plan
 
-Status: accepted through Stage 5.3A. Remaining operations, SMTP readiness, controlled acceptance and production deployment work is intentionally split into reviewed slices before candidate activation.
+Status: accepted through Stage 5.3B. Remaining SMTP readiness, controlled acceptance and production deployment work is intentionally split into reviewed slices before candidate activation.
 
 ## Stage 5.1 - Production-like runtime foundation
 
@@ -110,23 +110,47 @@ Validated in disposable project `astrea-backup-review` only:
 - both candidate activation gates remained `false`.
 
 Known production provisioning requirement:
-- the real VPS host backup directory must be provisioned writable by uid 10001 before production backup execution. This is intentionally deferred to Stage 5.3B/5.5 rather than weakening the operations container.
+- the real VPS host backup directory must be provisioned writable by uid 10001 before production backup execution. Stage 5.3B now provides the reviewed provisioning script; actual execution remains deferred to Stage 5.5.
 
 ## Stage 5.3B - Operations, retention and scheduling
 
-Status: pending.
+Status: accepted.
 
 Goal: make the accepted runtime and backup foundation operable on a real host without embedding long-running operational loops into FastAPI.
 
-Planned scope:
-- define backup cadence and retention/pruning policy, with destructive pruning kept explicit and independently reviewable;
-- production host provisioning for the backup directory and ownership/permissions;
-- production environment/secrets provisioning approach without committing real `.env` files;
-- explicit external scheduling for finite backup execution and the finite `process-email-outbox` command, such as systemd timers or cron;
-- define safe write-quiescence orchestration around backup execution;
-- worker/backup execution logging, failure visibility and alert/inspection expectations;
-- basic operational health/log inspection, restart and restore procedures;
-- no in-process daemon loop and no Docker socket based orchestration.
+Implemented:
+- profile-only finite `email-worker` service that runs `python -m app.cli process-email-outbox`, attaches only to the internal `data` network, has no private-media mount or host port, and retains the hardened non-root backend container model;
+- profile-only finite `prune` service with no network access, no PostgreSQL/private-media mounts, read-only container root and only the backup-root bind mount writable;
+- technical retention baseline of 14 newest completed automatic backup sets, configurable within the validated 7..365 range;
+- backup metadata now records `backup_origin=automatic|operator`; automatic pruning requires both the generated timestamp/suffix ID format and `backup_origin=automatic`;
+- operator/custom backups, generated-looking operator IDs, legacy no-origin backups, incomplete sets, symlinks and malformed sets are excluded from automatic pruning;
+- pruning is a separate explicit operation with safe dry-run default and destructive `PRUNE_AUTOMATIC_BACKUPS` confirmation; backup creation never performs implicit pruning;
+- host-side `astrea-ops.sh` orchestrates only `backup`, `email-worker` and `prune`, using one `flock` lock to prevent scheduled overlap;
+- backup orchestration records whether backend was originally running, stops it cleanly to establish write quiescence, runs the accepted finite backup with explicit acknowledgement, and restores the original backend-running state on success or failure while preserving failure exit status;
+- restore remains deliberately manual and is not exposed through the scheduler wrapper;
+- `provision-backup-dir.sh` creates only an explicitly validated backup path, rejects dangerous roots/final symlinks, sets uid/gid `10001:10001` and mode `0700`, and never recursively changes parent trees;
+- safe non-secret `astrea-ops.env.example` defines project/env/backup paths, retention count and Compose project name without credentials;
+- systemd oneshot template delegates to the reviewed host script through `/bin/sh`, uses `/etc/astrea/ops.env`, `UMask=0077`, finite startup timeout and journald stdout/stderr;
+- timer templates define daily backup around 03:30 with randomized delay, finite email-worker execution every five minutes, and weekly Sunday pruning around 04:30;
+- no systemd unit is installed/enabled by repository code; no in-process daemon, Docker socket orchestration, SMTP credential, TLS, legal version or candidate activation is introduced.
+
+Validated locally / with isolated harnesses:
+- shell syntax checks passed for modified/new POSIX scripts;
+- normal and `ops` Compose configurations rendered successfully;
+- backup/restore/prune operations images and the finite email-worker path built successfully where applicable;
+- email-worker without valid SMTP configuration failed closed with the accepted generic `Email outbox configuration is invalid` result and performed no real delivery;
+- retention dry-run over 16 realistic automatic synthetic sets reported two deletions while deleting nothing;
+- confirmed destructive retention reduced 16 eligible automatic sets to the newest 14 only;
+- ordinary manual backup, generated-looking operator backup, legacy no-origin backup, malformed metadata and incomplete data remained untouched;
+- invalid retention values failed closed without deletion;
+- automatic backup metadata wrote `backup_origin=automatic`, explicit-ID backup metadata wrote `backup_origin=operator`, and legacy no-origin backup remained restorable;
+- disposable provisioning test created a mode `0700`, uid/gid `10001:10001` directory and rejected an existing final symlink without changing its target;
+- fake `docker`/`flock` host harness proved backup success returned `0`, forced backup failure preserved its non-zero status, and backend was restored to its original running state in both paths;
+- normal `astrea` volumes were untouched and no normal-project `down -v` was used;
+- both candidate activation gates remained `false`.
+
+Production verification note:
+- actual Linux host execution, systemd unit loading/enabling, `/etc/astrea/*.env` provisioning, `/var/backups/astrea` provisioning and timer runtime behavior remain intentionally deferred to Stage 5.5 on the real VPS.
 
 ## Stage 5.3C - SMTP readiness
 
@@ -173,8 +197,8 @@ Planned scope:
 - re-verify the trusted client-IP/proxy chain against the actual Internet-facing topology;
 - provision production PostgreSQL/private-media volumes, backup directory and real environment secrets;
 - run migrations once and bootstrap the initial administrator explicitly;
-- configure SMTP and external email-worker/backup schedules;
-- verify backups and a recoverable restore procedure before public candidate activation;
+- configure SMTP and install/enable the reviewed external email-worker/backup/prune schedules;
+- verify real Linux host operations, journald visibility, backup creation and a recoverable restore procedure before public candidate activation;
 - smoke-test public routes, admin authentication, content administration and private-media boundaries;
 - activate candidate intake only after legal, security and acceptance sign-off;
 - retain a rollback path and backup of the existing site during cutover.
