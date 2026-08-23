@@ -8,6 +8,11 @@ from app import cli
 from app.core import config
 from app.core.config import Settings
 from app.db.session import SessionLocal
+from app.services.email_delivery import (
+    EmailDeliveryConfigError,
+    EmailDeliveryPermanentError,
+    EmailDeliveryTemporaryError,
+)
 from app.services.email_worker import (
     EmailOutboxRunResult,
     EmailWorkerConfigurationError,
@@ -119,5 +124,85 @@ def test_process_email_outbox_worker_failures_are_safe(
     assert "provider" not in captured.err.lower()
 
 
+def test_check_smtp_success(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    created: list[object] = []
+
+    monkeypatch.setattr(cli, "get_settings", lambda: _settings())
+
+    class FakeTransport:
+        def __init__(self, config):
+            created.append(config)
+
+        def check_connection(self):
+            return None
+
+    monkeypatch.setattr(cli, "SmtpEmailTransport", FakeTransport)
+
+    exit_code = cli.main(["check-smtp"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert captured.err == ""
+    assert captured.out.strip() == "SMTP readiness check succeeded."
+    assert created and created[0].host == "smtp.example.test"
+
+
+def test_check_smtp_invalid_config_is_safe(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    monkeypatch.setattr(cli, "get_settings", lambda: _settings())
+
+    def fail_config(_settings: Settings) -> object:
+        raise EmailDeliveryConfigError("secret")
+
+    monkeypatch.setattr(cli, "smtp_delivery_config_from_settings", fail_config)
+
+    exit_code = cli.main(["check-smtp"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert captured.out == ""
+    assert captured.err.strip() == "SMTP readiness configuration is invalid."
+    assert "traceback" not in captured.err.lower()
+
+
+@pytest.mark.parametrize(
+    ("exc_type", "expected_message"),
+    [
+        (EmailDeliveryTemporaryError, "SMTP readiness check failed."),
+        (EmailDeliveryPermanentError, "SMTP readiness check failed."),
+    ],
+)
+def test_check_smtp_runtime_failures_are_safe(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    exc_type: type[Exception],
+    expected_message: str,
+) -> None:
+    monkeypatch.setattr(cli, "get_settings", lambda: _settings())
+
+    class FailingTransport:
+        def __init__(self, config):
+            pass
+
+        def check_connection(self):
+            raise exc_type("provider secret")
+
+    monkeypatch.setattr(cli, "SmtpEmailTransport", FailingTransport)
+
+    exit_code = cli.main(["check-smtp"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert captured.out == ""
+    assert captured.err.strip() == expected_message
+    assert "provider" not in captured.err.lower()
+    assert "traceback" not in captured.err.lower()
+
+
 def _settings() -> Settings:
-    return Settings(DATABASE_URL="postgresql+psycopg://user:pass@localhost:5432/astrea")
+    return Settings(
+        DATABASE_URL="postgresql+psycopg://user:pass@localhost:5432/astrea",
+        SMTP_HOST="smtp.example.test",
+        SMTP_FROM_EMAIL="notifications@example.test",
+        APPLICATION_NOTIFICATION_EMAIL="admin@example.test",
+        SITE_BASE_URL="https://astrea.example.test/",
+    )
