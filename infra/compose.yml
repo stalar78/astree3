@@ -9,6 +9,13 @@ x-backend-env: &backend-env
   DATABASE_URL: "postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
   PRIVATE_MEDIA_ROOT: /var/lib/astrea/private
   CANDIDATE_INTAKE_ENABLED: ${CANDIDATE_INTAKE_ENABLED:-false}
+  ADMIN_LOGIN_RATE_LIMIT_REQUESTS: ${ADMIN_LOGIN_RATE_LIMIT_REQUESTS:-10}
+  ADMIN_LOGIN_RATE_LIMIT_WINDOW_SECONDS: ${ADMIN_LOGIN_RATE_LIMIT_WINDOW_SECONDS:-900}
+  CANDIDATE_RATE_LIMIT_REQUESTS: ${CANDIDATE_RATE_LIMIT_REQUESTS:-5}
+  CANDIDATE_RATE_LIMIT_WINDOW_SECONDS: ${CANDIDATE_RATE_LIMIT_WINDOW_SECONDS:-900}
+  HOME: /tmp
+  TMPDIR: /tmp
+  XDG_CACHE_HOME: /tmp/.cache
 
 services:
   db:
@@ -20,6 +27,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
       - astrea-postgres-data:/var/lib/postgresql/data
+    networks:
+      - data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
@@ -35,11 +44,32 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - data
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /var/tmp:rw,noexec,nosuid,size=16m
     restart: "no"
 
   backend:
     build: *backend-build
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    command:
+      [
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--proxy-headers",
+        "--forwarded-allow-ips",
+        "${ASTREA_PROXY_IP:-172.30.250.10}",
+      ]
     environment:
       <<: *backend-env
     volumes:
@@ -49,6 +79,17 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+    networks:
+      - edge
+      - data
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /var/tmp:rw,noexec,nosuid,size=16m
     restart: unless-stopped
     healthcheck:
       test:
@@ -72,6 +113,9 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    networks:
+      edge:
+        ipv4_address: ${ASTREA_PROXY_IP:-172.30.250.10}
     ports:
       - "127.0.0.1:${ASTREA_HTTP_PORT:-8080}:80"
     restart: unless-stopped
@@ -85,3 +129,11 @@ services:
 volumes:
   astrea-postgres-data:
   astrea-private-media:
+
+networks:
+  edge:
+    ipam:
+      config:
+        - subnet: ${ASTREA_EDGE_SUBNET:-172.30.250.0/24}
+  data:
+    internal: true
