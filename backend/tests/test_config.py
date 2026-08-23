@@ -57,6 +57,16 @@ def test_settings_expose_email_outbox_defaults(monkeypatch: pytest.MonkeyPatch) 
     assert email_outbox_policy_from_settings(settings).batch_size == 10
 
 
+def test_settings_load_without_smtp_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://user:pass@localhost:5432/astrea")
+
+    settings = Settings()
+
+    assert settings.smtp_host is None
+    assert settings.application_notification_email == "info@mason-astrea.ru"
+
+
 def test_settings_reject_invalid_email_outbox_backoff(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("APP_ENV", "test")
     monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://user:pass@localhost:5432/astrea")

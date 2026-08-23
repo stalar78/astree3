@@ -167,13 +167,23 @@ def _validate_delivery_config(settings: Settings) -> SmtpDeliveryConfig:
 
 
 def _run_recovery(session_factory: SessionFactory, policy: EmailOutboxPolicy, now: datetime) -> int:
-    with session_factory() as db:
-        return recover_stale_email_outbox(db, policy, now=now)
+    try:
+        with session_factory() as db:
+            return recover_stale_email_outbox(db, policy, now=now)
+    except EmailOutboxClaimLostError as exc:
+        raise EmailWorkerOperationalError("Email outbox claim was lost") from exc
+    except EmailOutboxPersistenceError as exc:
+        raise EmailWorkerPersistenceError("Email outbox recovery failed") from exc
 
 
 def _run_claim(session_factory: SessionFactory, policy: EmailOutboxPolicy, now: datetime) -> list[EmailOutboxClaim]:
-    with session_factory() as db:
-        return claim_email_outbox_batch(db, policy, now=now)
+    try:
+        with session_factory() as db:
+            return claim_email_outbox_batch(db, policy, now=now)
+    except EmailOutboxClaimLostError as exc:
+        raise EmailWorkerOperationalError("Email outbox claim was lost") from exc
+    except EmailOutboxPersistenceError as exc:
+        raise EmailWorkerPersistenceError("Email outbox claim failed") from exc
 
 
 def _load_candidate_snapshot(
@@ -193,30 +203,31 @@ def _load_candidate_snapshot(
                     ApplicationConsent.consent_type.in_(REQUIRED_CONSENT_TYPES),
                 ).order_by(ApplicationConsent.consent_type)
             ).scalars().all()
+            if candidate is None:
+                raise EmailWorkerDataError("Candidate application is missing")
+            consent_map = {consent.consent_type: consent for consent in consents}
+            if not all(consent_type in consent_map for consent_type in REQUIRED_CONSENT_TYPES):
+                raise EmailWorkerDataError("Candidate application consents are incomplete")
+            snapshot = CandidateNotificationSnapshot(
+                application_id=candidate.id,
+                created_at=candidate.created_at,
+                full_name=candidate.full_name,
+                date_of_birth=candidate.date_of_birth,
+                city=candidate.city,
+                phone=candidate.phone,
+                email=candidate.email,
+                education=candidate.education,
+                occupation=candidate.occupation,
+                marital_status=candidate.marital_status,
+                other_organizations=candidate.other_organizations,
+                social_links=candidate.social_links,
+                motivation=candidate.motivation,
+                has_photo=bool(candidate.photo_storage_key),
+                consents=tuple(_snapshot_consent(consent_map[key]) for key in REQUIRED_CONSENT_TYPES),
+            )
     except SQLAlchemyError as exc:
         raise EmailWorkerPersistenceError("Email worker snapshot load failed") from exc
-    if candidate is None:
-        raise EmailWorkerDataError("Candidate application is missing")
-    consent_map = {consent.consent_type: consent for consent in consents}
-    if not all(consent_type in consent_map for consent_type in REQUIRED_CONSENT_TYPES):
-        raise EmailWorkerDataError("Candidate application consents are incomplete")
-    return CandidateNotificationSnapshot(
-        application_id=candidate.id,
-        created_at=candidate.created_at,
-        full_name=candidate.full_name,
-        date_of_birth=candidate.date_of_birth,
-        city=candidate.city,
-        phone=candidate.phone,
-        email=candidate.email,
-        education=candidate.education,
-        occupation=candidate.occupation,
-        marital_status=candidate.marital_status,
-        other_organizations=candidate.other_organizations,
-        social_links=candidate.social_links,
-        motivation=candidate.motivation,
-        has_photo=bool(candidate.photo_storage_key),
-        consents=tuple(_snapshot_consent(consent_map[key]) for key in REQUIRED_CONSENT_TYPES),
-    )
+    return snapshot
 
 
 def _snapshot_consent(consent: ApplicationConsent) -> CandidateConsentSnapshot:

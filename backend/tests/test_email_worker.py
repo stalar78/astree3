@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 from sqlalchemy import create_engine, event
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import Settings
@@ -18,14 +19,16 @@ from app.services.candidate_contracts import (
     CONSENT_TYPE_SAINT_PETERSBURG_ACKNOWLEDGEMENT,
 )
 from app.services.email_delivery import (
+    EmailDeliveryPermanentError,
     EmailDeliveryTemporaryError,
     EmailTransport,
     render_candidate_notification_email,
 )
-from app.services.email_outbox import EmailOutboxPersistenceError
+from app.services.email_outbox import EmailOutboxClaimLostError, EmailOutboxPersistenceError
 from app.services.email_worker import (
     EmailOutboxRunResult,
     EmailWorkerConfigurationError,
+    EmailWorkerOperationalError,
     EmailWorkerPersistenceError,
     run_email_outbox_once,
 )
@@ -93,6 +96,56 @@ def test_worker_temporary_failure_requeues(session_factory) -> None:
         assert outbox.next_attempt_at is not None
 
 
+def test_recovery_persistence_failure_aborts_before_smtp(session_factory, monkeypatch: pytest.MonkeyPatch) -> None:
+    _seed_candidate(session_factory)
+    transport = FakeTransport(messages=[])
+
+    def fail_recovery(*args, **kwargs):
+        raise EmailOutboxPersistenceError("recovery sql secret")
+
+    monkeypatch.setattr("app.services.email_worker.recover_stale_email_outbox", fail_recovery)
+
+    with pytest.raises(EmailWorkerPersistenceError) as exc_info:
+        run_email_outbox_once(_settings(), session_factory, transport=transport, now=NOW)
+
+    assert str(exc_info.value) == "Email outbox recovery failed"
+    assert "sql" not in str(exc_info.value).lower()
+    assert transport.messages == []
+
+
+def test_claim_persistence_failure_aborts_before_smtp(session_factory, monkeypatch: pytest.MonkeyPatch) -> None:
+    _seed_candidate(session_factory)
+    transport = FakeTransport(messages=[])
+
+    def fail_claim(*args, **kwargs):
+        raise EmailOutboxPersistenceError("claim sql secret")
+
+    monkeypatch.setattr("app.services.email_worker.claim_email_outbox_batch", fail_claim)
+
+    with pytest.raises(EmailWorkerPersistenceError) as exc_info:
+        run_email_outbox_once(_settings(), session_factory, transport=transport, now=NOW)
+
+    assert str(exc_info.value) == "Email outbox claim failed"
+    assert "sql" not in str(exc_info.value).lower()
+    assert transport.messages == []
+
+
+def test_claim_lost_during_claim_is_reported_safely(session_factory, monkeypatch: pytest.MonkeyPatch) -> None:
+    _seed_candidate(session_factory)
+    transport = FakeTransport(messages=[])
+
+    def lose_claim(*args, **kwargs):
+        raise EmailOutboxClaimLostError("lost row secret")
+
+    monkeypatch.setattr("app.services.email_worker.claim_email_outbox_batch", lose_claim)
+
+    with pytest.raises(EmailWorkerOperationalError) as exc_info:
+        run_email_outbox_once(_settings(), session_factory, transport=transport, now=NOW)
+
+    assert str(exc_info.value) == "Email outbox claim was lost"
+    assert transport.messages == []
+
+
 def test_post_send_db_failure_aborts_without_failure_transition(session_factory, monkeypatch: pytest.MonkeyPatch) -> None:
     _seed_candidate(session_factory)
     transport = FakeTransport(messages=[])
@@ -108,6 +161,89 @@ def test_post_send_db_failure_aborts_without_failure_transition(session_factory,
     with session_factory() as db:
         outbox = db.get(EmailOutbox, 1)
         assert outbox.status == "processing"
+    assert len(transport.messages) == 1
+
+
+def test_delivery_permanent_failure_marks_terminal_failure(session_factory) -> None:
+    _seed_candidate(session_factory)
+    transport = FakeTransport(messages=[], fail_first=EmailDeliveryPermanentError("provider secret"))
+
+    result = run_email_outbox_once(_settings(), session_factory, transport=transport, now=NOW)
+
+    assert result.delivery_failures == 1
+    with session_factory() as db:
+        outbox = db.get(EmailOutbox, 1)
+        assert outbox.status == "failed"
+        assert outbox.last_error == "delivery_permanent_failure"
+        assert outbox.next_attempt_at is None
+
+
+def test_unexpected_transport_exception_marks_terminal_failure(session_factory) -> None:
+    _seed_candidate(session_factory)
+    transport = FakeTransport(messages=[], fail_first=RuntimeError("provider secret"))
+
+    result = run_email_outbox_once(_settings(), session_factory, transport=transport, now=NOW)
+
+    assert result.delivery_failures == 1
+    with session_factory() as db:
+        outbox = db.get(EmailOutbox, 1)
+        assert outbox.status == "failed"
+        assert outbox.last_error == "delivery_unexpected_failure"
+        assert outbox.next_attempt_at is None
+    assert len(transport.messages) == 1
+
+
+def test_snapshot_db_failure_keeps_claim_processing_and_skips_smtp(session_factory) -> None:
+    _seed_candidate(session_factory)
+    transport = FakeTransport(messages=[])
+    snapshot_factory = _SnapshotFailureFactory(session_factory)
+
+    with pytest.raises(EmailWorkerPersistenceError) as exc_info:
+        run_email_outbox_once(_settings(), snapshot_factory, transport=transport, now=NOW)
+
+    assert str(exc_info.value) == "Email worker snapshot load failed"
+    assert transport.messages == []
+    with session_factory() as db:
+        outbox = db.get(EmailOutbox, 1)
+        assert outbox.status == "processing"
+
+
+def test_failure_transition_persistence_failure_aborts_without_second_send(
+    session_factory,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _seed_candidate(session_factory)
+    transport = FakeTransport(messages=[], fail_first=EmailDeliveryTemporaryError("network secret"))
+
+    def fail_transition(*args, **kwargs):
+        raise EmailOutboxPersistenceError("transition sql secret")
+
+    monkeypatch.setattr("app.services.email_worker.record_email_outbox_failure", fail_transition)
+
+    with pytest.raises(EmailWorkerPersistenceError) as exc_info:
+        run_email_outbox_once(_settings(), session_factory, transport=transport, now=NOW)
+
+    assert str(exc_info.value) == "Email outbox failure transition failed"
+    assert len(transport.messages) == 1
+
+
+def test_claim_lost_during_failure_transition_is_operational(
+    session_factory,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _seed_candidate(session_factory)
+    transport = FakeTransport(messages=[], fail_first=EmailDeliveryTemporaryError("network secret"))
+
+    def lose_transition(*args, **kwargs):
+        raise EmailOutboxClaimLostError("lost row secret")
+
+    monkeypatch.setattr("app.services.email_worker.record_email_outbox_failure", lose_transition)
+
+    with pytest.raises(EmailWorkerOperationalError) as exc_info:
+        run_email_outbox_once(_settings(), session_factory, transport=transport, now=NOW)
+
+    assert str(exc_info.value) == "Email outbox claim was lost"
+    assert len(transport.messages) == 1
 
 
 def test_invalid_config_fails_before_claim(session_factory, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -164,6 +300,29 @@ class _TrackingSession:
             return self._session.__exit__(exc_type, exc, tb)
         finally:
             self._tracker.open_sessions -= 1
+
+
+class _SnapshotFailureFactory:
+    def __init__(self, session_factory):
+        self._session_factory = session_factory
+        self.calls = 0
+
+    def __call__(self):
+        self.calls += 1
+        if self.calls == 3:
+            return _FailingSnapshotSession()
+        return self._session_factory()
+
+
+class _FailingSnapshotSession:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def execute(self, statement):
+        raise SQLAlchemyError("snapshot sql secret")
 
 
 NOW = datetime(2026, 8, 23, 12, 0, tzinfo=UTC)

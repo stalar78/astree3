@@ -4,6 +4,8 @@ import argparse
 import sys
 from collections.abc import Sequence
 
+from pydantic import ValidationError
+
 from app.core.config import get_settings
 from app.db.session import SessionLocal
 from app.services.admin_bootstrap import AdminBootstrapError, bootstrap_initial_admin
@@ -41,9 +43,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     if args.command == "process-email-outbox":
-        settings = get_settings()
         try:
+            settings = get_settings()
             result = run_email_outbox_once(settings, SessionLocal)
+        except ValidationError:
+            print("Email outbox configuration is invalid.", file=sys.stderr)
+            return 1
         except EmailWorkerConfigurationError:
             print("Email outbox configuration is invalid.", file=sys.stderr)
             return 1
