@@ -135,9 +135,25 @@ function jsonHeaders(headers: HeadersInit = {}): HeadersInit {
   };
 }
 
+export function adminJsonHeaders(headers: HeadersInit = {}): HeadersInit {
+  return jsonHeaders(headers);
+}
+
 function csrfHeaders(): HeadersInit {
   const token = getCookieValue(CSRF_COOKIE_NAME);
   return token ? { [CSRF_HEADER_NAME]: token } : {};
+}
+
+export function adminCsrfHeaders(): HeadersInit {
+  return csrfHeaders();
+}
+
+export function requestAdminJson<T>(url: string, init: RequestInit = {}): Promise<T> {
+  return requestJson<T>(url, init);
+}
+
+export function requestAdminVoid(url: string, init: RequestInit = {}): Promise<void> {
+  return requestVoid(url, init);
 }
 
 async function requestJson<T>(url: string, init: RequestInit = {}): Promise<T> {

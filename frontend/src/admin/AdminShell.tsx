@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AdminApiError, logoutAdmin } from './adminApi';
 import { SESSION_SECURITY_MESSAGE } from './adminMessages';
 import { useAdminSession } from './useAdminSession';
@@ -62,18 +62,31 @@ export function AdminShell({
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-brand-gray6">Admin console</p>
-            <h1 className="font-display text-3xl">Управление кандидатами</h1>
+            <h1 className="font-display text-3xl">Панель управления</h1>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Link to="/admin/candidates" className="rounded-full border border-white/15 px-4 py-2 text-sm uppercase tracking-[0.14em] text-white/90 transition hover:border-white/35 hover:text-white">
-              Кандидаты
-            </Link>
-            <span className="rounded-full border border-white/15 px-4 py-2 text-sm uppercase tracking-[0.14em] text-brand-gray6">
-              {username}
-            </span>
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              ['/admin/candidates', 'Кандидаты'],
+              ['/admin/news', 'Новости'],
+              ['/admin/videos', 'Видео'],
+              ['/admin/pages', 'Страницы'],
+            ].map(([to, label]) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  `border px-4 py-2 text-sm uppercase tracking-[0.14em] transition ${
+                    isActive ? 'border-brand-red bg-brand-red text-white' : 'border-white/15 text-white/90 hover:border-white/35 hover:text-white'
+                  }`
+                }
+              >
+                {label}
+              </NavLink>
+            ))}
+            <span className="border border-white/15 px-4 py-2 text-sm uppercase tracking-[0.14em] text-brand-gray6">{username}</span>
             <button
               type="button"
-              className="rounded-full border border-brand-red bg-brand-red px-4 py-2 text-sm uppercase tracking-[0.14em] text-white transition hover:bg-transparent hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="border border-brand-red bg-brand-red px-4 py-2 text-sm uppercase tracking-[0.14em] text-white transition hover:bg-transparent hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
               disabled={logoutBusy}
               onClick={async () => {
                 setLogoutState(null);
@@ -111,15 +124,9 @@ async function logoutAdminWithOutcome(): Promise<LogoutOutcome> {
     return 'signed_out';
   } catch (error) {
     if (error instanceof AdminApiError) {
-      if (error.status === 401) {
-        return 'session_missing';
-      }
-      if (error.status === 403) {
-        return 'logout_403';
-      }
-      if (error.status === 503) {
-        return 'logout_503';
-      }
+      if (error.status === 401) return 'session_missing';
+      if (error.status === 403) return 'logout_403';
+      if (error.status === 503) return 'logout_503';
     }
     return 'network_error';
   }

@@ -16,6 +16,9 @@ import { AdminCandidatesPage } from './pages/admin/AdminCandidatesPage';
 import { AdminCandidateDetailPage } from './pages/admin/AdminCandidateDetailPage';
 import { AdminProtectedLayout } from './admin/AdminShell';
 import { Navigate } from 'react-router-dom';
+import { AdminNewsPage, AdminVideosPage } from './pages/admin/AdminNewsPage';
+import { AdminPagesPage } from './pages/admin/AdminPagesPage';
+import { AdminNewsEditorPage, AdminPageEditorPage, AdminVideoEditorPage } from './pages/admin/AdminContentEditorPage';
 
 export type SeoMeta = {
   title: string;
@@ -97,6 +100,14 @@ export const routes: RouteObject[] = [
       { index: true, element: <Navigate to="candidates" replace /> },
       { path: 'candidates', element: <AdminCandidatesPage /> },
       { path: 'candidates/:candidateId', element: <AdminCandidateDetailPage /> },
+      { path: 'news', element: <AdminNewsPage /> },
+      { path: 'news/new', element: <AdminNewsEditorPage create /> },
+      { path: 'news/:newsId', element: <AdminNewsEditorPage /> },
+      { path: 'videos', element: <AdminVideosPage /> },
+      { path: 'videos/new', element: <AdminVideoEditorPage create /> },
+      { path: 'videos/:videoId', element: <AdminVideoEditorPage /> },
+      { path: 'pages', element: <AdminPagesPage /> },
+      { path: 'pages/:pageKey', element: <AdminPageEditorPage /> },
     ],
   },
 ];
