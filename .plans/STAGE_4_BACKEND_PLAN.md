@@ -1,6 +1,6 @@
 # Stage 4 Backend Plan
 
-Status: in progress. Stage 4.1, Stage 4.2, Stage 4.3, Stage 4.4A and Stage 4.4B accepted; Stage 4.4C is next.
+Status: in progress. Stage 4.1, Stage 4.2, Stage 4.3, Stage 4.4A, Stage 4.4B and Stage 4.4C1 accepted; Stage 4.4C2 is next.
 
 Stage 4 is intentionally split into small reviewed slices. The candidate workflow is high-risk because it handles personal data and photographs; it must not be implemented as one oversized change.
 
@@ -121,7 +121,7 @@ Activation remains deliberately deferred until approved privacy/consent document
 
 ## Stage 4.4 - Admin and operations
 
-Status: in progress. Stage 4.4A and Stage 4.4B accepted; Stage 4.4C is next.
+Status: in progress. Stage 4.4A, Stage 4.4B and Stage 4.4C1 accepted; Stage 4.4C2 is next.
 
 ### Stage 4.4A - Admin authentication
 
@@ -201,13 +201,48 @@ Final reported quality gate from `frontend/`:
 
 ### Stage 4.4C - Content administration
 
+Status: in progress. Stage 4.4C1 backend accepted; Stage 4.4C2 admin UI is next.
+
+#### Stage 4.4C1 - Content administration backend
+
+Status: accepted.
+
+Implemented:
+- authenticated admin content routes under `/api/v1/admin/content`;
+- news list/detail/create/update/delete over the existing `news_posts` table;
+- news pagination with bounded `limit`/`offset`, optional `published` filter and deterministic `updated_at DESC, id DESC` ordering;
+- server-managed news publication timestamps: first publication sets UTC time, unpublish/republish preserves the original timestamp;
+- safe duplicate news-slug handling with `409` and rollback;
+- optional news image references restricted to HTTPS absolute URLs or root-relative same-origin paths, with no server-side fetching or storage;
+- video list/detail/create/update/delete over the existing `videos` table;
+- accepted Stage 4.2 RuTube validator reused without weakening: canonical HTTPS RuTube source URLs, server-derived provider/embed URL, no iframe HTML or arbitrary providers;
+- server-managed video publication timestamps with the same first-publish/unpublish/republish semantics as news;
+- constrained page administration over existing `pages` rows only: list all pages ordered by key, detail by immutable key, and update only title/content/publication state;
+- no page creation, page deletion, key mutation, arbitrary page-builder blocks or layout mutation;
+- authenticated reads and accepted Stage 4.4A CSRF dependency for every admin content write;
+- strict request schemas with `extra="forbid"`, strict JSON booleans, safe text/URL validation and generic scoped validation responses that do not echo submitted draft content;
+- `Cache-Control: private, no-store` and `Pragma: no-cache` on admin content success/error responses;
+- generic DB failure handling with rollback and no SQL/constraint/DSN leakage;
+- mutation response boundary `flush -> refresh -> commit -> serialize`, with tests proving no database access occurs after a successful commit and refresh failures remain rollback-safe before persistence;
+- existing Stage 4.2 public endpoints remain published-only and use the same PostgreSQL rows;
+- no migration `0005`, no new content/revision/audit tables and the accepted eight-table metadata surface is unchanged.
+
+Final reported quality gate from `backend/`:
+- 231 pytest tests passed, 1 skipped;
+- Ruff passed.
+
+#### Stage 4.4C2 - Content administration UI
+
 Status: next.
 
 Implement:
-- authenticated CRUD for news;
-- authenticated CRUD for external videos;
-- constrained editing of approved page content;
-- no arbitrary page-builder/layout mutation.
+- protected admin navigation for News, Video and approved editable Pages within the existing Stage 4.4B2 admin shell;
+- news list/create/edit/delete UI with publication controls and bounded pagination/filtering;
+- video list/create/edit/delete UI using RuTube URLs only and server-derived provider/embed state;
+- page list/edit UI limited to existing page identities and allowed title/content/publication fields;
+- accepted same-origin session-cookie auth and CSRF flow for all writes;
+- no browser persistence of draft content or privileged credentials;
+- no arbitrary page builder, layout mutation, bulk operations or editorial upload system in MVP.
 
 ### Stage 4.4D - Email outbox operations
 
