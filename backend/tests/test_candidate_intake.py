@@ -104,6 +104,10 @@ def test_success_persists_application_consents_outbox_and_photo_metadata() -> No
     assert outbox.event_type == EMAIL_OUTBOX_EVENT_CANDIDATE_APPLICATION_RECEIVED
     assert outbox.status == EMAIL_OUTBOX_STATUS_PENDING
     assert outbox.attempts == 0
+    assert outbox.processing_started_at is None
+    assert outbox.next_attempt_at is None
+    assert outbox.last_error is None
+    assert outbox.sent_at is None
 
 
 def test_storage_failure_prevents_database_work() -> None:

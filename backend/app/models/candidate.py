@@ -6,6 +6,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -112,6 +113,7 @@ class ApplicationConsent(Base):
 class EmailOutbox(TimestampMixin, Base):
     __tablename__ = "email_outbox"
     __table_args__ = (
+        Index("ix_email_outbox_status_next_attempt_id", "status", "next_attempt_at", "id"),
         CheckConstraint(
             f"event_type IN ({_sql_values(EMAIL_OUTBOX_EVENT_TYPES)})",
             name="ck_email_outbox_event_type",
@@ -121,6 +123,11 @@ class EmailOutbox(TimestampMixin, Base):
             name="ck_email_outbox_status",
         ),
         CheckConstraint("attempts >= 0", name="ck_email_outbox_attempts_non_negative"),
+        CheckConstraint(
+            "(status = 'processing' AND processing_started_at IS NOT NULL) "
+            "OR (status != 'processing' AND processing_started_at IS NULL)",
+            name="ck_email_outbox_processing_started_state",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -144,6 +151,8 @@ class EmailOutbox(TimestampMixin, Base):
     attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
     last_error: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    processing_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     application: Mapped[CandidateApplication] = relationship(
         back_populates="email_outbox_entries",
