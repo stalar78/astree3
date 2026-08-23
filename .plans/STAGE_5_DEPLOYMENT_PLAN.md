@@ -1,6 +1,6 @@
 # Stage 5 Deployment Plan
 
-Status: Stage 5.1 accepted. Remaining deployment/security/operations work is intentionally split into reviewed slices before production activation.
+Status: accepted through Stage 5.2. Remaining operations, controlled acceptance and production deployment work is intentionally split into reviewed slices before candidate activation.
 
 ## Stage 5.1 - Production-like runtime foundation
 
@@ -34,19 +34,42 @@ Validated locally:
 
 ## Stage 5.2 - Deployment security hardening
 
-Status: pending.
+Status: accepted.
 
-Goal: harden the reverse-proxy/application boundary before candidate intake can be activated in an Internet-facing environment.
+Implemented:
+- dedicated Compose `edge` and internal `data` networks;
+- `web` attached only to `edge`, `db` and `migrate` only to `data`, and `backend` as the sole service attached to both networks;
+- configurable edge subnet and fixed Nginx proxy IP through `ASTREA_EDGE_SUBNET` / `ASTREA_PROXY_IP` safe defaults;
+- Uvicorn proxy-header trust restricted to the configured Nginx proxy IP rather than wildcard trust;
+- Nginx overwrites `X-Forwarded-For` and related forwarding headers from `$remote_addr` and clears the incoming standardized `Forwarded` header, preventing caller-supplied forwarding chains from controlling application limiter identity;
+- accepted application-level candidate/admin-login rate limiters remain based on `request.client.host`, with existing configurable request/window settings exposed through Compose without changing application defaults;
+- generic Nginx request-body limit reduced to 1 MiB while the exact `/api/v1/candidate-applications` endpoint receives a 12 MiB multipart allowance;
+- finite reverse-proxy connect/send/read timeouts;
+- `server_tokens off`;
+- Nginx security headers: restrictive CSP, `Permissions-Policy`, `Referrer-Policy`, `X-Content-Type-Options: nosniff` and `X-Frame-Options: SAMEORIGIN`;
+- CSP supports same-origin application/API resources, HTTPS editorial images, in-memory `blob:` private-photo display and approved RuTube frames without `unsafe-eval` or wildcard script/frame sources;
+- backend and migrate containers hardened with read-only root filesystem, `cap_drop: ALL`, `no-new-privileges` and bounded writable tmpfs paths;
+- non-root backend uid 10001 and backend-only writable private-media volume preserved;
+- backend 8000 and PostgreSQL 5432 remain unpublished; only localhost Nginx HTTP is host-published;
+- no HSTS, TLS certificates, production SMTP, legal versions or candidate activation introduced.
 
-Planned scope:
-- review and scope Nginx request-body limits precisely for candidate multipart traffic and other routes;
-- define trusted reverse-proxy/client-IP handling so application rate limiting cannot be bypassed or poisoned by untrusted forwarding headers;
-- production security headers appropriate to the final site and embedding requirements;
-- production cookie/HTTPS behavior verification behind the actual proxy topology;
-- ensure backend/database/private-media services remain non-public on the VPS;
-- verify private-media filesystem ownership/permissions and no static Nginx exposure;
-- review container/runtime privileges and production restart/failure semantics;
-- no candidate activation yet unless all legal prerequisites are also complete.
+Validated locally:
+- Compose config and image build passed;
+- PostgreSQL/backend/web became healthy and migrate exited `0`;
+- `nginx -t` passed;
+- forwarded-header spoof smoke test using invalid admin login returned `401` then `429` despite changing attacker-supplied `X-Forwarded-For` between requests;
+- generic oversized API traffic was rejected with `413` at the 1 MiB boundary;
+- a synthetic 2 MiB request reached the disabled candidate endpoint and returned `404`, proving the exact path received the larger allowance;
+- a synthetic 13 MiB candidate-path request was rejected with `413`;
+- `/api/v1/health`, `/`, `/vstuplenie` and `/admin/login` returned successfully through Nginx;
+- expected CSP/security headers were present on public and API responses;
+- backend remained uid 10001, private media remained writable only to backend, and no private-media Nginx exposure existed;
+- backend quality gate remained 280 passed, 1 skipped, 14 existing warnings; Ruff passed;
+- frontend typecheck, lint and build passed;
+- both candidate activation gates remained `false`.
+
+Production note:
+- the accepted trusted-proxy model assumes the container Nginx is the direct client-facing reverse proxy. If a CDN, load balancer or additional reverse proxy is introduced in Stage 5.5, client-IP trust must be re-evaluated against that actual topology rather than blindly extending the trusted chain.
 
 ## Stage 5.3 - Backup and operations
 
@@ -93,6 +116,7 @@ Planned scope:
 - provision Linux VPS and production DNS/domain routing;
 - install/runtime prerequisites and production Docker Compose deployment;
 - configure Nginx TLS/SSL using the approved domain and certificate process;
+- re-verify the trusted client-IP/proxy chain against the actual Internet-facing topology;
 - provision production PostgreSQL/private-media volumes and real environment secrets;
 - run migrations once and bootstrap the initial administrator explicitly;
 - configure SMTP and external email-worker schedule;
