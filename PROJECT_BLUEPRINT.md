@@ -1,6 +1,6 @@
 # Project Blueprint: Astrea
 
-Current stage: Stage 4.4C1 content administration backend accepted; Stage 4.4C2 protected content admin UI next.
+Current stage: Stage 4.4C content administration accepted; Stage 4.4D email outbox operations next.
 
 ## Purpose
 
@@ -254,7 +254,7 @@ Stage 4.4B2 was accepted after corrective pagination, CSRF/logout semantics, pri
 
 ## Accepted Stage 4.4C1 Content Administration Backend
 
-The backend now includes authenticated administration of the accepted Stage 4.2 content models under `/api/v1/admin/content`:
+The backend includes authenticated administration of the accepted Stage 4.2 content models under `/api/v1/admin/content`:
 - news list/detail/create/update/delete, with bounded pagination, optional `published` filtering and deterministic admin ordering;
 - server-managed publication timestamps where first publish sets UTC time and later unpublish/republish preserves the original timestamp;
 - duplicate news slugs mapped safely to `409` with rollback;
@@ -270,6 +270,27 @@ The backend now includes authenticated administration of the accepted Stage 4.2 
 - no migration `0005`, no new content/revision/audit tables and no schema expansion.
 
 Stage 4.4C1 was accepted after dedicated draft/public-boundary, page-identity, RuTube-validation, CSRF, validation-privacy and post-commit transaction review. Final reported backend quality gate from `backend/`: 231 pytest tests passed, 1 skipped, and Ruff passed.
+
+## Accepted Stage 4.4C2 Content Administration UI
+
+The production frontend now includes protected content administration inside the accepted `/admin` shell:
+- navigation for Candidates, News, Video and Pages with protected routes outside the public `PageShell`;
+- news list/create/edit/delete and publish/unpublish controls with `limit=20` pagination and `published` filtering;
+- canonical list URL state limited to non-content `published`/`offset` parameters, with invalid or unknown parameters removed;
+- safe duplicate news-slug handling that keeps current form values editable;
+- explicit two-step news/video deletion without optimistic removal or automatic mutation retry;
+- RuTube video create/edit limited to title, description, canonical RuTube source URL and publication state, with provider/embed state server-owned and no automatic iframe preview;
+- predefined page list/edit limited to existing immutable page keys and title/content/publication state, with no create/delete/page-builder surface;
+- same-origin session-cookie authentication and existing readable CSRF cookie plus `X-CSRF-Token` for every write;
+- `401` redirects to login, while write `403` stays on the current editor and shows the accepted session-security message;
+- temporary/network GET failures provide explicit retry, while mutation failures preserve in-memory form state and require explicit user retry;
+- news image references accept HTTPS absolute or root-relative same-origin paths without preview, network fetch or upload;
+- no raw backend error detail rendered to the user;
+- unpublished editorial drafts remain only in React component memory: no browser storage, URL content payloads, cookies, console logging or autosave;
+- public frontend behavior and public content APIs remain unchanged;
+- no new frontend dependencies.
+
+Stage 4.4C2 was accepted after corrective review of mutation-error form visibility, temporary detail-load retry, root-relative image URL compatibility and browser URL-state canonicalization. Final reported frontend quality gate from `frontend/`: `npm run typecheck`, `npm run lint` and `npm run build` all passed.
 
 ## Security
 
@@ -299,7 +320,6 @@ Stage 4 is split into small reviewed slices; see `.plans/STAGE_4_BACKEND_PLAN.md
 3. Stage 4.3 - accepted: guarded candidate intake persistence, private photo pipeline, transactional consent/outbox aggregate and disabled-by-default public ingress.
 4. Stage 4.4A - accepted: closed admin identity/bootstrap, Argon2id passwords, server-side sessions, secure cookies, CSRF protection and auth dependencies.
 5. Stage 4.4B - accepted: authenticated candidate list/detail/status/private-photo API plus protected candidate admin UI.
-6. Stage 4.4C1 - accepted: authenticated backend administration for news, RuTube video and predefined editable page content.
-7. Stage 4.4C2 - next: protected content administration UI using the accepted Stage 4.4C1 API.
-8. Stage 4.4D - persistent email-outbox worker/retry delivery.
-9. Before candidate intake activation: approve legal documents/version identifiers, integrate the public frontend form, and complete deployment request-body/client-IP security configuration.
+6. Stage 4.4C - accepted: authenticated backend and protected frontend administration for news, RuTube video and predefined editable page content.
+7. Stage 4.4D - next: persistent email-outbox worker/retry delivery.
+8. Before candidate intake activation: approve legal documents/version identifiers, integrate the public frontend form, and complete deployment request-body/client-IP security configuration.
