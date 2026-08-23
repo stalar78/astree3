@@ -6,6 +6,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -112,6 +113,7 @@ class ApplicationConsent(Base):
 class EmailOutbox(TimestampMixin, Base):
     __tablename__ = "email_outbox"
     __table_args__ = (
+        Index("ix_email_outbox_status_next_attempt_id", "status", "next_attempt_at", "id"),
         CheckConstraint(
             f"event_type IN ({_sql_values(EMAIL_OUTBOX_EVENT_TYPES)})",
             name="ck_email_outbox_event_type",

@@ -4,7 +4,7 @@ from types import ModuleType
 from typing import Any
 
 import pytest
-from sqlalchemy import CheckConstraint, ForeignKeyConstraint, UniqueConstraint
+from sqlalchemy import CheckConstraint, ForeignKeyConstraint, Index, UniqueConstraint
 
 from app.db.base import Base
 from app.models.candidate import ApplicationConsent, CandidateApplication, EmailOutbox
@@ -122,6 +122,16 @@ def test_email_outbox_constraints_defaults_and_exclusions() -> None:
     assert "ck_email_outbox_attempts_non_negative" in _constraint_names(table, CheckConstraint)
     assert "ck_email_outbox_processing_started_state" in _constraint_names(table, CheckConstraint)
     assert {"processing_started_at", "next_attempt_at"}.issubset(columns)
+    indexes = {
+        index.name: tuple(column.name for column in index.columns)
+        for index in table.indexes
+        if isinstance(index, Index)
+    }
+    assert indexes["ix_email_outbox_status_next_attempt_id"] == (
+        "status",
+        "next_attempt_at",
+        "id",
+    )
     assert table.c.last_error.type.length == 2000
     assert EmailOutbox().status is None
     assert table.c.status.default.arg == EMAIL_OUTBOX_STATUS_PENDING

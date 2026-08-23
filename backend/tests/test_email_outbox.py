@@ -6,7 +6,7 @@ from pathlib import Path
 from types import ModuleType
 
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
@@ -109,6 +109,26 @@ def test_retry_backoff_is_deterministic_and_capped(session: Session) -> None:
     record_email_outbox_failure(session, claim_two, "delivery_temporary_failure", retryable=True, policy=POLICY, now=NOW + timedelta(seconds=60))
     assert session.get(EmailOutbox, row.id).next_attempt_at == NOW + timedelta(seconds=180)
 
+    cap_policy = EmailOutboxPolicy(
+        batch_size=1,
+        max_attempts=8,
+        retry_base_seconds=60,
+        retry_max_seconds=180,
+        processing_timeout_seconds=900,
+    )
+    capped = _add_outbox(session, created_at=NOW + timedelta(seconds=2), attempts=3)
+    session.commit()
+    capped_claim = claim_email_outbox_batch(session, cap_policy, now=NOW)[0]
+    record_email_outbox_failure(
+        session,
+        capped_claim,
+        "delivery_temporary_failure",
+        retryable=True,
+        policy=cap_policy,
+        now=NOW,
+    )
+    assert session.get(EmailOutbox, capped.id).next_attempt_at == NOW + timedelta(seconds=180)
+
 
 def test_permanent_and_exhausted_failures_are_terminal(session: Session) -> None:
     permanent = _add_outbox(session, created_at=NOW)
@@ -146,6 +166,50 @@ def test_stale_recovery_is_bounded_and_preserves_fresh_rows(session: Session) ->
     assert stale_row.status == "pending"
     assert stale_row.last_error == "processing_timeout"
     assert stale_row.next_attempt_at == NOW + timedelta(seconds=60)
+    assert stale_row.processing_started_at is None
+    fresh = session.scalars(
+        select(EmailOutbox).where(
+            EmailOutbox.status == "processing",
+            EmailOutbox.processing_started_at == NOW - timedelta(minutes=1),
+        )
+    ).one()
+    assert fresh.last_error is None
+
+
+def test_stale_recovery_max_attempts_becomes_failed(session: Session) -> None:
+    row = _add_outbox(
+        session,
+        created_at=NOW,
+        status="processing",
+        attempts=POLICY.max_attempts,
+        processing_started_at=NOW - timedelta(hours=1),
+    )
+    session.commit()
+
+    assert recover_stale_email_outbox(session, POLICY, now=NOW) == 1
+    recovered = session.get(EmailOutbox, row.id)
+    assert recovered.status == "failed"
+    assert recovered.processing_started_at is None
+    assert recovered.next_attempt_at is None
+    assert recovered.last_error == "processing_timeout"
+
+
+def test_stale_recovery_transitions_only_batch_size_rows(session: Session) -> None:
+    rows = [
+        _add_outbox(
+            session,
+            created_at=NOW + timedelta(seconds=index),
+            status="processing",
+            attempts=1,
+            processing_started_at=NOW - timedelta(hours=1),
+        )
+        for index in range(POLICY.batch_size + 1)
+    ]
+    session.commit()
+
+    assert recover_stale_email_outbox(session, POLICY, now=NOW) == POLICY.batch_size
+    assert sum(session.get(EmailOutbox, row.id).status == "pending" for row in rows) == POLICY.batch_size
+    assert sum(session.get(EmailOutbox, row.id).status == "processing" for row in rows) == 1
 
 
 def test_stale_claim_cannot_mutate_newer_generation(session: Session) -> None:
@@ -173,6 +237,33 @@ def test_postgresql_db_failure_is_generic(session: Session, monkeypatch: pytest.
         claim_email_outbox_batch(session, POLICY, now=NOW)
     assert str(exc_info.value) == "Email outbox claim failed"
     assert "DATABASE_URL" not in str(exc_info.value)
+
+
+def test_guarded_transition_db_failure_rolls_back_generically(
+    session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    row = _add_outbox(session, created_at=NOW)
+    session.commit()
+    claim = claim_email_outbox_batch(session, POLICY, now=NOW)[0]
+
+    real_execute = session.execute
+
+    def fail_guarded_execute(statement, *args, **kwargs):
+        if statement.is_update:
+            raise SQLAlchemyError("synthetic secret DATABASE_URL")
+        return real_execute(statement, *args, **kwargs)
+
+    monkeypatch.setattr(session, "execute", fail_guarded_execute)
+    with pytest.raises(EmailOutboxPersistenceError) as exc_info:
+        mark_email_outbox_sent(session, claim, now=NOW)
+
+    assert str(exc_info.value) == "Email outbox update failed"
+    assert "DATABASE_URL" not in str(exc_info.value)
+    session.expire_all()
+    persisted = session.get(EmailOutbox, row.id)
+    assert persisted.status == "processing"
+    assert persisted.attempts == 1
 
 
 def test_migration_0005_is_additive_and_down_revision_is_0004(monkeypatch: pytest.MonkeyPatch) -> None:

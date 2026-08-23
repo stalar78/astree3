@@ -77,16 +77,7 @@ def claim_email_outbox_batch(
 ) -> list[EmailOutboxClaim]:
     current = _ensure_utc(now or datetime.now(UTC))
     try:
-        statement = (
-            select(EmailOutbox)
-            .where(
-                EmailOutbox.status == EMAIL_OUTBOX_STATUS_PENDING,
-                or_(EmailOutbox.next_attempt_at.is_(None), EmailOutbox.next_attempt_at <= current),
-            )
-            .order_by(asc(EmailOutbox.created_at), asc(EmailOutbox.id))
-            .limit(policy.batch_size)
-            .with_for_update(skip_locked=True)
-        )
+        statement = _build_claim_statement(policy, current)
         rows = db.execute(statement).scalars().all()
         claims: list[EmailOutboxClaim] = []
         for row in rows:
@@ -230,16 +221,7 @@ def recover_stale_email_outbox(
 
 
 def build_postgresql_claim_statement(policy: EmailOutboxPolicy, now: datetime) -> Select[tuple[EmailOutbox]]:
-    return (
-        select(EmailOutbox)
-        .where(
-            EmailOutbox.status == EMAIL_OUTBOX_STATUS_PENDING,
-            or_(EmailOutbox.next_attempt_at.is_(None), EmailOutbox.next_attempt_at <= now),
-        )
-        .order_by(asc(EmailOutbox.created_at), asc(EmailOutbox.id))
-        .limit(policy.batch_size)
-        .with_for_update(skip_locked=True)
-    )
+    return _build_claim_statement(policy, _ensure_utc(now))
 
 
 def _guarded_update(outbox_id: int, attempt_number: int):
@@ -271,3 +253,16 @@ def _safe_rollback(db: Session) -> None:
         db.rollback()
     except SQLAlchemyError:
         pass
+
+
+def _build_claim_statement(policy: EmailOutboxPolicy, now: datetime) -> Select[tuple[EmailOutbox]]:
+    return (
+        select(EmailOutbox)
+        .where(
+            EmailOutbox.status == EMAIL_OUTBOX_STATUS_PENDING,
+            or_(EmailOutbox.next_attempt_at.is_(None), EmailOutbox.next_attempt_at <= now),
+        )
+        .order_by(asc(EmailOutbox.created_at), asc(EmailOutbox.id))
+        .limit(policy.batch_size)
+        .with_for_update(skip_locked=True)
+    )
