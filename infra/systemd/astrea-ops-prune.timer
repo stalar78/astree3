@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Astrea backup prune weekly
+
+[Timer]
+OnCalendar=Sun 04:30:00
+RandomizedDelaySec=10m
+Persistent=true
+Unit=astrea-ops@prune.service
+
+[Install]
+WantedBy=timers.target

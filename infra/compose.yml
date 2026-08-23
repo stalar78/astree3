@@ -77,6 +77,72 @@ services:
     entrypoint: ["/usr/local/bin/backup.sh"]
     restart: "no"
 
+  email-worker:
+    build: *backend-build
+    profiles:
+      - ops
+    command: ["python", "-m", "app.cli", "process-email-outbox"]
+    environment:
+      <<: *backend-env
+      EMAIL_OUTBOX_BATCH_SIZE: ${EMAIL_OUTBOX_BATCH_SIZE:-10}
+      EMAIL_OUTBOX_MAX_ATTEMPTS: ${EMAIL_OUTBOX_MAX_ATTEMPTS:-5}
+      EMAIL_OUTBOX_RETRY_BASE_SECONDS: ${EMAIL_OUTBOX_RETRY_BASE_SECONDS:-60}
+      EMAIL_OUTBOX_RETRY_MAX_SECONDS: ${EMAIL_OUTBOX_RETRY_MAX_SECONDS:-3600}
+      EMAIL_OUTBOX_PROCESSING_TIMEOUT_SECONDS: ${EMAIL_OUTBOX_PROCESSING_TIMEOUT_SECONDS:-900}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      APPLICATION_NOTIFICATION_EMAIL: ${APPLICATION_NOTIFICATION_EMAIL:-info@mason-astrea.ru}
+      SMTP_SECURITY: ${SMTP_SECURITY:-starttls}
+      SMTP_TIMEOUT_SECONDS: ${SMTP_TIMEOUT_SECONDS:-15}
+      SITE_BASE_URL: ${SITE_BASE_URL:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - data
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /var/tmp:rw,noexec,nosuid,size=16m
+    user: "10001:10001"
+    restart: "no"
+
+  prune:
+    build:
+      context: ./ops
+      dockerfile: Dockerfile
+    profiles:
+      - ops
+    command: ["/usr/local/bin/prune.sh"]
+    environment:
+      ASTREA_BACKUP_ROOT: /backups
+      ASTREA_PRUNE_CONFIRM: ${ASTREA_PRUNE_CONFIRM:-}
+      ASTREA_PRUNE_DRY_RUN: ${ASTREA_PRUNE_DRY_RUN:-true}
+      ASTREA_BACKUP_RETENTION_COUNT: ${ASTREA_BACKUP_RETENTION_COUNT:-14}
+      HOME: /tmp
+      TMPDIR: /tmp
+      XDG_CACHE_HOME: /tmp/.cache
+    network_mode: "none"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+      - /var/tmp:rw,noexec,nosuid,size=16m
+    user: "10001:10001"
+    volumes:
+      - ${ASTREA_BACKUP_ROOT:-../backups}:/backups
+    restart: "no"
+
   restore:
     build:
       context: ./ops

@@ -60,6 +60,7 @@ validate_metadata() {
     metadata=$1
     seen_format=0
     seen_backup=0
+    seen_origin=0
     seen_created=0
     seen_postgres=0
     seen_database=0
@@ -87,6 +88,18 @@ validate_metadata() {
                 [ -n "$value" ] || fail "Invalid metadata."
                 [ "$value" = "$ASTREA_BACKUP_ID" ] || fail "Invalid metadata."
                 seen_backup=1
+                ;;
+            backup_origin)
+                [ "$seen_origin" -eq 0 ] || fail "Invalid metadata."
+                case "$value" in
+                    automatic|operator)
+                        :
+                        ;;
+                    *)
+                        fail "Invalid metadata."
+                        ;;
+                esac
+                seen_origin=1
                 ;;
             created_at_utc)
                 [ "$seen_created" -eq 0 ] || fail "Invalid metadata."
