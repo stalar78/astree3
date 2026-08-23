@@ -36,6 +36,18 @@ def test_admin_models_are_present_and_standalone_email_models_are_not() -> None:
     assert "email" not in model_files
 
 
+def test_alembic_versions_stop_at_0005() -> None:
+    versions = sorted(path.name for path in Path("alembic/versions").glob("*.py"))
+
+    assert versions == [
+        "20260822_0001_public_content.py",
+        "20260822_0002_candidate_intake.py",
+        "20260822_0003_admin_auth.py",
+        "20260822_0004_candidate_admin_status.py",
+        "20260823_0005_email_outbox_delivery_state.py",
+    ]
+
+
 def test_migration_creates_only_public_content_tables() -> None:
     migration = Path("alembic/versions/20260822_0001_public_content.py").read_text(encoding="utf-8")
 
