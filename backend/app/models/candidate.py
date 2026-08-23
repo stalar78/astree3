@@ -121,6 +121,11 @@ class EmailOutbox(TimestampMixin, Base):
             name="ck_email_outbox_status",
         ),
         CheckConstraint("attempts >= 0", name="ck_email_outbox_attempts_non_negative"),
+        CheckConstraint(
+            "(status = 'processing' AND processing_started_at IS NOT NULL) "
+            "OR (status != 'processing' AND processing_started_at IS NULL)",
+            name="ck_email_outbox_processing_started_state",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -144,6 +149,8 @@ class EmailOutbox(TimestampMixin, Base):
     attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
     last_error: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    processing_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     application: Mapped[CandidateApplication] = relationship(
         back_populates="email_outbox_entries",

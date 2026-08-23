@@ -464,7 +464,7 @@ def test_admin_content_read_and_write_db_failures_are_generic(tmp_path: Path) ->
     assert "commit" not in write.text
 
 
-def test_no_new_tables_or_migrations_were_added() -> None:
+def test_no_new_tables_were_added() -> None:
     assert set(Base.metadata.tables) == {
         "pages",
         "news_posts",
@@ -475,8 +475,7 @@ def test_no_new_tables_or_migrations_were_added() -> None:
         "admin_users",
         "admin_sessions",
     }
-    versions = Path("alembic/versions").glob("*.py")
-    assert not any("0005" in path.name for path in versions)
+    assert Path("alembic/versions/20260823_0005_email_outbox_delivery_state.py").exists()
 
 
 def _client(

@@ -67,6 +67,20 @@ class Settings(BaseSettings):
         default=900,
         alias="CANDIDATE_RATE_LIMIT_WINDOW_SECONDS",
     )
+    email_outbox_batch_size: PositiveInt = Field(default=10, alias="EMAIL_OUTBOX_BATCH_SIZE")
+    email_outbox_max_attempts: PositiveInt = Field(default=5, alias="EMAIL_OUTBOX_MAX_ATTEMPTS")
+    email_outbox_retry_base_seconds: PositiveInt = Field(
+        default=60,
+        alias="EMAIL_OUTBOX_RETRY_BASE_SECONDS",
+    )
+    email_outbox_retry_max_seconds: PositiveInt = Field(
+        default=3600,
+        alias="EMAIL_OUTBOX_RETRY_MAX_SECONDS",
+    )
+    email_outbox_processing_timeout_seconds: PositiveInt = Field(
+        default=900,
+        alias="EMAIL_OUTBOX_PROCESSING_TIMEOUT_SECONDS",
+    )
 
     @property
     def debug(self) -> bool:
@@ -95,6 +109,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _validate_candidate_intake_settings(self) -> "Settings":
+        if self.email_outbox_retry_max_seconds < self.email_outbox_retry_base_seconds:
+            raise ValueError("EMAIL_OUTBOX_RETRY_MAX_SECONDS must be >= EMAIL_OUTBOX_RETRY_BASE_SECONDS")
         if not self.candidate_intake_enabled:
             return self
 

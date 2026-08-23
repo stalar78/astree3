@@ -120,6 +120,8 @@ def test_email_outbox_constraints_defaults_and_exclusions() -> None:
     assert "ck_email_outbox_event_type" in _constraint_names(table, CheckConstraint)
     assert "ck_email_outbox_status" in _constraint_names(table, CheckConstraint)
     assert "ck_email_outbox_attempts_non_negative" in _constraint_names(table, CheckConstraint)
+    assert "ck_email_outbox_processing_started_state" in _constraint_names(table, CheckConstraint)
+    assert {"processing_started_at", "next_attempt_at"}.issubset(columns)
     assert table.c.last_error.type.length == 2000
     assert EmailOutbox().status is None
     assert table.c.status.default.arg == EMAIL_OUTBOX_STATUS_PENDING
