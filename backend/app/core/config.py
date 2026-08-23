@@ -81,6 +81,18 @@ class Settings(BaseSettings):
         default=900,
         alias="EMAIL_OUTBOX_PROCESSING_TIMEOUT_SECONDS",
     )
+    smtp_host: str | None = Field(default=None, alias="SMTP_HOST")
+    smtp_port: PositiveInt = Field(default=587, alias="SMTP_PORT")
+    smtp_username: str | None = Field(default=None, alias="SMTP_USERNAME")
+    smtp_password: SecretStr | None = Field(default=None, alias="SMTP_PASSWORD")
+    smtp_from_email: str | None = Field(default=None, alias="SMTP_FROM_EMAIL")
+    application_notification_email: str = Field(
+        default="info@mason-astrea.ru",
+        alias="APPLICATION_NOTIFICATION_EMAIL",
+    )
+    smtp_security: str = Field(default="starttls", alias="SMTP_SECURITY")
+    smtp_timeout_seconds: PositiveInt = Field(default=15, alias="SMTP_TIMEOUT_SECONDS")
+    site_base_url: str | None = Field(default=None, alias="SITE_BASE_URL")
 
     @property
     def debug(self) -> bool:
