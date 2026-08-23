@@ -1,6 +1,6 @@
 # Stage 5 Deployment Plan
 
-Status: accepted through Stage 5.3B. Remaining SMTP readiness, controlled acceptance and production deployment work is intentionally split into reviewed slices before candidate activation.
+Status: accepted through Stage 5.3C implementation. Controlled acceptance and production deployment remain pending, including live SMTP-provider verification with external credentials before real notification delivery.
 
 ## Stage 5.1 - Production-like runtime foundation
 
@@ -119,13 +119,13 @@ Status: accepted.
 Goal: make the accepted runtime and backup foundation operable on a real host without embedding long-running operational loops into FastAPI.
 
 Implemented:
-- profile-only finite `email-worker` service that runs `python -m app.cli process-email-outbox`, attaches only to the internal `data` network, has no private-media mount or host port, and retains the hardened non-root backend container model;
+- profile-only finite `email-worker` service that runs `python -m app.cli process-email-outbox`, has no private-media mount or host port, and retains the hardened non-root backend container model; Stage 5.3C adds its reviewed outbound `mail-egress` network while retaining internal `data` access for PostgreSQL;
 - profile-only finite `prune` service with no network access, no PostgreSQL/private-media mounts, read-only container root and only the backup-root bind mount writable;
 - technical retention baseline of 14 newest completed automatic backup sets, configurable within the validated 7..365 range;
 - backup metadata now records `backup_origin=automatic|operator`; automatic pruning requires both the generated timestamp/suffix ID format and `backup_origin=automatic`;
 - operator/custom backups, generated-looking operator IDs, legacy no-origin backups, incomplete sets, symlinks and malformed sets are excluded from automatic pruning;
 - pruning is a separate explicit operation with safe dry-run default and destructive `PRUNE_AUTOMATIC_BACKUPS` confirmation; backup creation never performs implicit pruning;
-- host-side `astrea-ops.sh` orchestrates only `backup`, `email-worker` and `prune`, using one `flock` lock to prevent scheduled overlap;
+- host-side `astrea-ops.sh` orchestrates `backup`, `email-worker`, `smtp-check` and `prune`, using one `flock` lock to prevent operational overlap; `smtp-check` was added in Stage 5.3C and remains manual/unscheduled;
 - backup orchestration records whether backend was originally running, stops it cleanly to establish write quiescence, runs the accepted finite backup with explicit acknowledgement, and restores the original backend-running state on success or failure while preserving failure exit status;
 - restore remains deliberately manual and is not exposed through the scheduler wrapper;
 - `provision-backup-dir.sh` creates only an explicitly validated backup path, rejects dangerous roots/final symlinks, sets uid/gid `10001:10001` and mode `0700`, and never recursively changes parent trees;
@@ -154,16 +154,42 @@ Production verification note:
 
 ## Stage 5.3C - SMTP readiness
 
-Status: pending.
+Status: accepted for code/infrastructure readiness. Live provider verification remains a production/test-environment prerequisite because no real SMTP credentials were used or committed.
 
-Goal: provision and verify the external mail path required for administrator notifications without committing credentials or coupling SMTP delivery to FastAPI startup.
+Goal: provide a safe, finite way to verify the external mail path required for administrator notifications without committing credentials, sending a test message, or coupling SMTP delivery to FastAPI startup.
 
-Planned scope:
-- production/test SMTP credential provisioning outside Git;
-- provider connectivity and TLS-mode verification through the accepted finite worker;
-- sender/recipient configuration verification;
-- operational failure visibility for email processing;
-- no candidate activation solely because SMTP connectivity succeeds.
+Implemented:
+- finite `python -m app.cli check-smtp` command that loads the accepted SMTP settings, validates configuration, establishes the same secure SMTP session used by real delivery, authenticates when credentials are configured, and exits without sending a message;
+- `SmtpEmailTransport.check_connection()` shares the same internal secure-session path as `send()`, avoiding a second SMTP implementation and preserving the accepted STARTTLS/SMTP-SSL behavior;
+- STARTTLS uses `ssl.create_default_context()`, `EHLO`, verified `STARTTLS`, a second `EHLO`, and optional authentication; SMTP-SSL uses `SMTP_SSL` with the verified default context and optional authentication;
+- readiness never invokes `send_message`, `sendmail`, `MAIL FROM`, `RCPT TO` or `DATA`, and does not touch candidate records, outbox rows or private media;
+- CLI failures are intentionally generic: invalid settings produce `SMTP readiness configuration is invalid.` and connection/authentication/provider failures produce `SMTP readiness check failed.` without exposing provider exception text or secrets;
+- dedicated non-internal `mail-egress` Compose network provides outbound SMTP connectivity without publishing inbound ports;
+- `email-worker` attaches to internal `data` plus `mail-egress`, while profile-only `smtp-check` attaches only to `mail-egress`, has no database dependency, no volumes, no host ports and no `edge` attachment;
+- the existing `data` network remains `internal: true`; `db`, `migrate`, `backup`, `restore` and `prune` are not attached to `mail-egress`;
+- host `astrea-ops.sh` supports a manual finite `smtp-check` operation under the existing global `flock`; no `smtp-check` timer or background loop is introduced;
+- actual credentials continue to belong only in the external root-controlled environment file, not in Git, repository scripts or unit files;
+- candidate activation gates remain disabled.
+
+Validated without real provider credentials:
+- targeted email/CLI tests: 28 passed;
+- full backend suite: 290 passed, 1 skipped, 14 existing warnings;
+- Ruff: all checks passed;
+- normal and `ops` Compose configurations rendered successfully;
+- normal runtime remains limited to `db`, `migrate`, `backend` and `web`;
+- `email-worker` and `smtp-check` images built successfully;
+- missing SMTP configuration failed closed with the generic configuration message;
+- valid synthetic configuration pointed at an unreachable endpoint failed closed with the generic readiness failure message;
+- tests prove STARTTLS and SMTP-SSL readiness use the verified context and optional login while never calling `send_message`;
+- no real SMTP credential was used or tracked and no real email was sent;
+- both candidate activation gates remained `false`.
+
+External verification still required before real notification delivery:
+- live provider DNS/network reachability;
+- live CA/TLS handshake against the chosen provider;
+- authentication with credentials supplied outside Git;
+- sender authorization for the configured `SMTP_FROM_EMAIL`;
+- recipient/delivery behavior through the real provider. The non-sending `check-smtp` command can verify connectivity/TLS/authentication safely; actual delivery is exercised only in the controlled acceptance flow.
 
 ## Stage 5.4 - Controlled end-to-end acceptance
 
@@ -175,7 +201,8 @@ Prerequisites:
 - approved privacy policy and personal-data consent text;
 - approved server-controlled legal version identifiers;
 - Stage 5.2 deployment/security hardening accepted;
-- Stage 5.3 required operational/SMTP pieces available.
+- Stage 5.3 operational and SMTP implementation accepted;
+- approved test/production SMTP configuration provisioned outside Git and live provider readiness verified before the email-delivery portion of acceptance.
 
 Planned acceptance flow:
 - explicitly enable both frontend and backend candidate gates only in the controlled test environment;
@@ -197,7 +224,7 @@ Planned scope:
 - re-verify the trusted client-IP/proxy chain against the actual Internet-facing topology;
 - provision production PostgreSQL/private-media volumes, backup directory and real environment secrets;
 - run migrations once and bootstrap the initial administrator explicitly;
-- configure SMTP and install/enable the reviewed external email-worker/backup/prune schedules;
+- provision real SMTP settings outside Git, run the non-sending SMTP readiness check, then configure/install the reviewed external email-worker/backup/prune schedules;
 - verify real Linux host operations, journald visibility, backup creation and a recoverable restore procedure before public candidate activation;
 - smoke-test public routes, admin authentication, content administration and private-media boundaries;
 - activate candidate intake only after legal, security and acceptance sign-off;
@@ -205,7 +232,7 @@ Planned scope:
 
 ## Activation rule
 
-Candidate intake remains disabled by default at both layers until all applicable legal, deployment/security, SMTP/operations and acceptance prerequisites are satisfied. The `religion` field remains disabled unless separately approved for special-category personal-data processing.
+Candidate intake remains disabled by default at both layers until all applicable legal, deployment/security, live SMTP-provider, operations and controlled-acceptance prerequisites are satisfied. The `religion` field remains disabled unless separately approved for special-category personal-data processing.
 
 ## Review rule
 
