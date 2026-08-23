@@ -15,7 +15,13 @@ umask 077
 
 ensure_confirmation "$ASTREA_BACKUP_QUIESCED" "BACKEND_WRITES_QUIESCED" "Backup requires quiescence acknowledgement."
 
-backup_id=${ASTREA_BACKUP_ID:-$(generate_backup_id)}
+backup_origin=automatic
+if [ -n "${ASTREA_BACKUP_ID:-}" ]; then
+    backup_id=$ASTREA_BACKUP_ID
+    backup_origin=operator
+else
+    backup_id=$(generate_backup_id)
+fi
 validate_backup_id "$backup_id"
 
 mkdir -p "$ASTREA_BACKUP_ROOT"
@@ -60,6 +66,7 @@ alembic_version=$(alembic_revision)
 {
     printf 'format_version=1\n'
     printf 'backup_id=%s\n' "$backup_id"
+    printf 'backup_origin=%s\n' "$backup_origin"
     printf 'created_at_utc=%s\n' "$(current_utc)"
     printf 'postgres_major_version=%s\n' "$(postgres_major_version)"
     printf 'database_name=%s\n' "$POSTGRES_DB"

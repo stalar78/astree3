@@ -1,0 +1,13 @@
+[Unit]
+Description=Astrea operations %i
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/astrea/ops.env
+UMask=0077
+TimeoutStartSec=1h
+StandardOutput=journal
+StandardError=journal
+ExecStart=/bin/sh -c 'exec /bin/sh "$ASTREA_PROJECT_DIR/infra/host/astrea-ops.sh" "$1"' sh %i

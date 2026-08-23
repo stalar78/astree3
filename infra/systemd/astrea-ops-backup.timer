@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Astrea backup daily
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=10m
+Persistent=true
+Unit=astrea-ops@backup.service
+
+[Install]
+WantedBy=timers.target
