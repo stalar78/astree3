@@ -1,6 +1,6 @@
 # Project Blueprint: Astrea
 
-Current stage: Stage 4 backend implementation is accepted through Stage 4.4D2 SMTP delivery and one-shot worker execution. Candidate intake activation remains deferred pending legal, frontend-integration and deployment/security prerequisites.
+Current stage: Stage 4 backend implementation and guarded public candidate-form integration are accepted. Candidate intake activation remains deferred pending legal and deployment/security prerequisites.
 
 ## Purpose
 
@@ -135,11 +135,11 @@ The production public frontend is implemented in `frontend/` with:
 - accepted ceremonial header, centered home hero and monumental footer;
 - full institutional homepage sequence;
 - distinct internal page compositions;
-- static candidate form UI only, with no submission or persistence yet;
+- static candidate form UI only at the Stage 3 acceptance point, with no submission or persistence yet;
 - exact approved public brand assets;
 - route-specific metadata.
 
-Stage 3 was merged only after build, lint, typecheck and visual-structure review.
+Stage 3 was merged only after build, lint, typecheck and visual-structure review. The candidate form was integrated later as a separately reviewed guarded slice documented below.
 
 ## Accepted Stage 4.1 Backend Foundation
 
@@ -182,7 +182,7 @@ The backend now includes the guarded candidate-intake foundation:
 - private candidate-photo decoding, validation, EXIF-orientation handling, metadata stripping and JPEG normalization;
 - private generated storage keys with traversal-safe filesystem storage and cleanup support;
 - one transactional intake aggregate: candidate + three consents + one pending outbox row;
-- rollback and private-photo cleanup for all pre-commit failures after photo storage;
+- rollback and private photo cleanup for all pre-commit failures after photo storage;
 - disabled-by-default public multipart candidate POST route;
 - authoritative server-side field validation;
 - strict explicit consent parsing;
@@ -196,7 +196,7 @@ The backend now includes the guarded candidate-intake foundation:
 
 Stage 4.3 was accepted after dedicated persistence, image-safety, public-ingress and transactional-cleanup hardening. Final reported quality gate: 123 pytest tests passed and Ruff passed.
 
-The feature remains intentionally inactive until approved legal documents, frontend integration and deployment/security review are complete.
+The feature remains intentionally inactive until approved legal documents and deployment/security review are complete.
 
 ## Accepted Stage 4.4A Admin Authentication
 
@@ -336,6 +336,28 @@ Deferred beyond D2:
 - optional confirmation email to the candidate;
 - public candidate-form activation until legal and deployment/security prerequisites are complete.
 
+## Accepted Guarded Candidate Form Integration
+
+The public `/vstuplenie` page is now wired to the accepted Stage 4.3 multipart intake contract without activating candidate intake by default:
+- a separate frontend gate `VITE_CANDIDATE_FORM_ENABLED` is fail-closed and defaults to `false` in `frontend/.env.example`;
+- when disabled, all candidate PII controls, photo input, consents and submission remain disabled and no candidate request can be initiated through the public UI;
+- when explicitly enabled for a controlled environment, the form posts same-origin `FormData` to `/api/v1/candidate-applications` with the exact accepted backend field names and no manually supplied multipart `Content-Type`;
+- the visible Saint Petersburg acknowledgement exactly matches the backend contract;
+- personal-data and privacy acknowledgements link to `/consent` and `/privacy` while public activation remains blocked until those documents and versions are approved;
+- the required photo input accepts JPG/PNG/WebP and performs no preview, transformation, EXIF handling or browser persistence; backend validation/normalization remains authoritative;
+- the existing honeypot field `website` is included off-screen and remains empty for normal users;
+- form controls are uncontrolled and candidate PII is not copied into browser storage, cookies, URLs, analytics or console output;
+- duplicate clicks are blocked only while a request is in flight; failed submissions preserve the live form for explicit retry, while confirmed `201 {"accepted": true}` success resets the form;
+- public error handling maps backend/network statuses to generic Russian messages without rendering raw backend bodies;
+- no backend, migration, legal-version, SMTP or infrastructure changes were introduced by this frontend slice.
+
+Final reported frontend quality gate from `frontend/`:
+- `npm run typecheck` passed;
+- `npm run lint` passed;
+- `npm run build` passed.
+
+Candidate intake remains disabled by default at both layers. Public activation requires explicit enablement of both the frontend and backend gates only after the remaining legal and deployment/security prerequisites are complete.
+
 ## Security
 
 Main security risk: candidate forms contain personal data and photos.
@@ -357,7 +379,7 @@ The `religion` field remains disabled until the client approves the legal wordin
 
 ## Current Next Steps
 
-Stage 4 backend implementation is accepted through Stage 4.4D2; see `.plans/STAGE_4_BACKEND_PLAN.md`.
+Stage 4 backend implementation and guarded candidate-form integration are accepted.
 
 1. Stage 4.1 - accepted: FastAPI backend foundation, settings, PostgreSQL/SQLAlchemy integration, Alembic, health endpoint and backend tests.
 2. Stage 4.2 - accepted: structured public content persistence/read API for pages, news and approved RuTube videos.
@@ -367,4 +389,5 @@ Stage 4 backend implementation is accepted through Stage 4.4D2; see `.plans/STAG
 6. Stage 4.4C - accepted: authenticated backend and protected frontend administration for news, RuTube video and predefined editable page content.
 7. Stage 4.4D1 - accepted: persistent outbox claim/retry/recovery state machine with PostgreSQL concurrency protection and safe failure codes.
 8. Stage 4.4D2 - accepted: verified SMTP transport, structured administrator notifications and explicit one-shot worker execution using the D1 state machine.
-9. Before candidate intake activation: approve legal documents/version identifiers, integrate the public frontend form with the exact Saint Petersburg acknowledgement, configure production request-body/trusted-proxy protections, provision/verify SMTP credentials and externally schedule `process-email-outbox`.
+9. Guarded candidate-form integration - accepted: disabled-by-default frontend gate, exact multipart contract, photo/consent/honeypot integration and privacy-safe browser behavior.
+10. Before candidate intake activation: approve legal documents/version identifiers, configure production request-body/trusted-proxy protections, provision and verify SMTP credentials, externally schedule `process-email-outbox`, and complete end-to-end deployment/security acceptance.
