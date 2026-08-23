@@ -2,9 +2,9 @@
 
 Astrea is the new official website for D.L. Astrea No. 3 in Saint Petersburg, replacing and evolving the existing mason-astrea.ru website.
 
-Current stage: Stage 4 backend implementation and guarded public candidate-form integration are accepted. Candidate intake activation remains deferred pending legal and deployment/security prerequisites.
+Current stage: Stage 4 backend implementation, guarded public candidate-form integration and Stage 5.1 production-like runtime foundation are accepted. Candidate intake activation remains deferred pending legal and deployment/security prerequisites.
 
-The approved public design is documented in `docs/STAGE_2_DESIGN_FREEZE.md`. The production public frontend lives in `frontend/` and was accepted after visual and technical review. The backend foundation, public content domain, guarded candidate-intake pipeline, closed admin authentication, candidate administration API, content administration API, persistent email-outbox state machine and SMTP worker execution live in `backend/`; protected candidate/content administration and the guarded public candidate form live in the production frontend.
+The approved public design is documented in `docs/STAGE_2_DESIGN_FREEZE.md`. The production public frontend lives in `frontend/` and was accepted after visual and technical review. The backend foundation, public content domain, guarded candidate-intake pipeline, closed admin authentication, candidate administration API, content administration API, persistent email-outbox state machine and SMTP worker execution live in `backend/`; protected candidate/content administration and the guarded public candidate form live in the production frontend. The accepted local production-like runtime lives in `infra/` plus the backend/frontend Dockerfiles and Nginx configuration.
 
 ## Application Scope
 
@@ -35,6 +35,7 @@ Infrastructure: Linux VPS + Docker Compose + Nginx + SSL
 - Design system: `docs/DESIGN_SYSTEM.md`
 - Approved Stage 2 visual freeze: `docs/STAGE_2_DESIGN_FREEZE.md`
 - Stage 4 backend plan: `.plans/STAGE_4_BACKEND_PLAN.md`
+- Stage 5 deployment plan: `.plans/STAGE_5_DEPLOYMENT_PLAN.md`
 - Requirements: `docs/REQUIREMENTS.md`
 - Project blueprint: `PROJECT_BLUEPRINT.md`
 
@@ -42,7 +43,9 @@ Infrastructure: Linux VPS + Docker Compose + Nginx + SSL
 
 - `frontend/` - accepted production public frontend, guarded candidate-application form integration, protected candidate administration and Stage 4.4C2 protected content administration UI; public candidate submission remains intentionally disabled by default through `VITE_CANDIDATE_FORM_ENABLED=false`
 - `backend/` - accepted FastAPI/PostgreSQL foundation, Stage 4.2 public content API, Stage 4.3 guarded candidate-intake/private-photo pipeline, Stage 4.4A closed server-side admin authentication, Stage 4.4B1 authenticated candidate administration/private-photo API, Stage 4.4C1 authenticated content administration API, Stage 4.4D1 persistent outbox state machine, and Stage 4.4D2 SMTP notification rendering/transport plus one-shot email-worker execution
-- `infra/` - deployment/runtime configuration target
+- `infra/` - accepted Stage 5.1 Docker Compose runtime foundation with PostgreSQL, one-shot Alembic migration, non-root FastAPI backend, Nginx-served React build, internal-only backend/database networking and named persistent volumes for PostgreSQL/private media
+
+Stage 5.1 has been exercised locally through Docker Desktop: images build successfully, PostgreSQL/backend/web become healthy, the migration service exits `0`, `/api/v1/health` and public/admin SPA deep links return through Nginx, the backend runs as uid `10001` and can write to the mounted private-media volume, while only `127.0.0.1:8080` is published to the host. This is a local HTTP runtime foundation; TLS, production secrets, trusted-proxy hardening, backups and worker scheduling remain later deployment work.
 
 Admin authentication uses Argon2id passwords, explicit initial-admin bootstrap, server-side opaque sessions, `HttpOnly` session cookies, separate CSRF tokens and process-local login rate limiting. There is no public/admin registration, JWT or browser `localStorage` authentication.
 
