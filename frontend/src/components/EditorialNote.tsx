@@ -1,6 +1,8 @@
+import type { ReactNode } from 'react';
+
 type EditorialNoteProps = {
   title?: string;
-  children: string;
+  children: ReactNode;
 };
 
 export function EditorialNote({ title = 'Редакционное состояние', children }: EditorialNoteProps) {

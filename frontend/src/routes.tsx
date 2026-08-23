@@ -1,24 +1,25 @@
 import type { RouteObject } from 'react-router-dom';
-import { PageShell } from './components/PageShell';
-import { HomePage } from './pages/HomePage';
-import { AboutPage } from './pages/AboutPage';
-import { LodgesPage } from './pages/LodgesPage';
-import { PrinciplesPage } from './pages/PrinciplesPage';
-import { FaqPage } from './pages/FaqPage';
-import { LegalPage } from './pages/LegalPage';
+import { Navigate } from 'react-router-dom';
+
+import { AdminProtectedLayout } from './admin/AdminShell';
 import { CandidatePage } from './pages/CandidatePage';
-import { NewsPage } from './pages/NewsPage';
-import { NewsArticlePage } from './pages/NewsArticlePage';
-import { VideoPage } from './pages/VideoPage';
 import { ContactsPage } from './pages/ContactsPage';
-import { AdminLoginPage } from './pages/admin/AdminLoginPage';
+import { FaqPage } from './pages/FaqPage';
+import { HomePage } from './pages/HomePage';
+import { LegalPage } from './pages/LegalPage';
+import { LodgesPage } from './pages/LodgesPage';
+import { NewsArticlePage } from './pages/NewsArticlePage';
+import { NewsPage } from './pages/NewsPage';
+import { PageShell } from './components/PageShell';
+import { PrinciplesPage } from './pages/PrinciplesPage';
+import { VideoPage } from './pages/VideoPage';
+import { AboutPage } from './pages/AboutPage';
 import { AdminCandidatesPage } from './pages/admin/AdminCandidatesPage';
 import { AdminCandidateDetailPage } from './pages/admin/AdminCandidateDetailPage';
-import { AdminProtectedLayout } from './admin/AdminShell';
-import { Navigate } from 'react-router-dom';
+import { AdminLoginPage } from './pages/admin/AdminLoginPage';
+import { AdminNewsEditorPage, AdminPageEditorPage, AdminVideoEditorPage } from './pages/admin/AdminContentEditorPage';
 import { AdminNewsPage, AdminVideosPage } from './pages/admin/AdminNewsPage';
 import { AdminPagesPage } from './pages/admin/AdminPagesPage';
-import { AdminNewsEditorPage, AdminPageEditorPage, AdminVideoEditorPage } from './pages/admin/AdminContentEditorPage';
 
 export type SeoMeta = {
   title: string;
@@ -80,12 +81,18 @@ export const routes: RouteObject[] = [
       {
         path: '/privacy',
         element: <LegalPage kind="privacy" />,
-        handle: { title: 'Политика конфиденциальности | Astrea', description: 'Правовая страница, ожидающая утвержденного текста.' } satisfies SeoMeta,
+        handle: {
+          title: 'Политика в отношении обработки персональных данных | Astrea',
+          description: 'Политика в отношении обработки персональных данных сайта ДЛ «Астрея» №3.',
+        } satisfies SeoMeta,
       },
       {
         path: '/consent',
         element: <LegalPage kind="consent" />,
-        handle: { title: 'Согласие на обработку данных | Astrea', description: 'Страница согласия, ожидающая утвержденного текста.' } satisfies SeoMeta,
+        handle: {
+          title: 'Согласие на обработку персональных данных | Astrea',
+          description: 'Согласие на обработку персональных данных для анкеты кандидата ДЛ «Астрея» №3.',
+        } satisfies SeoMeta,
       },
     ],
   },

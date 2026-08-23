@@ -194,6 +194,13 @@ export function CandidatePage() {
                   />
                 </FormField>
 
+                <div className="lg:col-span-2">
+                  <EditorialNote title="Предупреждение">
+                    Не указывайте сведения о политических взглядах, религиозных или философских убеждениях,
+                    состоянии здоровья и иных специальных категориях персональных данных.
+                  </EditorialNote>
+                </div>
+
                 <FormField id="other_organizations" label="Членство в иных организациях" className="lg:col-span-2">
                   <textarea
                     id="other_organizations"
