@@ -1,6 +1,6 @@
 # Stage 4 Backend Plan
 
-Status: in progress. Stage 4.1, Stage 4.2, Stage 4.3, Stage 4.4A, Stage 4.4B and Stage 4.4C1 accepted; Stage 4.4C2 is next.
+Status: in progress. Stage 4.1, Stage 4.2, Stage 4.3, Stage 4.4A, Stage 4.4B and Stage 4.4C accepted; Stage 4.4D is next.
 
 Stage 4 is intentionally split into small reviewed slices. The candidate workflow is high-risk because it handles personal data and photographs; it must not be implemented as one oversized change.
 
@@ -121,7 +121,7 @@ Activation remains deliberately deferred until approved privacy/consent document
 
 ## Stage 4.4 - Admin and operations
 
-Status: in progress. Stage 4.4A, Stage 4.4B and Stage 4.4C1 accepted; Stage 4.4C2 is next.
+Status: in progress. Stage 4.4A, Stage 4.4B and Stage 4.4C accepted; Stage 4.4D is next.
 
 ### Stage 4.4A - Admin authentication
 
@@ -201,7 +201,7 @@ Final reported quality gate from `frontend/`:
 
 ### Stage 4.4C - Content administration
 
-Status: in progress. Stage 4.4C1 backend accepted; Stage 4.4C2 admin UI is next.
+Status: accepted.
 
 #### Stage 4.4C1 - Content administration backend
 
@@ -233,18 +233,32 @@ Final reported quality gate from `backend/`:
 
 #### Stage 4.4C2 - Content administration UI
 
-Status: next.
+Status: accepted.
 
-Implement:
-- protected admin navigation for News, Video and approved editable Pages within the existing Stage 4.4B2 admin shell;
-- news list/create/edit/delete UI with publication controls and bounded pagination/filtering;
-- video list/create/edit/delete UI using RuTube URLs only and server-derived provider/embed state;
-- page list/edit UI limited to existing page identities and allowed title/content/publication fields;
-- accepted same-origin session-cookie auth and CSRF flow for all writes;
-- no browser persistence of draft content or privileged credentials;
-- no arbitrary page builder, layout mutation, bulk operations or editorial upload system in MVP.
+Implemented:
+- protected admin navigation for Candidates, News, Video and Pages within the existing Stage 4.4B2 admin shell;
+- protected routes for news/video lists, create/edit forms and existing-page editing outside the public `PageShell`;
+- news list with bounded `limit=20`/offset pagination, `published` filtering and canonical browser URL state limited to `published`/`offset`;
+- news create/edit/delete with server-owned publication timestamps, safe duplicate-slug `409` handling and explicit two-step deletion confirmation;
+- news image references entered only as HTTPS/root-relative text values with no automatic preview, network fetch, upload or media library;
+- RuTube video list/create/edit/delete with no provider selector, iframe editor, embed HTML or automatic external preview;
+- predefined page list/edit limited to existing immutable keys and title/content/publication state, with no create/delete controls or page-builder surface;
+- accepted same-origin session-cookie authentication and exact CSRF cookie/header flow reused for every write;
+- `401` redirects to login while write `403` remains in the editor with the accepted session-security message;
+- mutation errors keep current in-memory form values visible/editable and are never automatically retried;
+- explicit retry controls for temporary/network list and detail GET failures;
+- generic user-facing mutation/load errors without displaying raw backend response detail;
+- unpublished editorial draft state kept only in React component memory: no `localStorage`, `sessionStorage`, IndexedDB, cookies, URL content payloads, console logging or autosave;
+- no public-site changes and no new frontend dependencies.
+
+Final reported quality gate from `frontend/`:
+- `npm run typecheck` passed;
+- `npm run lint` passed;
+- `npm run build` passed.
 
 ### Stage 4.4D - Email outbox operations
+
+Status: next.
 
 Implement:
 - persistent outbox worker;
