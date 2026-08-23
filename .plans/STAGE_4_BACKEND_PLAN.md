@@ -1,6 +1,6 @@
 # Stage 4 Backend Plan
 
-Status: in progress. Stage 4.1, Stage 4.2, Stage 4.3, Stage 4.4A, Stage 4.4B, Stage 4.4C and Stage 4.4D1 accepted; Stage 4.4D2 is next.
+Status: accepted through Stage 4.4D2. The backend implementation slices defined in this plan are complete; candidate intake activation remains deferred pending legal, frontend-integration and deployment/security prerequisites.
 
 Stage 4 is intentionally split into small reviewed slices. The candidate workflow is high-risk because it handles personal data and photographs; it must not be implemented as one oversized change.
 
@@ -121,7 +121,7 @@ Activation remains deliberately deferred until approved privacy/consent document
 
 ## Stage 4.4 - Admin and operations
 
-Status: in progress. Stage 4.4A, Stage 4.4B, Stage 4.4C and Stage 4.4D1 accepted; Stage 4.4D2 is next.
+Status: accepted through Stage 4.4D2.
 
 ### Stage 4.4A - Admin authentication
 
@@ -258,7 +258,7 @@ Final reported quality gate from `frontend/`:
 
 ### Stage 4.4D - Email outbox operations
 
-Status: in progress. Stage 4.4D1 accepted; Stage 4.4D2 is next.
+Status: accepted through Stage 4.4D2.
 
 #### Stage 4.4D1 - Persistent outbox state machine
 
@@ -286,25 +286,45 @@ Final reported quality gate from `backend/`:
 
 #### Stage 4.4D2 - SMTP delivery and worker execution
 
-Status: next.
+Status: accepted.
 
-Implement:
-- SMTP/provider transport using environment-backed credentials only;
-- structured candidate-application notification rendering without persisting duplicate body/recipient payload in the outbox;
-- one bounded worker execution cycle: stale recovery -> claim committed batch -> delivery outside DB transaction -> guarded success/failure persistence;
-- failure classification into the accepted D1 machine-safe codes without storing/logging raw secrets or candidate PII;
-- retry/status transitions exclusively through the accepted D1 state machine;
-- explicit CLI/process boundary suitable for cron/systemd scheduling, without a hidden in-process web-server loop;
-- deterministic tests with fake transport only; no live SMTP/network dependency in the test suite;
-- no Redis/Celery unless later justified.
+Implemented:
+- worker-only environment-backed SMTP settings with `SecretStr` password handling and safe defaults for port, STARTTLS mode, timeout and notification recipient;
+- ordinary FastAPI settings/startup remain valid without SMTP configuration; complete delivery configuration is validated only when the worker command runs;
+- validated SMTP sender/recipient headers, paired optional credentials and trusted `SITE_BASE_URL`, with HTTPS required outside local/dev/test and no credential/query/fragment URLs;
+- immutable candidate notification snapshots built entirely inside a short database session from the persisted candidate and required consent rows;
+- UTF-8 `text/plain` + escaped `text/html` administrator notifications with Moscow-time receipt display and a non-PII subject containing only the internal application ID;
+- candidate-supplied values remain body content only and are never used as `From`, `To`, `Reply-To`, CC or BCC headers;
+- candidate photographs are never attached/read for email delivery and private storage keys/paths are not exposed; notifications link only to the authenticated `/admin/candidates/{application_id}` page;
+- stdlib `smtplib` transport with `ssl.create_default_context()`, verified STARTTLS or SMTP SSL, optional authenticated login and finite network timeout;
+- SMTP/network failures classified into temporary/permanent internal delivery exceptions without propagating provider response text;
+- one finite `process-email-outbox` execution cycle: validate configuration -> recover stale rows -> claim committed batch -> load immutable snapshot -> close DB session -> render/send outside DB transaction -> guarded sent/failure transition in a new short DB session;
+- accepted D1 retry/backoff/state-generation logic remains authoritative; D2 does not duplicate claim/retry persistence behavior;
+- recovery/claim/snapshot/transition persistence failures are translated to generic worker errors, while malformed settings/worker configuration produce safe CLI exit code 1 without tracebacks or rejected values;
+- SMTP-accepted followed by failed `sent` persistence deliberately leaves the row `processing` for stale recovery and does not record a delivery failure or immediately resend; at-least-once duplicate risk remains explicit;
+- one-shot worker only: no daemon loop, startup hook, Redis, Celery, in-process polling or candidate-confirmation email;
+- schema remains exactly eight tables with migrations ending at `20260823_0005`; no D2 migration or persistence expansion;
+- tests use fake/monkeypatched transports only and make no live SMTP/network calls.
+
+Final reported quality gate from `backend/`:
+- 280 pytest tests passed, 1 skipped;
+- 14 pre-existing Starlette `TestClient` deprecation warnings remained, with no new D2 warnings;
+- Ruff passed.
+
+Deferred beyond D2:
+- production scheduling/service integration such as systemd timer, cron or equivalent deployment mechanism;
+- real production SMTP credential provisioning and connectivity verification;
+- optional candidate confirmation email;
+- public candidate-form activation until legal and deployment/security prerequisites are satisfied.
 
 No public registration and no complex RBAC in MVP.
 
 Before candidate intake activation also complete:
 - approved privacy-policy and personal-data-consent text/version identifiers;
-- public frontend candidate-form integration;
+- public frontend candidate-form integration, including the exact Saint Petersburg acknowledgement wording;
 - deployment request-body limits at Nginx/ASGI boundary;
-- trusted proxy/client-IP configuration for production rate limiting.
+- trusted proxy/client-IP configuration for production rate limiting;
+- production SMTP credentials/connectivity and an explicit external schedule for `process-email-outbox`.
 
 ## Review rule
 

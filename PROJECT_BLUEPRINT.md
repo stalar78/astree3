@@ -1,6 +1,6 @@
 # Project Blueprint: Astrea
 
-Current stage: Stage 4.4D1 persistent email outbox state machine accepted; Stage 4.4D2 SMTP delivery and worker execution next.
+Current stage: Stage 4 backend implementation is accepted through Stage 4.4D2 SMTP delivery and one-shot worker execution. Candidate intake activation remains deferred pending legal, frontend-integration and deployment/security prerequisites.
 
 ## Purpose
 
@@ -312,6 +312,30 @@ The backend now includes the durable persistence contract required before real e
 
 Stage 4.4D1 was accepted after dedicated schema/metadata alignment, PostgreSQL claim-query, stale-generation, backoff-cap, stale-recovery, failure-privacy and DB-failure review. Final reported backend quality gate from `backend/`: 247 pytest tests passed, 1 skipped, 14 pre-existing Starlette `TestClient` deprecation warnings remained, and Ruff passed.
 
+## Accepted Stage 4.4D2 SMTP Delivery and Worker Execution
+
+The backend now includes the actual administrator-notification delivery boundary on top of the accepted D1 state machine:
+- SMTP-related settings remain optional for normal FastAPI startup and are validated only when the email worker runs;
+- SMTP password is represented as `SecretStr`, sender/recipient mailbox settings reject CR/LF injection, username/password must be supplied together, and `SITE_BASE_URL` must be a trusted absolute URL with HTTPS outside local/dev/test;
+- immutable candidate notification snapshots are fully built inside short database sessions from the persisted candidate and required consent records, after which no live ORM object crosses into rendering or SMTP;
+- administrator notifications are multipart UTF-8 `text/plain` + escaped `text/html`, use Moscow receipt time, and keep candidate PII out of headers and subject except the internal application ID;
+- candidate-provided social links are rendered as text rather than injected into HTML link attributes;
+- candidate photos are not attached or read for mail delivery; messages link only to the authenticated `/admin/candidates/{application_id}` page and never expose private photo keys or filesystem paths;
+- stdlib SMTP transport supports verified STARTTLS and SMTP SSL through `ssl.create_default_context()`, optional login, finite timeout and no live-network dependency in tests;
+- SMTP/network failures are classified into safe temporary/permanent internal errors and mapped to the accepted D1 machine-safe failure codes without persisting raw provider responses;
+- `process-email-outbox` executes one finite cycle only: validate config -> recover stale work -> claim a committed batch -> load immutable snapshot -> close DB session -> render/send with no DB transaction open -> guarded sent/failure persistence in a fresh short session;
+- D1 recovery/claim persistence failures, snapshot DB errors, claim loss and state-transition failures are translated into generic worker errors; malformed settings and worker configuration exit safely without traceback or rejected values;
+- if SMTP accepts the email but the later `sent` persistence fails, the worker does not record a delivery failure or immediately resend; the row remains `processing` for later stale recovery, preserving explicit at-least-once semantics;
+- no daemon loop, startup hook, Redis, Celery, candidate-confirmation email, new schema, migration or outbox payload duplication was added.
+
+Stage 4.4D2 was accepted after corrective runtime/error-boundary review covering recovery/claim failures, CLI settings validation, immutable snapshot lifetime, verified TLS modes, SMTP 4xx/5xx/auth/network classification, post-send persistence failure, failure-transition failure and claim-loss behavior. Final reported backend quality gate from `backend/`: 280 pytest tests passed, 1 skipped, 14 pre-existing Starlette `TestClient` deprecation warnings remained, and Ruff passed.
+
+Deferred beyond D2:
+- production scheduling/service integration for `process-email-outbox` such as systemd timer, cron or equivalent;
+- real production SMTP credentials and connectivity verification;
+- optional confirmation email to the candidate;
+- public candidate-form activation until legal and deployment/security prerequisites are complete.
+
 ## Security
 
 Main security risk: candidate forms contain personal data and photos.
@@ -333,7 +357,7 @@ The `religion` field remains disabled until the client approves the legal wordin
 
 ## Current Next Steps
 
-Stage 4 is split into small reviewed slices; see `.plans/STAGE_4_BACKEND_PLAN.md`.
+Stage 4 backend implementation is accepted through Stage 4.4D2; see `.plans/STAGE_4_BACKEND_PLAN.md`.
 
 1. Stage 4.1 - accepted: FastAPI backend foundation, settings, PostgreSQL/SQLAlchemy integration, Alembic, health endpoint and backend tests.
 2. Stage 4.2 - accepted: structured public content persistence/read API for pages, news and approved RuTube videos.
@@ -342,5 +366,5 @@ Stage 4 is split into small reviewed slices; see `.plans/STAGE_4_BACKEND_PLAN.md
 5. Stage 4.4B - accepted: authenticated candidate list/detail/status/private-photo API plus protected candidate admin UI.
 6. Stage 4.4C - accepted: authenticated backend and protected frontend administration for news, RuTube video and predefined editable page content.
 7. Stage 4.4D1 - accepted: persistent outbox claim/retry/recovery state machine with PostgreSQL concurrency protection and safe failure codes.
-8. Stage 4.4D2 - next: SMTP transport, structured notification rendering and explicit worker execution using the accepted D1 state machine.
-9. Before candidate intake activation: approve legal documents/version identifiers, integrate the public frontend form, and complete deployment request-body/client-IP security configuration.
+8. Stage 4.4D2 - accepted: verified SMTP transport, structured administrator notifications and explicit one-shot worker execution using the D1 state machine.
+9. Before candidate intake activation: approve legal documents/version identifiers, integrate the public frontend form with the exact Saint Petersburg acknowledgement, configure production request-body/trusted-proxy protections, provision/verify SMTP credentials and externally schedule `process-email-outbox`.
