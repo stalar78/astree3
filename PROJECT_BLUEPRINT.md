@@ -1,6 +1,6 @@
 # Project Blueprint: Astrea
 
-Current stage: Stage 4 backend implementation and guarded public candidate-form integration are accepted. Candidate intake activation remains deferred pending legal and deployment/security prerequisites.
+Current stage: Stage 4 backend implementation, guarded public candidate-form integration and Stage 5.1 production-like runtime foundation are accepted. Candidate intake activation remains deferred pending legal and deployment/security prerequisites.
 
 ## Purpose
 
@@ -358,6 +358,25 @@ Final reported frontend quality gate from `frontend/`:
 
 Candidate intake remains disabled by default at both layers. Public activation requires explicit enablement of both the frontend and backend gates only after the remaining legal and deployment/security prerequisites are complete.
 
+## Accepted Stage 5.1 Production-like Runtime Foundation
+
+The repository now includes a locally validated production-like runtime foundation in `infra/` and the application Dockerfiles:
+- Docker Compose services are limited to PostgreSQL `db`, finite Alembic `migrate`, FastAPI `backend` and Nginx `web`;
+- PostgreSQL and private candidate media use separate named persistent volumes;
+- the private-media volume is mounted only into the backend and is not exposed through Nginx;
+- the backend image runs as non-root uid `10001` and has verified write access to the mounted private-media volume;
+- the migration job waits for healthy PostgreSQL, executes `alembic upgrade head` once and must exit successfully before backend readiness;
+- the React frontend is built in a Node stage and served by an Nginx runtime image with SPA deep-link fallback;
+- `/api/` is reverse-proxied to internal `backend:8000`, while backend port 8000 and PostgreSQL port 5432 are not published to the host;
+- local HTTP exposure is restricted to `127.0.0.1:8080` by default;
+- Nginx uses a 12 MiB request-body baseline, leaving multipart headroom above the accepted 10 MiB candidate-photo limit;
+- both candidate activation gates remain fail-closed by default;
+- no TLS, production secrets, SMTP scheduling, Redis/Celery or source-code bind mounts were introduced.
+
+Runtime validation completed locally: Docker images built successfully; `db`, `backend` and `web` became healthy; `migrate` exited `0`; `/api/v1/health`, `/`, `/vstuplenie` and `/admin/login` returned through Nginx; the backend process ran as uid `10001` and successfully created/read/deleted a temporary non-PII file in the private-media volume; shutdown completed without deleting named volumes.
+
+Detailed remaining deployment work is tracked in `.plans/STAGE_5_DEPLOYMENT_PLAN.md`.
+
 ## Security
 
 Main security risk: candidate forms contain personal data and photos.
@@ -379,7 +398,7 @@ The `religion` field remains disabled until the client approves the legal wordin
 
 ## Current Next Steps
 
-Stage 4 backend implementation and guarded candidate-form integration are accepted.
+Stage 4 backend implementation, guarded candidate-form integration and Stage 5.1 runtime foundation are accepted.
 
 1. Stage 4.1 - accepted: FastAPI backend foundation, settings, PostgreSQL/SQLAlchemy integration, Alembic, health endpoint and backend tests.
 2. Stage 4.2 - accepted: structured public content persistence/read API for pages, news and approved RuTube videos.
@@ -390,4 +409,8 @@ Stage 4 backend implementation and guarded candidate-form integration are accept
 7. Stage 4.4D1 - accepted: persistent outbox claim/retry/recovery state machine with PostgreSQL concurrency protection and safe failure codes.
 8. Stage 4.4D2 - accepted: verified SMTP transport, structured administrator notifications and explicit one-shot worker execution using the D1 state machine.
 9. Guarded candidate-form integration - accepted: disabled-by-default frontend gate, exact multipart contract, photo/consent/honeypot integration and privacy-safe browser behavior.
-10. Before candidate intake activation: approve legal documents/version identifiers, configure production request-body/trusted-proxy protections, provision and verify SMTP credentials, externally schedule `process-email-outbox`, and complete end-to-end deployment/security acceptance.
+10. Stage 5.1 - accepted: Docker/Compose/Nginx/PostgreSQL production-like runtime foundation with internal backend/database networking and persistent private media.
+11. Stage 5.2 - pending: deployment security hardening, especially request-body scoping, trusted proxy/client-IP handling, security headers and Internet-facing boundary review.
+12. Stage 5.3 - pending: backup/restore operations, production secret provisioning, SMTP connectivity and explicit external scheduling for `process-email-outbox`.
+13. Stage 5.4 - pending: controlled end-to-end candidate workflow acceptance after legal and deployment/security prerequisites are satisfied.
+14. Stage 5.5 - pending: client VPS, DNS/TLS, production deployment, final acceptance and controlled cutover.
