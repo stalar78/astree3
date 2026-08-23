@@ -50,7 +50,7 @@ export const routes: RouteObject[] = [
       {
         path: '/vstuplenie',
         element: <CandidatePage />,
-        handle: { title: 'Вступление | Astrea', description: 'Статичная форма обращения кандидата без отправки данных.' } satisfies SeoMeta,
+        handle: { title: 'Вступление | Astrea', description: 'Анкета кандидата для обращения в ДЛ «Астрея» №3 в Санкт-Петербурге.' } satisfies SeoMeta,
       },
       {
         path: '/faq',
