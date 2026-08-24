@@ -1,21 +1,24 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 
 import { EditorialNote } from '../components/EditorialNote';
 import { InternalHero } from '../components/InternalHero';
 import { Section } from '../components/Section';
 import { PublicContentApiError, getPublicNews, type PublicNewsArticle } from '../publicContent/publicContentApi';
+import { applyDocumentSeo, siteTitle } from '../seo/seo';
 
 const DATE = new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
 
 export function NewsArticlePage() {
   const { slug } = useParams();
+  const location = useLocation();
   const [article, setArticle] = useState<PublicNewsArticle | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'notfound' | 'error'>('loading');
   const hero = getHeroState(state, article);
 
   useEffect(() => {
     const controller = new AbortController();
+    setArticle(null);
     setState('loading');
 
     if (!slug) {
@@ -41,6 +44,26 @@ export function NewsArticlePage() {
 
     return () => controller.abort();
   }, [slug]);
+
+  useEffect(() => {
+    const publishedArticle = state === 'ready' && article?.slug === slug ? article : null;
+    if (publishedArticle) {
+      applyDocumentSeo({
+        title: siteTitle(publishedArticle.title),
+        description: publishedArticle.excerpt.trim() || publishedArticle.title,
+        pathname: location.pathname,
+        indexable: true,
+      });
+      return;
+    }
+
+    applyDocumentSeo({
+      title: siteTitle(hero.title),
+      description: hero.lead,
+      pathname: location.pathname,
+      indexable: false,
+    });
+  }, [article, hero.lead, hero.title, location.pathname, slug, state]);
 
   return (
     <>
