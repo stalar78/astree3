@@ -1,6 +1,6 @@
 # Project Blueprint: Astrea
 
-Current stage: the Stage 4 application foundation and administration flows, guarded public candidate-form integration, Stage 5.1 production-like runtime, Stage 5.2 deployment security hardening, Stage 5.3A backup/restore foundation, Stage 5.3B operations/retention/scheduling, Stage 5.3C SMTP readiness implementation and CI Foundation are accepted. Public News, Video and predefined managed-page integrations are accepted. Controlled candidate-workflow acceptance is partially complete, but public candidate intake remains disabled pending approved legal texts/version identifiers, live SMTP-provider verification and production infrastructure prerequisites.
+Current stage: the Stage 4 application foundation and administration flows, guarded public candidate-form integration, Stage 5.1 production-like runtime, Stage 5.2 deployment security hardening, Stage 5.3A backup/restore foundation, Stage 5.3B operations/retention/scheduling, Stage 5.3C SMTP readiness implementation, CI Foundation and the PostgreSQL Integration Gate are accepted. Public News, Video and predefined managed-page integrations are accepted. Controlled candidate-workflow acceptance is partially complete, but public candidate intake remains disabled pending approved legal texts/version identifiers, live SMTP-provider verification and production infrastructure prerequisites.
 
 ## Purpose
 
@@ -331,10 +331,11 @@ The repository now has a minimal GitHub Actions quality gate in `.github/workflo
 - concurrency cancels superseded runs for the same workflow/ref;
 - Backend job uses Python 3.13, installs `.[dev]`, runs Ruff and the full pytest suite;
 - Frontend job uses Node 22, installs from the committed lockfile with `npm ci`, then runs typecheck, lint and production build;
+- PostgreSQL Integration job uses a temporary PostgreSQL 16.4 service container matching the production Compose major/minor baseline, installs backend runtime dependencies, runs `alembic upgrade head` on an empty database, verifies the database revision equals the repository Alembic head, and verifies the exact five predefined managed pages remain unpublished with the accepted seed content;
 - official `actions/checkout`, `actions/setup-python` and `actions/setup-node` are on Node-24-based v6 majors;
-- no Docker runtime, SMTP credentials, candidate/legal activation, production secrets or deployment operations are part of CI.
+- no SMTP credentials, candidate/legal activation, production secrets or deployment operations are part of CI.
 
-PR #48 provided the first controlled CI acceptance. After correcting the initial official-action majors to avoid the GitHub Node-20 deprecation warning, the final PR run completed successfully with both independent jobs green. The backend gate included Ruff success and `293 passed, 1 skipped`; the frontend gate completed `npm ci`, typecheck, lint and production build successfully. CI Foundation is therefore accepted as a repository quality gate, while branch-protection policy remains a separate repository-governance decision.
+PR #48 provided the first controlled CI acceptance for the independent Backend and Frontend gates. After correcting the initial official-action majors to avoid the GitHub Node-20 deprecation warning, the final PR run completed successfully with both jobs green. PR #50 added and accepted the PostgreSQL Integration gate: PostgreSQL 16.4 became healthy, Alembic applied every migration from an empty database through `20260824_0006`, the resulting database revision matched the repository Alembic head, and the five predefined managed-page rows matched the accepted titles, placeholder content and `is_published=false`. The same PR also passed Backend with Ruff plus `293 passed, 1 skipped` and Frontend with `npm ci`, typecheck, lint and production build. CI Foundation, including the real PostgreSQL migration gate, is therefore accepted as a repository quality gate, while branch-protection policy remains a separate repository-governance decision.
 
 ## Stage 5.4 Controlled End-to-End Acceptance
 
@@ -400,7 +401,7 @@ The `religion` field remains disabled unless separately approved legal wording a
 ## Current Next Steps
 
 1. **Public managed content - accepted.** News, Video and five predefined managed public pages are connected to the public APIs and reviewed; managed-page controlled E2E is complete.
-2. **CI Foundation - accepted.** GitHub Actions now runs independent Backend and Frontend quality gates on PRs to `main` and pushes to `main`; the final controlled PR run passed both jobs.
+2. **CI Foundation + PostgreSQL Integration - accepted.** GitHub Actions now runs three independent gates on PRs to `main` and pushes to `main`: Backend, Frontend and real PostgreSQL migration/seed verification. PR #50 passed all three.
 3. **Repository default branch - accepted.** GitHub default branch is now `main`, matching the actual development branch. The historical seed `master` branch remains untouched for now.
 4. **Candidate technical acceptance - partially complete.** Core form/persistence/private-media/admin/security flow was exercised with synthetic data, but full Stage 5.4 remains blocked by legal and live SMTP requirements.
 5. **Legal candidate activation - deferred/frozen.** Do not activate candidate intake or finalize legal version identifiers until approved client texts are available.
