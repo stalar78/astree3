@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { EditorialNote } from '../components/EditorialNote';
 import { InternalHero } from '../components/InternalHero';
 import { Section } from '../components/Section';
-import { setDocumentIndexability, siteTitle } from '../seo/seo';
+import { applyDocumentSeo, seoDescriptionFromText, siteTitle } from '../seo/seo';
 import type { PublicPage } from './publicContentApi';
 import { usePublicManagedPage } from './usePublicManagedPage';
 
@@ -43,9 +43,21 @@ export function PublicManagedPageFrame({
   const heroTitle = readyPage?.title ?? fallbackTitle;
 
   useEffect(() => {
-    document.title = siteTitle(heroTitle);
-    setDocumentIndexability(location.pathname, Boolean(readyPage));
-  }, [heroTitle, location.pathname, readyPage]);
+    const description = readyPage
+      ? seoDescriptionFromText(readyPage.content, readyPage.title)
+      : status === 'error'
+        ? errorMessage
+        : status === 'not_found'
+          ? notFoundMessage
+          : loadingMessage;
+
+    applyDocumentSeo({
+      title: siteTitle(heroTitle),
+      description,
+      pathname: location.pathname,
+      indexable: Boolean(readyPage),
+    });
+  }, [errorMessage, heroTitle, loadingMessage, location.pathname, notFoundMessage, readyPage, status]);
 
   return (
     <>
