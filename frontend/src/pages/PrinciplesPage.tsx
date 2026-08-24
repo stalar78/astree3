@@ -1,22 +1,23 @@
-import { EditorialNote } from '../components/EditorialNote';
-import { InternalHero } from '../components/InternalHero';
-import { ReservedRow } from '../components/ReservedRow';
-import { Section } from '../components/Section';
+import { PublicManagedPageFrame, PublicPageBody } from '../publicContent/PublicManagedPage';
 
 export function PrinciplesPage() {
   return (
     <>
-      <InternalHero eyebrow="Материалы" title="Цели и принципы" lead="Раздел для утвержденного редакционного текста." />
-      <Section>
-        <div className="mx-auto max-w-4xl">
-          <EditorialNote>Доктринальные формулировки не создаются самостоятельно. Официальный текст готовится.</EditorialNote>
-          <div className="mt-14">
-            {['Раздел I', 'Раздел II', 'Раздел III', 'Раздел IV'].map((label) => (
-              <ReservedRow key={label} label={label} title="официальный текст готовится" />
-            ))}
-          </div>
-        </div>
-      </Section>
+      <PublicManagedPageFrame
+        eyebrow="Материалы"
+        fallbackTitle="Цели и принципы"
+        pageKey="principles"
+        loadingTitle="Загрузка материала"
+        loadingMessage="Материал страницы загружается."
+        notFoundTitle="Материал пока не опубликован"
+        notFoundMessage="Материал пока не опубликован."
+        errorTitle="Не удалось загрузить материал"
+        errorMessage="Не удалось загрузить материал. Повторить позже."
+        retryLabel="Повторить"
+        bodyWidthClassName="max-w-4xl"
+      >
+        {(page) => <PublicPageBody page={page} />}
+      </PublicManagedPageFrame>
     </>
   );
 }
