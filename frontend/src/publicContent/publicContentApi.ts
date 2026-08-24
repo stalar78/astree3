@@ -12,6 +12,16 @@ export type PublicNewsArticle = PublicNewsListItem & {
   body: string;
 };
 
+export type PublicVideo = {
+  id: number;
+  title: string;
+  description: string;
+  source_url: string;
+  provider: string;
+  embed_url: string;
+  published_at: string | null;
+};
+
 export class PublicContentApiError extends Error {
   readonly status: number;
 
@@ -28,6 +38,10 @@ export async function listPublicNews(signal?: AbortSignal): Promise<PublicNewsLi
 
 export async function getPublicNews(slug: string, signal?: AbortSignal): Promise<PublicNewsArticle> {
   return requestPublicJson<PublicNewsArticle>(`${PUBLIC_CONTENT_ROOT}/news/${encodeURIComponent(slug)}`, signal);
+}
+
+export async function listPublicVideos(signal?: AbortSignal): Promise<PublicVideo[]> {
+  return requestPublicJson<PublicVideo[]>(`${PUBLIC_CONTENT_ROOT}/videos`, signal);
 }
 
 async function requestPublicJson<T>(url: string, signal?: AbortSignal): Promise<T> {
