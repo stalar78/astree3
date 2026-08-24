@@ -1,6 +1,6 @@
 # Project Blueprint: Astrea
 
-Current stage: the Stage 4 application foundation and administration flows, guarded public candidate-form integration, Stage 5.1 production-like runtime, Stage 5.2 deployment security hardening, Stage 5.3A backup/restore foundation, Stage 5.3B operations/retention/scheduling and Stage 5.3C SMTP readiness implementation are accepted. Public News, Video and predefined managed-page integrations are accepted. Controlled candidate-workflow acceptance is partially complete, but public candidate intake remains disabled pending approved legal texts/version identifiers, live SMTP-provider verification and production infrastructure prerequisites.
+Current stage: the Stage 4 application foundation and administration flows, guarded public candidate-form integration, Stage 5.1 production-like runtime, Stage 5.2 deployment security hardening, Stage 5.3A backup/restore foundation, Stage 5.3B operations/retention/scheduling, Stage 5.3C SMTP readiness implementation and CI Foundation are accepted. Public News, Video and predefined managed-page integrations are accepted. Controlled candidate-workflow acceptance is partially complete, but public candidate intake remains disabled pending approved legal texts/version identifiers, live SMTP-provider verification and production infrastructure prerequisites.
 
 ## Purpose
 
@@ -323,6 +323,19 @@ The repository includes a finite non-sending `check-smtp` command that reuses th
 
 Code/infrastructure readiness is accepted. Live provider DNS/TLS/authentication, sender authorization and real delivery behavior remain unverified until external credentials/service-mailbox details are provisioned outside Git.
 
+## Accepted CI Foundation
+
+The repository now has a minimal GitHub Actions quality gate in `.github/workflows/ci.yml`:
+- runs for pull requests targeting `main` and pushes to `main`;
+- workflow token permissions are limited to `contents: read` plus GitHub metadata read;
+- concurrency cancels superseded runs for the same workflow/ref;
+- Backend job uses Python 3.13, installs `.[dev]`, runs Ruff and the full pytest suite;
+- Frontend job uses Node 22, installs from the committed lockfile with `npm ci`, then runs typecheck, lint and production build;
+- official `actions/checkout`, `actions/setup-python` and `actions/setup-node` are on Node-24-based v6 majors;
+- no Docker runtime, SMTP credentials, candidate/legal activation, production secrets or deployment operations are part of CI.
+
+PR #48 provided the first controlled CI acceptance. After correcting the initial official-action majors to avoid the GitHub Node-20 deprecation warning, the final PR run completed successfully with both independent jobs green. The backend gate included Ruff success and `293 passed, 1 skipped`; the frontend gate completed `npm ci`, typecheck, lint and production build successfully. CI Foundation is therefore accepted as a repository quality gate, while branch-protection policy remains a separate repository-governance decision.
+
 ## Stage 5.4 Controlled End-to-End Acceptance
 
 Status: **partially complete, not globally accepted**.
@@ -387,10 +400,11 @@ The `religion` field remains disabled unless separately approved legal wording a
 ## Current Next Steps
 
 1. **Public managed content - accepted.** News, Video and five predefined managed public pages are connected to the public APIs and reviewed; managed-page controlled E2E is complete.
-2. **Candidate technical acceptance - partially complete.** Core form/persistence/private-media/admin/security flow was exercised with synthetic data, but full Stage 5.4 remains blocked by legal and live SMTP requirements.
-3. **Legal candidate activation - deferred/frozen.** Do not activate candidate intake or finalize legal version identifiers until approved client texts are available.
-4. **SMTP live verification - deferred/frozen.** Do not request/use production credentials until the client service-mailbox/provider arrangement is known; repository readiness remains accepted.
-5. **Stage 5.5 production infrastructure - pending.** Resolve VPS, domain/subdomain, DNS/TLS, secrets, service mailbox, backup/systemd provisioning and final cutover.
-6. **Repository hygiene - pending.** GitHub development uses `main`; changing the repository default branch from the seed `master` to `main` should be handled as a separate explicitly reviewed repository-setting change.
+2. **CI Foundation - accepted.** GitHub Actions now runs independent Backend and Frontend quality gates on PRs to `main` and pushes to `main`; the final controlled PR run passed both jobs.
+3. **Repository default branch - accepted.** GitHub default branch is now `main`, matching the actual development branch. The historical seed `master` branch remains untouched for now.
+4. **Candidate technical acceptance - partially complete.** Core form/persistence/private-media/admin/security flow was exercised with synthetic data, but full Stage 5.4 remains blocked by legal and live SMTP requirements.
+5. **Legal candidate activation - deferred/frozen.** Do not activate candidate intake or finalize legal version identifiers until approved client texts are available.
+6. **SMTP live verification - deferred/frozen.** Do not request/use production credentials until the client service-mailbox/provider arrangement is known; repository readiness remains accepted.
+7. **Stage 5.5 production infrastructure - pending.** Resolve VPS, domain/subdomain, DNS/TLS, secrets, service mailbox, backup/systemd provisioning and final cutover.
 
 `_ref/` contains local client source materials and is never committed or used as a runtime application directory.
