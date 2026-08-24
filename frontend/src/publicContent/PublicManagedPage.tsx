@@ -1,8 +1,10 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 
 import { EditorialNote } from '../components/EditorialNote';
 import { InternalHero } from '../components/InternalHero';
 import { Section } from '../components/Section';
+import { applyDocumentSeo, seoDescriptionFromText, siteTitle } from '../seo/seo';
 import type { PublicPage } from './publicContentApi';
 import { usePublicManagedPage } from './usePublicManagedPage';
 
@@ -35,8 +37,27 @@ export function PublicManagedPageFrame({
   bodyWidthClassName = 'max-w-3xl',
   children,
 }: PublicManagedPageFrameProps) {
+  const location = useLocation();
   const { status, page, retry } = usePublicManagedPage(pageKey);
-  const heroTitle = status === 'ready' && page ? page.title : fallbackTitle;
+  const readyPage = status === 'ready' && page ? page : null;
+  const heroTitle = readyPage?.title ?? fallbackTitle;
+
+  useEffect(() => {
+    const description = readyPage
+      ? seoDescriptionFromText(readyPage.content, readyPage.title)
+      : status === 'error'
+        ? errorMessage
+        : status === 'not_found'
+          ? notFoundMessage
+          : loadingMessage;
+
+    applyDocumentSeo({
+      title: siteTitle(heroTitle),
+      description,
+      pathname: location.pathname,
+      indexable: Boolean(readyPage),
+    });
+  }, [errorMessage, heroTitle, loadingMessage, location.pathname, notFoundMessage, readyPage, status]);
 
   return (
     <>
@@ -48,7 +69,7 @@ export function PublicManagedPageFrame({
           {status === 'error' ? (
             <PublicManagedPageState title={errorTitle} message={errorMessage} retryLabel={retryLabel} onRetry={retry} />
           ) : null}
-          {status === 'ready' && page ? children(page) : null}
+          {readyPage ? children(readyPage) : null}
         </div>
       </Section>
     </>

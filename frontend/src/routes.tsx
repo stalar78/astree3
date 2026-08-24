@@ -24,6 +24,7 @@ import { AdminPagesPage } from './pages/admin/AdminPagesPage';
 export type SeoMeta = {
   title: string;
   description: string;
+  indexable?: boolean;
 };
 
 const commonDescription = 'Официальный сайт Достопочтенной Ложи «Астрея» № 3 на Востоке Санкт-Петербурга.';
@@ -66,7 +67,11 @@ export const routes: RouteObject[] = [
       {
         path: '/novosti/:slug',
         element: <NewsArticlePage />,
-        handle: { title: 'Материал не опубликован | Astrea', description: 'Материал пока не опубликован.' } satisfies SeoMeta,
+        handle: {
+          title: 'Материал не опубликован | Astrea',
+          description: 'Материал пока не опубликован.',
+          indexable: false,
+        } satisfies SeoMeta,
       },
       {
         path: '/video',
