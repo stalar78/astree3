@@ -1,5 +1,6 @@
 const INDEX_ROBOTS = 'index, follow';
 const NOINDEX_ROBOTS = 'noindex, nofollow, noarchive';
+const META_DESCRIPTION_LIMIT = 160;
 
 export type DocumentSeo = {
   title: string;
@@ -40,6 +41,13 @@ export function setDocumentIndexability(pathname: string, indexable: boolean) {
 
 export function siteTitle(title: string) {
   return title === 'Astrea' ? title : `${title} | Astrea`;
+}
+
+export function seoDescriptionFromText(value: string, fallback: string) {
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (!normalized) return fallback;
+  if (normalized.length <= META_DESCRIPTION_LIMIT) return normalized;
+  return `${normalized.slice(0, META_DESCRIPTION_LIMIT - 1).trimEnd()}…`;
 }
 
 function setNamedMeta(name: string, content: string) {
