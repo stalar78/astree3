@@ -45,6 +45,91 @@ jobs:
       - name: Pytest
         run: python -m pytest
 
+  postgres-integration:
+    name: PostgreSQL Integration
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      APP_ENV: test
+      DATABASE_URL: postgresql+psycopg://astrea_ci:astrea_ci@127.0.0.1:5432/astrea_ci
+
+    services:
+      postgres:
+        image: postgres:16.4-alpine
+        env:
+          POSTGRES_DB: astrea_ci
+          POSTGRES_USER: astrea_ci
+          POSTGRES_PASSWORD: astrea_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U astrea_ci -d astrea_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install backend
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+
+      - name: Migrate clean PostgreSQL database
+        run: alembic upgrade head
+
+      - name: Verify migration head and managed-page seed
+        run: |
+          python - <<'PY'
+          import os
+
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          from sqlalchemy import create_engine, text
+
+          expected_pages = [
+              ("about", "О ложе", "Материал ожидает утвержденного содержания.", False),
+              ("contacts", "Контакты", "Материал ожидает утвержденного содержания.", False),
+              ("faq", "FAQ", "Материал ожидает утвержденного содержания.", False),
+              ("lodges_spb", "Ложи Санкт-Петербурга", "Материал ожидает утвержденного содержания.", False),
+              ("principles", "Цели и принципы", "Материал ожидает утвержденного содержания.", False),
+          ]
+
+          script_head = ScriptDirectory.from_config(Config("alembic.ini")).get_current_head()
+          engine = create_engine(os.environ["DATABASE_URL"])
+
+          with engine.connect() as connection:
+              database_head = connection.execute(
+                  text("SELECT version_num FROM alembic_version")
+              ).scalar_one()
+              pages = [
+                  tuple(row)
+                  for row in connection.execute(
+                      text(
+                          "SELECT key, title, content, is_published "
+                          "FROM pages ORDER BY key"
+                      )
+                  )
+              ]
+
+          assert database_head == script_head, (
+              f"database revision {database_head!r} does not match Alembic head {script_head!r}"
+          )
+          assert pages == expected_pages, f"unexpected predefined pages: {pages!r}"
+          print(f"PostgreSQL integration verified at Alembic head {database_head}.")
+          PY
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
