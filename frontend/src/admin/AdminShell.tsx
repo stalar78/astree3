@@ -66,14 +66,16 @@ export function AdminShell({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {[
-              ['/admin/candidates', 'Кандидаты'],
-              ['/admin/news', 'Новости'],
-              ['/admin/videos', 'Видео'],
-              ['/admin/pages', 'Страницы'],
-            ].map(([to, label]) => (
+              { to: '/admin', label: 'Обзор', end: true },
+              { to: '/admin/candidates', label: 'Кандидаты', end: false },
+              { to: '/admin/news', label: 'Новости', end: false },
+              { to: '/admin/videos', label: 'Видео', end: false },
+              { to: '/admin/pages', label: 'Страницы', end: false },
+            ].map(({ to, label, end }) => (
               <NavLink
                 key={to}
                 to={to}
+                end={end}
                 className={({ isActive }) =>
                   `border px-4 py-2 text-sm uppercase tracking-[0.14em] transition ${
                     isActive ? 'border-brand-red bg-brand-red text-white' : 'border-white/15 text-white/90 hover:border-white/35 hover:text-white'
