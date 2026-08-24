@@ -12,6 +12,12 @@ export type PublicNewsArticle = PublicNewsListItem & {
   body: string;
 };
 
+export type PublicPage = {
+  key: string;
+  title: string;
+  content: string;
+};
+
 export type PublicVideo = {
   id: number;
   title: string;
@@ -38,6 +44,10 @@ export async function listPublicNews(signal?: AbortSignal): Promise<PublicNewsLi
 
 export async function getPublicNews(slug: string, signal?: AbortSignal): Promise<PublicNewsArticle> {
   return requestPublicJson<PublicNewsArticle>(`${PUBLIC_CONTENT_ROOT}/news/${encodeURIComponent(slug)}`, signal);
+}
+
+export async function getPublicPage(key: string, signal?: AbortSignal): Promise<PublicPage> {
+  return requestPublicJson<PublicPage>(`${PUBLIC_CONTENT_ROOT}/pages/${encodeURIComponent(key)}`, signal);
 }
 
 export async function listPublicVideos(signal?: AbortSignal): Promise<PublicVideo[]> {

@@ -1,22 +1,23 @@
-import { EditorialNote } from '../components/EditorialNote';
-import { InternalHero } from '../components/InternalHero';
-import { ReservedRow } from '../components/ReservedRow';
-import { Section } from '../components/Section';
+import { PublicManagedPageFrame, PublicPageBody } from '../publicContent/PublicManagedPage';
 
 export function FaqPage() {
   return (
     <>
-      <InternalHero eyebrow="Вопросы" title="FAQ" lead="Раздел ответов на вопросы ожидает утвержденного содержания." />
-      <Section>
-        <div className="mx-auto max-w-4xl">
-          <EditorialNote>Ответы не заполнены, чтобы не публиковать неподтвержденную информацию.</EditorialNote>
-          <div className="mt-14">
-            {['Вопрос 01', 'Вопрос 02', 'Вопрос 03'].map((label) => (
-              <ReservedRow key={label} label={label} />
-            ))}
-          </div>
-        </div>
-      </Section>
+      <PublicManagedPageFrame
+        eyebrow="Вопросы"
+        fallbackTitle="FAQ"
+        pageKey="faq"
+        loadingTitle="Загрузка материала"
+        loadingMessage="Материал страницы загружается."
+        notFoundTitle="Материал пока не опубликован"
+        notFoundMessage="Материал пока не опубликован."
+        errorTitle="Не удалось загрузить материал"
+        errorMessage="Не удалось загрузить материал. Повторить позже."
+        retryLabel="Повторить"
+        bodyWidthClassName="max-w-4xl"
+      >
+        {(page) => <PublicPageBody page={page} />}
+      </PublicManagedPageFrame>
     </>
   );
 }
