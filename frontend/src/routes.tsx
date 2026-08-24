@@ -1,5 +1,4 @@
 import type { RouteObject } from 'react-router-dom';
-import { Navigate } from 'react-router-dom';
 
 import { AdminProtectedLayout } from './admin/AdminShell';
 import { CandidatePage } from './pages/CandidatePage';
@@ -16,6 +15,7 @@ import { VideoPage } from './pages/VideoPage';
 import { AboutPage } from './pages/AboutPage';
 import { AdminCandidatesPage } from './pages/admin/AdminCandidatesPage';
 import { AdminCandidateDetailPage } from './pages/admin/AdminCandidateDetailPage';
+import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { AdminNewsEditorPage, AdminPageEditorPage, AdminVideoEditorPage } from './pages/admin/AdminContentEditorPage';
 import { AdminNewsPage, AdminVideosPage } from './pages/admin/AdminNewsPage';
@@ -104,7 +104,7 @@ export const routes: RouteObject[] = [
     path: '/admin',
     element: <AdminProtectedLayout />,
     children: [
-      { index: true, element: <Navigate to="candidates" replace /> },
+      { index: true, element: <AdminDashboardPage /> },
       { path: 'candidates', element: <AdminCandidatesPage /> },
       { path: 'candidates/:candidateId', element: <AdminCandidateDetailPage /> },
       { path: 'news', element: <AdminNewsPage /> },
