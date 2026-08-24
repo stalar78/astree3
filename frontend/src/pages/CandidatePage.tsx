@@ -1,4 +1,4 @@
-import { type FormEvent, type ReactNode, useRef, useState } from 'react';
+import { type FormEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { EditorialNote } from '../components/EditorialNote';
@@ -11,8 +11,9 @@ const FIELD_CLASS =
   'w-full border border-brand-gray10/40 bg-white px-4 py-3 text-base text-brand-ink outline-none transition focus:border-brand-red disabled:cursor-not-allowed disabled:bg-brand-paperAlt/60';
 const TEXTAREA_CLASS = `${FIELD_CLASS} min-h-36 resize-y`;
 const HELP_CLASS = 'text-sm leading-6 text-brand-ink/65';
-const STATUS_SUCCESS_CLASS = 'border-brand-gray10/20 bg-white/80 text-brand-ink';
+const STATUS_NEUTRAL_CLASS = 'border-brand-gray10/20 bg-white/80 text-brand-ink';
 const STATUS_ERROR_CLASS = 'border-brand-red/25 bg-white text-brand-red';
+const STATUS_SUCCESS_CLASS = 'border-brand-red/45 bg-brand-red/10 text-brand-ink shadow-formal';
 const INACTIVE_COPY = 'Приём заявок через сайт временно недоступен.';
 const ACTIVE_COPY = 'Форма предназначена для отправки анкеты и фотографии в ДЛ «Астрея» №3. Фотография обрабатывается приватно и не публикуется.';
 const SUCCESS_COPY = 'Заявка принята. Благодарим за обращение.';
@@ -26,14 +27,25 @@ const ST_PETERSBURG_COPY = 'Я понимаю, что подаю заявку н
 
 export function CandidatePage() {
   const formLock = useRef(false);
+  const feedbackRef = useRef<HTMLDivElement>(null);
   const [submissionState, setSubmissionState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [feedback, setFeedback] = useState<string | null>(null);
   const active = candidateFormEnabled;
-  const disabled = !active || submissionState === 'submitting';
+  const submitted = submissionState === 'success';
+  const disabled = !active || submissionState === 'submitting' || submitted;
   const heroLead = active ? ACTIVE_COPY : INACTIVE_COPY;
 
+  useEffect(() => {
+    if (submissionState !== 'success') {
+      return;
+    }
+
+    feedbackRef.current?.focus({ preventScroll: true });
+    feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [submissionState]);
+
   function clearFeedback() {
-    if (submissionState !== 'idle') {
+    if (submissionState === 'error') {
       setSubmissionState('idle');
       setFeedback(null);
     }
@@ -41,7 +53,7 @@ export function CandidatePage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!active || formLock.current) {
+    if (!active || formLock.current || submitted) {
       return;
     }
 
@@ -287,12 +299,21 @@ export function CandidatePage() {
 
             <div className="rounded-3xl border border-brand-gray10/20 bg-white/75 p-6 shadow-formal lg:p-8">
               <div
+                ref={feedbackRef}
                 role={submissionState === 'error' ? 'alert' : 'status'}
                 aria-live="polite"
-                className={`rounded-2xl border px-5 py-4 text-sm leading-6 ${
-                  submissionState === 'error' ? STATUS_ERROR_CLASS : STATUS_SUCCESS_CLASS
+                tabIndex={-1}
+                className={`rounded-2xl border px-5 py-4 leading-6 outline-none focus:outline focus:outline-2 focus:outline-offset-4 focus:outline-brand-red ${
+                  submissionState === 'error'
+                    ? `text-sm ${STATUS_ERROR_CLASS}`
+                    : submissionState === 'success'
+                      ? `px-6 py-6 ${STATUS_SUCCESS_CLASS}`
+                      : `text-sm ${STATUS_NEUTRAL_CLASS}`
                 }`}
               >
+                {submissionState === 'success' ? (
+                  <p className="mb-3 font-display text-3xl text-brand-red">Заявка успешно отправлена</p>
+                ) : null}
                 {feedback ?? (active ? 'Заполните все поля, прикрепите фотографию и отметьте все три согласия.' : INACTIVE_COPY)}
               </div>
 
@@ -305,6 +326,8 @@ export function CandidatePage() {
                 >
                   {submissionState === 'submitting'
                     ? 'Отправка…'
+                    : submitted
+                      ? 'Заявка отправлена'
                     : active
                       ? 'Отправить заявку'
                       : 'Приём заявок временно недоступен'}
