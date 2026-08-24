@@ -1,6 +1,6 @@
 # Project Blueprint: Astrea
 
-Current stage: the Stage 4 application foundation and administration flows, guarded public candidate-form integration, Stage 5.1 production-like runtime, Stage 5.2 deployment security hardening, Stage 5.3A backup/restore foundation, Stage 5.3B operations/retention/scheduling, Stage 5.3C SMTP readiness implementation, CI Foundation and the PostgreSQL Integration Gate are accepted. Public News, Video and predefined managed-page integrations are accepted. Controlled candidate-workflow acceptance is partially complete, but public candidate intake remains disabled pending approved legal texts/version identifiers, live SMTP-provider verification and production infrastructure prerequisites.
+Current stage: the Stage 4 application foundation and administration flows, protected Admin Dashboard, guarded public candidate-form integration, Stage 5.1 production-like runtime, Stage 5.2 deployment security hardening, Stage 5.3A backup/restore foundation, Stage 5.3B operations/retention/scheduling, Stage 5.3C SMTP readiness implementation, CI Foundation and the PostgreSQL Integration Gate are accepted. Public News, Video and predefined managed-page integrations are accepted. Repository governance now uses `main` as the default protected branch with the accepted CI checks required by an active ruleset. Controlled candidate-workflow acceptance is partially complete, but public candidate intake remains disabled pending approved legal texts/version identifiers, live SMTP-provider verification and production infrastructure prerequisites.
 
 ## Purpose
 
@@ -36,6 +36,7 @@ Public:
 
 Admin:
 - Authentication
+- Dashboard / overview
 - Candidate application list/details/statuses/private photo
 - News management
 - Video management
@@ -208,6 +209,18 @@ Authenticated content administration under `/api/v1/admin/content` and the prote
 - draft isolation from public APIs;
 - no browser storage/autosave of unpublished editorial drafts.
 
+## Accepted Admin Dashboard
+
+The protected administration shell now has a real `/admin` overview instead of redirecting directly to Candidates:
+- the navigation includes an exact-match `Обзор` entry for `/admin`;
+- four quick-access cards link to Candidates, News, Video and Pages;
+- the dashboard loads up to five most recent candidate applications through the already accepted authenticated candidate-list API;
+- no new backend endpoint, database aggregate, total-count contract or invented statistic was introduced;
+- candidate loading, empty, temporary-error/retry and expired-session handling reuse the accepted admin boundary;
+- candidate rows expose only the same summary fields already allowed by the protected candidate-list API.
+
+PR #52 was reviewed as a frontend-only three-file diff. Its first CI run was correctly blocked by Frontend typecheck on a JSX syntax error; after the targeted fix, Backend, Frontend and PostgreSQL Integration all passed. Controlled local E2E visual acceptance then confirmed `/admin` renders the `Обзор` navigation, four administration cards and real protected recent-candidate rows in the existing `astrea-e2e` runtime.
+
 ## Accepted Stage 4.4D Persistent Outbox and SMTP Worker
 
 The email subsystem includes:
@@ -335,7 +348,9 @@ The repository now has a minimal GitHub Actions quality gate in `.github/workflo
 - official `actions/checkout`, `actions/setup-python` and `actions/setup-node` are on Node-24-based v6 majors;
 - no SMTP credentials, candidate/legal activation, production secrets or deployment operations are part of CI.
 
-PR #48 provided the first controlled CI acceptance for the independent Backend and Frontend gates. After correcting the initial official-action majors to avoid the GitHub Node-20 deprecation warning, the final PR run completed successfully with both jobs green. PR #50 added and accepted the PostgreSQL Integration gate: PostgreSQL 16.4 became healthy, Alembic applied every migration from an empty database through `20260824_0006`, the resulting database revision matched the repository Alembic head, and the five predefined managed-page rows matched the accepted titles, placeholder content and `is_published=false`. The same PR also passed Backend with Ruff plus `293 passed, 1 skipped` and Frontend with `npm ci`, typecheck, lint and production build. CI Foundation, including the real PostgreSQL migration gate, is therefore accepted as a repository quality gate, while branch-protection policy remains a separate repository-governance decision.
+PR #48 provided the first controlled CI acceptance for the independent Backend and Frontend gates. After correcting the initial official-action majors to avoid the GitHub Node-20 deprecation warning, the final PR run completed successfully with both jobs green. PR #50 added and accepted the PostgreSQL Integration gate: PostgreSQL 16.4 became healthy, Alembic applied every migration from an empty database through `20260824_0006`, the resulting database revision matched the repository Alembic head, and the five predefined managed-page rows matched the accepted titles, placeholder content and `is_published=false`. The same PR also passed Backend with Ruff plus `293 passed, 1 skipped` and Frontend with `npm ci`, typecheck, lint and production build.
+
+Repository governance is now accepted alongside CI: GitHub default branch is `main`, an active `Protect main` ruleset targets the default branch, and its required checks are `Backend`, `Frontend` and `PostgreSQL Integration`. GitHub reports `main` as protected. This protection is ruleset-based; classic branch protection remains unused. No extra review, signed-commit, deployment or similar rules were enabled as part of this baseline.
 
 ## Stage 5.4 Controlled End-to-End Acceptance
 
@@ -401,11 +416,12 @@ The `religion` field remains disabled unless separately approved legal wording a
 ## Current Next Steps
 
 1. **Public managed content - accepted.** News, Video and five predefined managed public pages are connected to the public APIs and reviewed; managed-page controlled E2E is complete.
-2. **CI Foundation + PostgreSQL Integration - accepted.** GitHub Actions now runs three independent gates on PRs to `main` and pushes to `main`: Backend, Frontend and real PostgreSQL migration/seed verification. PR #50 passed all three.
-3. **Repository default branch - accepted.** GitHub default branch is now `main`, matching the actual development branch. The historical seed `master` branch remains untouched for now.
-4. **Candidate technical acceptance - partially complete.** Core form/persistence/private-media/admin/security flow was exercised with synthetic data, but full Stage 5.4 remains blocked by legal and live SMTP requirements.
-5. **Legal candidate activation - deferred/frozen.** Do not activate candidate intake or finalize legal version identifiers until approved client texts are available.
-6. **SMTP live verification - deferred/frozen.** Do not request/use production credentials until the client service-mailbox/provider arrangement is known; repository readiness remains accepted.
-7. **Stage 5.5 production infrastructure - pending.** Resolve VPS, domain/subdomain, DNS/TLS, secrets, service mailbox, backup/systemd provisioning and final cutover.
+2. **Admin Dashboard - accepted.** `/admin` is now a real protected overview with four quick-access cards and up to five recent candidate applications through the existing authenticated API; local E2E visual acceptance is complete.
+3. **CI Foundation + PostgreSQL Integration - accepted.** GitHub Actions runs three independent gates on PRs to `main` and pushes to `main`: Backend, Frontend and real PostgreSQL migration/seed verification.
+4. **Repository governance - accepted.** GitHub default branch is `main`; the active `Protect main` ruleset requires Backend, Frontend and PostgreSQL Integration, and GitHub reports `main` as protected. The historical seed `master` branch remains untouched for now.
+5. **Candidate technical acceptance - partially complete.** Core form/persistence/private-media/admin/security flow was exercised with synthetic data, but full Stage 5.4 remains blocked by legal and live SMTP requirements.
+6. **Legal candidate activation - deferred/frozen.** Do not activate candidate intake or finalize legal version identifiers until approved client texts are available.
+7. **SMTP live verification - deferred/frozen.** Do not request/use production credentials until the client service-mailbox/provider arrangement is known; repository readiness remains accepted.
+8. **Stage 5.5 production infrastructure - pending.** Resolve VPS, domain/subdomain, DNS/TLS, secrets, service mailbox, backup/systemd provisioning and final cutover.
 
 `_ref/` contains local client source materials and is never committed or used as a runtime application directory.
