@@ -1,6 +1,6 @@
 # Project Blueprint: Astrea
 
-Current stage: the Stage 4 application foundation and administration flows, protected Admin Dashboard, guarded public candidate-form integration, Stage 5.1 production-like runtime, Stage 5.2 deployment security hardening, Stage 5.3A backup/restore foundation, Stage 5.3B operations/retention/scheduling, Stage 5.3C SMTP readiness implementation, CI Foundation and the PostgreSQL Integration Gate are accepted. Public News, Video and predefined managed-page integrations are accepted. Repository governance now uses `main` as the default protected branch with the accepted CI checks required by an active ruleset. Controlled candidate-workflow acceptance is partially complete, but public candidate intake remains disabled pending approved legal texts/version identifiers, live SMTP-provider verification and production infrastructure prerequisites.
+Current stage: the Stage 4 application foundation and administration flows, protected Admin Dashboard, guarded public candidate-form integration, Stage 5.1 production-like runtime, Stage 5.2 deployment security hardening, Stage 5.3A backup/restore foundation, Stage 5.3B operations/retention/scheduling, Stage 5.3C SMTP readiness implementation, CI Foundation, the PostgreSQL Integration Gate and SEO Foundation are accepted. Public News, Video and predefined managed-page integrations are accepted. Repository governance now uses `main` as the default protected branch with the accepted CI checks required by an active ruleset. Controlled candidate-workflow acceptance is partially complete, but public candidate intake remains disabled pending approved legal texts/version identifiers, live SMTP-provider verification and production infrastructure prerequisites.
 
 ## Purpose
 
@@ -287,6 +287,22 @@ Accepted frontend behavior:
 
 Controlled E2E acceptance confirmed the complete chain `migration -> DB -> Admin Pages -> publish -> public API -> public React route -> unpublish -> public 404/neutral route state`. The E2E database was returned to the seeded unpublished placeholder state after the test.
 
+## Accepted SEO Foundation
+
+The accepted SEO baseline is documented in `docs/SEO_FOUNDATION_ACCEPTANCE.md` and is deliberately fail-safe until the real production origin is known:
+- route title/description handling uses the shared SEO helper;
+- `VITE_PUBLIC_SITE_ORIGIN` is optional and empty by default;
+- canonical links are emitted only for a valid bare, non-local HTTPS origin and therefore never point at localhost or an invented deployment domain;
+- public news detail and predefined managed pages are indexable only when published content is actually returned by the public API; loading, missing/unpublished and error states are `noindex, nofollow, noarchive`;
+- published managed-page descriptions are derived from stored published text rather than placeholder copy;
+- `frontend/public/robots.txt` disallows `/admin`, `/api/` and `/healthz` while allowing the public site;
+- Nginx sends `X-Robots-Tag: noindex, nofollow, noarchive` for `/admin`, `/api/` and `/healthz`, using the original request URI so SPA fallback and query strings cannot drop the header;
+- canonical path generation normalizes trailing slashes.
+
+PR #54 passed Backend, Frontend and PostgreSQL Integration. Controlled local E2E then exposed one Nginx SPA-fallback edge case for `/admin`; PR #55 corrected it and again passed all three required checks. Final runtime verification confirmed `/robots.txt`, `/api/v1/health`, `/healthz`, `/admin`, `/admin?probe=1`, public `/`, and browser metadata on both `/` and unpublished `/o-lozhe`. The public root is `index, follow`; unpublished `/o-lozhe` is `noindex, nofollow, noarchive`; localhost receives no canonical in either case.
+
+Sitemap generation and production canonical activation remain intentionally deferred until the approved production domain/subdomain exists. No fake absolute origin is committed.
+
 ## Accepted Stage 5.1 Production-like Runtime Foundation
 
 The repository includes a locally validated Docker/Compose/Nginx/PostgreSQL runtime with:
@@ -388,6 +404,7 @@ Requires client production infrastructure details, expected to include:
 - real backup directory provisioning;
 - systemd unit/timer installation and validation;
 - trusted-proxy revalidation against the real topology;
+- production `VITE_PUBLIC_SITE_ORIGIN`, canonical activation and sitemap generation;
 - final controlled acceptance and cutover.
 
 No deployment is performed without explicit approval.
@@ -417,11 +434,12 @@ The `religion` field remains disabled unless separately approved legal wording a
 
 1. **Public managed content - accepted.** News, Video and five predefined managed public pages are connected to the public APIs and reviewed; managed-page controlled E2E is complete.
 2. **Admin Dashboard - accepted.** `/admin` is now a real protected overview with four quick-access cards and up to five recent candidate applications through the existing authenticated API; local E2E visual acceptance is complete.
-3. **CI Foundation + PostgreSQL Integration - accepted.** GitHub Actions runs three independent gates on PRs to `main` and pushes to `main`: Backend, Frontend and real PostgreSQL migration/seed verification.
-4. **Repository governance - accepted.** GitHub default branch is `main`; the active `Protect main` ruleset requires Backend, Frontend and PostgreSQL Integration, and GitHub reports `main` as protected. The historical seed `master` branch remains untouched for now.
-5. **Candidate technical acceptance - partially complete.** Core form/persistence/private-media/admin/security flow was exercised with synthetic data, but full Stage 5.4 remains blocked by legal and live SMTP requirements.
-6. **Legal candidate activation - deferred/frozen.** Do not activate candidate intake or finalize legal version identifiers until approved client texts are available.
-7. **SMTP live verification - deferred/frozen.** Do not request/use production credentials until the client service-mailbox/provider arrangement is known; repository readiness remains accepted.
-8. **Stage 5.5 production infrastructure - pending.** Resolve VPS, domain/subdomain, DNS/TLS, secrets, service mailbox, backup/systemd provisioning and final cutover.
+3. **SEO Foundation - accepted.** Route metadata, publication-aware indexability, crawler controls and fail-safe canonical handling are implemented and E2E-verified; sitemap and production canonical activation wait for the real production origin.
+4. **CI Foundation + PostgreSQL Integration - accepted.** GitHub Actions runs three independent gates on PRs to `main` and pushes to `main`: Backend, Frontend and real PostgreSQL migration/seed verification.
+5. **Repository governance - accepted.** GitHub default branch is `main`; the active `Protect main` ruleset requires Backend, Frontend and PostgreSQL Integration, and GitHub reports `main` as protected. The historical seed `master` branch remains untouched for now.
+6. **Candidate technical acceptance - partially complete.** Core form/persistence/private-media/admin/security flow was exercised with synthetic data, but full Stage 5.4 remains blocked by legal and live SMTP requirements.
+7. **Legal candidate activation - deferred/frozen.** Do not activate candidate intake or finalize legal version identifiers until approved client texts are available.
+8. **SMTP live verification - deferred/frozen.** Do not request/use production credentials until the client service-mailbox/provider arrangement is known; repository readiness remains accepted.
+9. **Stage 5.5 production infrastructure - pending.** Resolve VPS, domain/subdomain, DNS/TLS, secrets, service mailbox, backup/systemd provisioning, production canonical/sitemap activation and final cutover.
 
 `_ref/` contains local client source materials and is never committed or used as a runtime application directory.
