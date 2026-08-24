@@ -56,7 +56,8 @@ function buildCanonicalHref(pathname: string): string | null {
   const origin = configuredPublicOrigin();
   if (!origin) return null;
 
-  const normalizedPath = pathname.startsWith('/') ? pathname : `/${pathname}`;
+  const leadingSlashPath = pathname.startsWith('/') ? pathname : `/${pathname}`;
+  const normalizedPath = leadingSlashPath === '/' ? '/' : leadingSlashPath.replace(/\/+$/, '');
   return new URL(normalizedPath, `${origin}/`).toString();
 }
 
