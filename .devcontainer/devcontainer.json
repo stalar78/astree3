@@ -1,0 +1,21 @@
+{
+  "name": "Astrea Client Demo",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "forwardPorts": [18080],
+  "portsAttributes": {
+    "18080": {
+      "label": "Astrea Client Demo",
+      "onAutoForward": "notify"
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/demo.sh bootstrap",
+  "postStartCommand": "bash .devcontainer/demo.sh status || bash .devcontainer/demo.sh up",
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "8gb"
+  }
+}
