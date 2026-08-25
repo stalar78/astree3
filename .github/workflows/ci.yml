@@ -39,6 +39,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev]"
 
+      - name: Validate client demo config
+        run: |
+          bash -n ../.devcontainer/demo.sh
+          python -m json.tool ../.devcontainer/devcontainer.json >/dev/null
+
       - name: Ruff
         run: python -m ruff check .
 
