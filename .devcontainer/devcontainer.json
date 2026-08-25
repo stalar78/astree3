@@ -13,7 +13,7 @@
     }
   },
   "postCreateCommand": "bash .devcontainer/demo.sh bootstrap",
-  "postStartCommand": "bash .devcontainer/demo.sh up",
+  "postStartCommand": "bash .devcontainer/demo.sh status || bash .devcontainer/demo.sh up",
   "hostRequirements": {
     "cpus": 4,
     "memory": "8gb"
