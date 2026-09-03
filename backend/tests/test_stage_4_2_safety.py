@@ -36,7 +36,7 @@ def test_admin_models_are_present_and_standalone_email_models_are_not() -> None:
     assert "email" not in model_files
 
 
-def test_alembic_versions_include_0006() -> None:
+def test_alembic_versions_include_expected_revisions() -> None:
     versions = sorted(path.name for path in Path("alembic/versions").glob("*.py"))
 
     assert versions == [
@@ -46,6 +46,7 @@ def test_alembic_versions_include_0006() -> None:
         "20260822_0004_candidate_admin_status.py",
         "20260823_0005_email_outbox_delivery_state.py",
         "20260824_0006_predefined_pages.py",
+        "20260903_0007_materials_page.py",
     ]
 
 
