@@ -49,7 +49,11 @@ export function SiteHeader() {
 
         <div className="absolute right-6 top-[14px] z-30 xl:right-8" aria-hidden="true">
           <img
-            className="h-[258px] w-[202px] object-contain object-top drop-shadow-[0_0_2px_rgba(232,236,255,0.92)] drop-shadow-[0_0_8px_rgba(151,164,255,0.62)] drop-shadow-[0_0_18px_rgba(79,96,190,0.34)] drop-shadow-[0_12px_18px_rgba(0,0,0,0.55)]"
+            className="h-[258px] w-[202px] object-contain object-top"
+            style={{
+              filter:
+                'drop-shadow(0 0 1px rgba(238,240,255,0.98)) drop-shadow(0 0 4px rgba(184,192,255,0.92)) drop-shadow(0 0 10px rgba(121,136,255,0.72)) drop-shadow(0 0 24px rgba(79,96,205,0.46)) drop-shadow(0 12px 18px rgba(0,0,0,0.55))',
+            }}
             src="/brand/astrea-standard-transparent.png"
             alt=""
           />
