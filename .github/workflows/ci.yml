@@ -181,6 +181,21 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Validate production sitemap generation
+        run: |
+          test ! -e dist/sitemap.xml
+          VITE_PUBLIC_SITE_ORIGIN=https://example.com npm run generate-sitemap
+          test -f dist/sitemap.xml
+          grep -Fq '<loc>https://example.com/</loc>' dist/sitemap.xml
+          grep -Fq '<loc>https://example.com/novosti</loc>' dist/sitemap.xml
+          grep -Fq 'Sitemap: https://example.com/sitemap.xml' dist/robots.txt
+          ! grep -Fq '/admin' dist/sitemap.xml
+          ! grep -Fq '/api/' dist/sitemap.xml
+          ! grep -Fq '/o-lozhe' dist/sitemap.xml
+          VITE_PUBLIC_SITE_ORIGIN=http://example.com npm run generate-sitemap
+          test ! -e dist/sitemap.xml
+          ! grep -Fq '^Sitemap:' dist/robots.txt
+
       - name: Validate Nginx runtime template
         run: |
           docker build -t astrea-frontend-ci .
