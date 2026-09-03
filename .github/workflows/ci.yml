@@ -47,6 +47,19 @@ jobs:
           docker compose --env-file ../infra/.env.example -f ../infra/compose.yml config -q
           docker compose --profile ops --env-file ../infra/.env.example -f ../infra/compose.yml config -q
 
+          cp ../infra/production.env.example /tmp/astrea-production-ci.env
+          sed -i \
+            -e 's|^POSTGRES_PASSWORD=.*$|POSTGRES_PASSWORD=ci-production-database-password-123456789|' \
+            -e 's|^ADMIN_INITIAL_USERNAME=.*$|ADMIN_INITIAL_USERNAME=ciadmin|' \
+            -e 's|^ADMIN_INITIAL_PASSWORD=.*$|ADMIN_INITIAL_PASSWORD=ci-production-admin-password-123456789|' \
+            -e 's|^VITE_PUBLIC_SITE_ORIGIN=.*$|VITE_PUBLIC_SITE_ORIGIN=https://example.com|' \
+            -e 's|^SITE_BASE_URL=.*$|SITE_BASE_URL=https://example.com|' \
+            /tmp/astrea-production-ci.env
+          sudo chown root:root /tmp/astrea-production-ci.env
+          sudo chmod 0600 /tmp/astrea-production-ci.env
+          sudo sh ../infra/host/production-preflight.sh "$GITHUB_WORKSPACE" /tmp/astrea-production-ci.env
+          sudo rm -f /tmp/astrea-production-ci.env
+
       - name: Ruff
         run: python -m ruff check .
 
