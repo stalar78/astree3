@@ -39,10 +39,13 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev]"
 
-      - name: Validate client demo config
+      - name: Validate deployment config
         run: |
           bash -n ../.devcontainer/demo.sh
           python -m json.tool ../.devcontainer/devcontainer.json >/dev/null
+          sh -n ../infra/host/*.sh ../infra/ops/*.sh
+          docker compose --env-file ../infra/.env.example -f ../infra/compose.yml config -q
+          docker compose --profile ops --env-file ../infra/.env.example -f ../infra/compose.yml config -q
 
       - name: Ruff
         run: python -m ruff check .
@@ -115,18 +118,18 @@ jobs:
           engine = create_engine(os.environ["DATABASE_URL"])
 
           with engine.connect() as connection:
-              database_head = connection.execute(
-                  text("SELECT version_num FROM alembic_version")
-              ).scalar_one()
-              pages = [
-                  tuple(row)
-                  for row in connection.execute(
-                      text(
-                          "SELECT key, title, content, is_published "
-                          "FROM pages ORDER BY key"
-                      )
-                  )
-              ]
+            database_head = connection.execute(
+                text("SELECT version_num FROM alembic_version")
+            ).scalar_one()
+            pages = [
+                tuple(row)
+                for row in connection.execute(
+                    text(
+                        "SELECT key, title, content, is_published "
+                        "FROM pages ORDER BY key"
+                    )
+                )
+            ]
 
           assert database_head == script_head, (
               f"database revision {database_head!r} does not match Alembic head {script_head!r}"
@@ -164,3 +167,10 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Validate Nginx runtime template
+        run: |
+          docker build -t astrea-frontend-ci .
+          docker run --rm -e ASTREA_HOST_PROXY_IP=172.30.250.1 astrea-frontend-ci nginx -t
+          docker run --rm -e ASTREA_HOST_PROXY_IP=172.30.250.1 astrea-frontend-ci nginx -T 2>&1 | grep -F "set_real_ip_from 172.30.250.1;"
+          docker run --rm -e ASTREA_HOST_PROXY_IP=172.30.250.1 astrea-frontend-ci nginx -T 2>&1 | grep -F 'proxy_set_header X-Forwarded-Proto $astrea_forwarded_proto;'
