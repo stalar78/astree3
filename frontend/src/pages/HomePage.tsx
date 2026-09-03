@@ -72,7 +72,7 @@ export function HomePage() {
             title="Публикации и медиа"
             text="Разделы сайта подготовлены для утвержденных материалов, фотографий и видеопубликаций."
             imageUrl={HOME_MEDIA_IMAGE}
-            href="/video"
+            href="/materialy"
           />
         )}
       </div>
