@@ -47,9 +47,9 @@ export function SiteHeader() {
           </p>
         </div>
 
-        <div className="absolute right-6 top-[18px] z-30 xl:right-8" aria-hidden="true">
+        <div className="absolute right-6 top-[14px] z-30 xl:right-8" aria-hidden="true">
           <img
-            className="h-[282px] w-[220px] object-contain object-top drop-shadow-[0_0_9px_rgba(166,177,255,0.5)] drop-shadow-[0_0_24px_rgba(75,93,190,0.34)] drop-shadow-[0_14px_22px_rgba(0,0,0,0.58)]"
+            className="h-[258px] w-[202px] object-contain object-top drop-shadow-[0_0_2px_rgba(232,236,255,0.92)] drop-shadow-[0_0_8px_rgba(151,164,255,0.62)] drop-shadow-[0_0_18px_rgba(79,96,190,0.34)] drop-shadow-[0_12px_18px_rgba(0,0,0,0.55)]"
             src="/brand/astrea-standard-transparent.png"
             alt=""
           />
@@ -68,7 +68,7 @@ export function SiteHeader() {
       <TricolorBand />
 
       <div className="relative mx-auto max-w-[1534px] px-5 lg:px-8">
-        <div className="flex min-h-[68px] items-center lg:px-[155px] lg:pr-[245px]">
+        <div className="flex min-h-[68px] items-center lg:px-[155px] lg:pr-[225px]">
           <nav className="hidden w-full items-center justify-center gap-10 text-[17px] font-light text-brand-reference-muted lg:flex" aria-label="Основная навигация">
             {navigation.map(([label, href]) =>
               href ? (
