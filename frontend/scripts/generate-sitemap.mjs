@@ -9,6 +9,7 @@ const STATIC_INDEXABLE_PATHS = [
   '/',
   '/novosti',
   '/video',
+  '/materialy',
   '/vstuplenie',
   '/privacy',
   '/consent',
