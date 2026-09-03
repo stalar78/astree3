@@ -12,6 +12,7 @@ x-backend-env: &backend-env
   CANDIDATE_PERSONAL_DATA_CONSENT_VERSION: ${CANDIDATE_PERSONAL_DATA_CONSENT_VERSION:-}
   CANDIDATE_PRIVACY_POLICY_VERSION: ${CANDIDATE_PRIVACY_POLICY_VERSION:-}
   CANDIDATE_SAINT_PETERSBURG_ACKNOWLEDGEMENT_VERSION: ${CANDIDATE_SAINT_PETERSBURG_ACKNOWLEDGEMENT_VERSION:-}
+  ADMIN_SESSION_TTL_SECONDS: ${ADMIN_SESSION_TTL_SECONDS:-28800}
   ADMIN_LOGIN_RATE_LIMIT_REQUESTS: ${ADMIN_LOGIN_RATE_LIMIT_REQUESTS:-10}
   ADMIN_LOGIN_RATE_LIMIT_WINDOW_SECONDS: ${ADMIN_LOGIN_RATE_LIMIT_WINDOW_SECONDS:-900}
   CANDIDATE_RATE_LIMIT_REQUESTS: ${CANDIDATE_RATE_LIMIT_REQUESTS:-5}
@@ -227,6 +228,33 @@ services:
       - /var/tmp:rw,noexec,nosuid,size=16m
     restart: "no"
 
+  admin-bootstrap:
+    build: *backend-build
+    profiles:
+      - ops
+    command: ["python", "-m", "app.cli", "bootstrap-admin"]
+    environment:
+      <<: *backend-env
+      ADMIN_INITIAL_USERNAME: ${ADMIN_INITIAL_USERNAME:-}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - data
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /var/tmp:rw,noexec,nosuid,size=16m
+    user: "10001:10001"
+    restart: "no"
+
   backend:
     build: *backend-build
     command:
@@ -282,6 +310,8 @@ services:
       args:
         VITE_CANDIDATE_FORM_ENABLED: ${VITE_CANDIDATE_FORM_ENABLED:-false}
         VITE_PUBLIC_SITE_ORIGIN: ${VITE_PUBLIC_SITE_ORIGIN:-}
+    environment:
+      ASTREA_HOST_PROXY_IP: ${ASTREA_HOST_PROXY_IP:-127.0.0.1}
     depends_on:
       backend:
         condition: service_healthy
