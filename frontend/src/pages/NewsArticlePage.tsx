@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 
-import { EditorialNote } from '../components/EditorialNote';
-import { InternalHero } from '../components/InternalHero';
-import { Section } from '../components/Section';
+import { ReferenceInnerPage, ReferenceNotice, ReferencePanel } from '../components/ReferenceInnerPage';
 import { PublicContentApiError, getPublicNews, type PublicNewsArticle } from '../publicContent/publicContentApi';
 import { applyDocumentSeo, siteTitle } from '../seo/seo';
 
@@ -66,43 +64,51 @@ export function NewsArticlePage() {
   }, [article, hero.lead, hero.title, location.pathname, slug, state]);
 
   return (
-    <>
-      <InternalHero eyebrow="Новости" title={hero.title} lead={hero.lead} />
-      <Section>
-        <div className="mx-auto max-w-4xl">
-          {state === 'loading' ? <EditorialNote title="Загрузка материала">Материал загружается.</EditorialNote> : null}
+    <ReferenceInnerPage eyebrow="Новости" title={hero.title} lead={hero.lead}>
+      {state === 'loading' ? (
+        <ReferenceNotice title="Загрузка материала">Материал загружается.</ReferenceNotice>
+      ) : null}
 
-          {state === 'error' ? (
-            <EditorialNote title="Материал временно недоступен">Материал не удалось загрузить. Попробуйте открыть страницу позже.</EditorialNote>
-          ) : null}
+      {state === 'error' ? (
+        <ReferenceNotice title="Материал временно недоступен">
+          Материал не удалось загрузить. Попробуйте открыть страницу позже.
+        </ReferenceNotice>
+      ) : null}
 
-          {state === 'notfound' ? (
-            <EditorialNote title="Материал не опубликован">
-              Запрошенный материал не опубликован. На странице не показываются демонстрационные или предположительные тексты.
-            </EditorialNote>
-          ) : null}
+      {state === 'notfound' ? (
+        <ReferenceNotice title="Материал не опубликован">
+          Запрошенный материал не опубликован. На странице не показываются демонстрационные или предположительные тексты.
+        </ReferenceNotice>
+      ) : null}
 
-          {state === 'ready' && article ? (
-            <article className="space-y-8">
-              {article.published_at ? (
-                <time className="text-sm uppercase tracking-[0.12em] text-brand-red" dateTime={article.published_at}>
-                  {DATE.format(new Date(article.published_at))}
-                </time>
-              ) : null}
-              {article.image_url ? (
-                <img src={article.image_url} alt={`Иллюстрация к новости «${article.title}»`} className="w-full border border-brand-gray10/20 bg-brand-paperAlt object-cover" />
-              ) : null}
-              <div className="space-y-5 text-base leading-8 text-brand-ink/80">
-                {renderParagraphs(article.body)}
-              </div>
-              <Link className="inline-block border-b border-brand-red pb-1 text-sm font-semibold uppercase text-brand-black" to="/novosti">
-                Вернуться к новостям
-              </Link>
-            </article>
-          ) : null}
-        </div>
-      </Section>
-    </>
+      {state === 'ready' && article ? (
+        <ReferencePanel className="mx-auto w-full max-w-4xl">
+          <article className="space-y-7">
+            {article.published_at ? (
+              <time className="text-xs uppercase tracking-[0.14em] text-brand-reference-red" dateTime={article.published_at}>
+                {DATE.format(new Date(article.published_at))}
+              </time>
+            ) : null}
+            {article.image_url ? (
+              <img
+                src={article.image_url}
+                alt={`Иллюстрация к новости «${article.title}»`}
+                className="w-full rounded-[5px] border border-brand-reference-line/25 bg-brand-reference-panelDeep object-cover"
+              />
+            ) : null}
+            <div className="space-y-5 text-[15px] font-light leading-8 text-brand-reference-muted">
+              {renderParagraphs(article.body)}
+            </div>
+            <Link
+              className="inline-block border-b border-brand-reference-red pb-1 text-sm font-semibold uppercase tracking-[0.08em] text-brand-reference-text transition-colors hover:text-white"
+              to="/novosti"
+            >
+              Вернуться к новостям
+            </Link>
+          </article>
+        </ReferencePanel>
+      ) : null}
+    </ReferenceInnerPage>
   );
 }
 
