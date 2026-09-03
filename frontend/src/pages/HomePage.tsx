@@ -80,26 +80,24 @@ function ReferenceCard({
 }) {
   const Heading = primary ? 'h1' : 'h2';
   const body = (
-    <article className="rounded-md border border-white/10 bg-brand-reference-panel px-6 py-7 shadow-referenceCard transition-colors hover:border-white/15 lg:px-8 lg:py-8">
+    <article className="rounded-sm border border-brand-reference-line/30 bg-brand-reference-panel px-6 py-7 shadow-referenceCard transition-colors hover:border-brand-reference-line/45 lg:px-8 lg:py-8">
       <div className="grid gap-6 md:grid-cols-[36%_1fr] md:items-start">
-        <div className="overflow-hidden rounded-sm border border-white/10 bg-brand-reference-panelDeep">
+        <div className="overflow-hidden rounded-sm border border-brand-reference-line/20 bg-brand-reference-panelDeep">
           {imageUrl ? (
             <img src={imageUrl} alt="" className="aspect-[1.45/1] w-full object-cover" />
           ) : (
-            <div className="flex aspect-[1.45/1] items-center justify-center px-6 text-center text-xs uppercase tracking-[0.16em] text-brand-reference-muted/40">
-              Фото будет предоставлено заказчиком
-            </div>
+            <div className="aspect-[1.45/1] bg-[#0A0D13]" aria-hidden="true" />
           )}
         </div>
 
         <div className="min-w-0">
-          <p className="text-xs uppercase tracking-[0.12em] text-brand-reference-muted/60">{eyebrow}</p>
-          <Heading className="mt-2 text-[clamp(1.45rem,2.1vw,2rem)] font-light leading-[1.08] text-brand-reference-text">{title}</Heading>
-          <div className="my-5 h-px bg-brand-reference-line/80" />
-          <p className="text-[15px] font-light leading-[1.35] text-brand-reference-muted">{text}</p>
+          <p className="text-xs uppercase tracking-[0.12em] text-brand-reference-muted/55">{eyebrow}</p>
+          <Heading className="mt-2 text-[clamp(1.35rem,1.85vw,1.85rem)] font-light leading-[1.12] text-brand-reference-text">{title}</Heading>
+          <div className="my-5 h-px bg-brand-reference-line/75" />
+          <p className="text-[15px] font-light leading-[1.4] text-brand-reference-muted">{text}</p>
         </div>
       </div>
-      <p className="mt-5 text-[15px] font-light leading-[1.4] text-brand-reference-muted">{text}</p>
+      <p className="mt-5 text-[15px] font-light leading-[1.42] text-brand-reference-muted">{text}</p>
     </article>
   );
 

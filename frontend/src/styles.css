@@ -52,7 +52,8 @@ img {
 
 .public-redesign {
   color-scheme: dark;
-  background: #252a34;
+  background:
+    linear-gradient(180deg, #27282c 0%, #28292d 45%, #292b30 67%, #293247 100%);
   color: #d8dade;
 }
 

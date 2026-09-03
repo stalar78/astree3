@@ -14,7 +14,7 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="relative z-20 bg-brand-reference-shell text-brand-reference-text">
+    <header className="relative z-20 bg-brand-reference-shell text-brand-reference-text shadow-headerGlow">
       <a
         href="#content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-white focus:px-4 focus:py-2 focus:text-black"
@@ -22,25 +22,25 @@ export function SiteHeader() {
         К содержанию
       </a>
 
-      <div className="relative mx-auto max-w-[1534px] px-5 pb-4 pt-5 lg:px-8 lg:pb-0 lg:pt-8">
-        <div className="grid min-h-[112px] grid-cols-[76px_1fr] items-center gap-4 pr-0 lg:grid-cols-[120px_minmax(0,1fr)_220px] lg:gap-8 lg:pr-0">
+      <div className="relative mx-auto max-w-[1534px] px-5 pb-4 pt-5 lg:px-8 lg:pb-0 lg:pt-7">
+        <div className="grid min-h-[108px] grid-cols-[86px_1fr] items-center gap-4 pr-0 lg:grid-cols-[138px_minmax(0,1fr)_250px] lg:gap-8 lg:pr-0">
           <NavLink to="/" aria-label="На главную" className="justify-self-start">
             <img
-              className="h-16 w-16 object-contain lg:h-24 lg:w-24"
-              src="/brand/grand-lodge-russia-emblem.png"
-              alt="Эмблема Великой Ложи России"
+              className="h-[84px] w-[84px] object-contain drop-shadow-[0_0_14px_rgba(94,127,190,0.25)] lg:h-[146px] lg:w-[146px]"
+              src="/brand/symbols/symbol-06.png"
+              alt=""
             />
           </NavLink>
 
           <div className="min-w-0 text-left lg:text-center">
-            <p className="font-referenceHeading text-[clamp(1.55rem,2.5vw,2.65rem)] leading-tight tracking-[0.01em] text-brand-reference-text">
+            <p className="font-referenceHeading text-[clamp(1.55rem,2.45vw,2.65rem)] font-normal leading-tight tracking-normal text-brand-reference-text">
               Д.·. Л.·. «Астрея» №3 на Востоке г. Санкт-Петербурга
             </p>
           </div>
 
           <div className="hidden self-start justify-self-end lg:block" aria-hidden="true">
             <img
-              className="relative z-30 -mb-20 h-[230px] w-[180px] object-contain object-top drop-shadow-[0_14px_20px_rgba(0,0,0,0.4)]"
+              className="relative z-30 -mb-[94px] h-[270px] w-[212px] object-contain object-top drop-shadow-[0_0_20px_rgba(95,124,185,0.38)]"
               src="/brand/astrea-standard-transparent.png"
               alt=""
             />
@@ -49,13 +49,13 @@ export function SiteHeader() {
       </div>
 
       <div aria-hidden="true">
-        <div className="h-[3px] bg-brand-reference-white" />
-        <div className="h-[6px] bg-brand-reference-red" />
+        <div className="h-[8px] bg-brand-reference-white" />
+        <div className="h-[7px] bg-brand-reference-red" />
       </div>
 
       <div className="mx-auto max-w-[1534px] px-5 lg:px-8">
-        <div className="flex min-h-[72px] items-center lg:pr-[220px]">
-          <nav className="hidden w-full items-center justify-center gap-10 text-[17px] font-light text-brand-reference-muted lg:flex" aria-label="Основная навигация">
+        <div className="flex min-h-[78px] items-center lg:pr-[250px]">
+          <nav className="hidden w-full items-center justify-center gap-10 text-[20px] font-light text-brand-reference-muted lg:flex" aria-label="Основная навигация">
             {navigation.map(([label, href]) =>
               href ? (
                 <NavLink

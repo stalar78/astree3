@@ -1,12 +1,12 @@
 export function SiteFooter() {
   return (
-    <footer className="bg-[#293347] text-brand-reference-text">
+    <footer className="bg-[#293144] text-brand-reference-text">
       <div aria-hidden="true">
-        <div className="h-[3px] bg-brand-reference-white" />
-        <div className="h-[6px] bg-brand-reference-red" />
+        <div className="h-[8px] bg-brand-reference-white" />
+        <div className="h-[7px] bg-brand-reference-red" />
       </div>
 
-      <div className="mx-auto max-w-[1534px] px-5 py-8 text-center lg:px-8 lg:py-10">
+      <div className="mx-auto max-w-[1534px] px-5 py-9 text-center lg:px-8 lg:py-11">
         <img
           className="mx-auto h-20 w-20 object-contain lg:h-24 lg:w-24"
           src="/brand/grand-lodge-russia-emblem.png"
