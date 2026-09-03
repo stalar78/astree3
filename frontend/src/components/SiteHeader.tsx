@@ -80,7 +80,7 @@ export function SiteHeader() {
 
       <div className="relative mx-auto max-w-[1534px] px-4 sm:px-5 lg:px-8">
         <div className="flex min-h-[56px] items-center sm:min-h-[64px] lg:min-h-[68px] lg:px-[155px] lg:pr-[225px]">
-          <nav className="hidden w-full items-center justify-center gap-8 text-[17px] font-light text-brand-reference-muted xl:gap-10 lg:flex" aria-label="Основная навигация">
+          <nav className="hidden w-full items-center justify-center gap-4 text-[15px] font-light text-brand-reference-muted lg:flex xl:gap-8 xl:text-[17px]" aria-label="Основная навигация">
             {navigation.map(([label, href]) => (
               <NavLink
                 key={label}
