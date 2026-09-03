@@ -18,8 +18,7 @@ export function AboutPage() {
       bodyWidthClassName="max-w-3xl"
       afterContent={
         <ReferencePanel className="mx-auto w-full max-w-3xl">
-          <p className="text-xs uppercase tracking-[0.14em] text-brand-reference-muted/55">Официальная символика</p>
-          <h2 className="mt-2 font-referenceHeading text-3xl font-normal text-brand-reference-text">Официальная символика</h2>
+          <h2 className="font-referenceHeading text-3xl font-normal text-brand-reference-text">Официальная символика</h2>
           <div className="my-5 h-px bg-brand-reference-line/70" />
           <p className="text-[15px] font-light leading-7 text-brand-reference-muted">
             На сайте используются только предоставленные клиентом официальные изображения.
