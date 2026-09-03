@@ -80,9 +80,9 @@ function ReferenceCard({
 }) {
   const Heading = primary ? 'h1' : 'h2';
   const body = (
-    <article className="rounded-sm border border-brand-reference-line/30 bg-brand-reference-panel px-6 py-7 shadow-referenceCard transition-colors hover:border-brand-reference-line/45 lg:px-8 lg:py-8">
+    <article className="rounded-[6px] border border-brand-reference-line/30 bg-brand-reference-panel px-6 py-7 shadow-referenceCard transition-colors hover:border-brand-reference-line/45 lg:px-8 lg:py-8">
       <div className="grid gap-6 md:grid-cols-[36%_1fr] md:items-start">
-        <div className="overflow-hidden rounded-sm border border-brand-reference-line/20 bg-brand-reference-panelDeep">
+        <div className="overflow-hidden rounded-[5px] border border-brand-reference-line/20 bg-brand-reference-panelDeep">
           {imageUrl ? (
             <img src={imageUrl} alt="" className="aspect-[1.45/1] w-full object-cover" />
           ) : (
