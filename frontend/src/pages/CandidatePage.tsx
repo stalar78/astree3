@@ -6,7 +6,7 @@ import { CandidateApiError, submitCandidateApplication } from '../candidate/cand
 import { candidateFormEnabled } from '../candidate/candidateConfig';
 
 const FIELD_CLASS =
-  'w-full rounded-[5px] border border-brand-reference-line/40 bg-brand-reference-panelDeep px-4 py-3 text-base text-brand-reference-text outline-none transition focus:border-brand-reference-red focus:ring-1 focus:ring-brand-reference-red/40 disabled:cursor-not-allowed disabled:opacity-55';
+  'w-full rounded-[5px] border border-brand-reference-line/75 bg-brand-reference-panelDeep px-4 py-3 text-base text-brand-reference-text outline-none transition shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] focus:border-brand-reference-white focus:ring-1 focus:ring-brand-reference-white/20 disabled:cursor-not-allowed disabled:opacity-55';
 const TEXTAREA_CLASS = `${FIELD_CLASS} min-h-36 resize-y`;
 const HELP_CLASS = 'text-sm font-light leading-6 text-brand-reference-muted/70';
 const FIELDSET_CLASS =
