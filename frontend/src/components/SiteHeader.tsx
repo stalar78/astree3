@@ -10,11 +10,21 @@ const navigation = [
   ['Контакты', '/kontakty'],
 ] as const;
 
+function TricolorBand() {
+  return (
+    <div aria-hidden="true" className="relative z-10">
+      <div className="h-[9px] bg-white" />
+      <div className="h-[3px] bg-brand-reference-flagBlue" />
+      <div className="h-[6px] bg-brand-reference-flagRed" />
+    </div>
+  );
+}
+
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="relative z-20 bg-brand-reference-shell text-brand-reference-text shadow-headerGlow">
+    <header className="relative z-20 bg-brand-reference-shell text-brand-reference-text">
       <a
         href="#content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-white focus:px-4 focus:py-2 focus:text-black"
@@ -22,40 +32,44 @@ export function SiteHeader() {
         К содержанию
       </a>
 
-      <div className="relative mx-auto max-w-[1534px] px-5 pb-4 pt-5 lg:px-8 lg:pb-0 lg:pt-7">
-        <div className="grid min-h-[108px] grid-cols-[86px_1fr] items-center gap-4 pr-0 lg:grid-cols-[138px_minmax(0,1fr)_250px] lg:gap-8 lg:pr-0">
-          <NavLink to="/" aria-label="На главную" className="justify-self-start">
-            <img
-              className="h-[84px] w-[84px] object-contain drop-shadow-[0_0_14px_rgba(94,127,190,0.25)] lg:h-[146px] lg:w-[146px]"
-              src="/brand/symbols/symbol-06.png"
-              alt=""
-            />
-          </NavLink>
+      <div className="relative mx-auto hidden h-[118px] max-w-[1534px] lg:block">
+        <NavLink to="/" aria-label="На главную" className="absolute left-8 top-[18px] z-30 block xl:left-10">
+          <img
+            className="h-[138px] w-[138px] object-contain drop-shadow-[0_0_12px_rgba(21,59,147,0.28)]"
+            src="/brand/symbols/symbol-06.png"
+            alt=""
+          />
+        </NavLink>
 
-          <div className="min-w-0 text-left lg:text-center">
-            <p className="font-referenceHeading text-[clamp(1.55rem,2.45vw,2.65rem)] font-normal leading-tight tracking-normal text-brand-reference-text">
-              Д.·. Л.·. «Астрея» №3 на Востоке г. Санкт-Петербурга
-            </p>
-          </div>
+        <div className="flex h-full items-center justify-center px-[220px] pb-2 text-center">
+          <p className="font-referenceHeading text-[clamp(1.9rem,2.25vw,2.2rem)] font-normal leading-none tracking-normal text-brand-reference-text">
+            Д.·. Л.·. «Астрея» №3 на Востоке г. Санкт-Петербурга
+          </p>
+        </div>
 
-          <div className="hidden self-start justify-self-end lg:block" aria-hidden="true">
-            <img
-              className="relative z-30 -mb-[94px] h-[270px] w-[212px] object-contain object-top drop-shadow-[0_0_20px_rgba(95,124,185,0.38)]"
-              src="/brand/astrea-standard-transparent.png"
-              alt=""
-            />
-          </div>
+        <div className="absolute right-7 top-[5px] z-30 xl:right-9" aria-hidden="true">
+          <img
+            className="h-[224px] w-[176px] object-contain object-top drop-shadow-[0_10px_16px_rgba(0,0,0,0.48)]"
+            src="/brand/astrea-standard-transparent.png"
+            alt=""
+          />
         </div>
       </div>
 
-      <div aria-hidden="true">
-        <div className="h-[8px] bg-brand-reference-white" />
-        <div className="h-[7px] bg-brand-reference-red" />
+      <div className="grid min-h-[104px] grid-cols-[84px_1fr] items-center gap-4 px-5 py-4 lg:hidden">
+        <NavLink to="/" aria-label="На главную">
+          <img className="h-20 w-20 object-contain" src="/brand/symbols/symbol-06.png" alt="" />
+        </NavLink>
+        <p className="font-referenceHeading text-[clamp(1.35rem,5vw,1.85rem)] leading-tight text-brand-reference-text">
+          Д.·. Л.·. «Астрея» №3 на Востоке г. Санкт-Петербурга
+        </p>
       </div>
 
-      <div className="mx-auto max-w-[1534px] px-5 lg:px-8">
-        <div className="flex min-h-[78px] items-center lg:pr-[250px]">
-          <nav className="hidden w-full items-center justify-center gap-10 text-[20px] font-light text-brand-reference-muted lg:flex" aria-label="Основная навигация">
+      <TricolorBand />
+
+      <div className="relative mx-auto max-w-[1534px] px-5 lg:px-8">
+        <div className="flex min-h-[68px] items-center lg:px-[155px] lg:pr-[205px]">
+          <nav className="hidden w-full items-center justify-center gap-10 text-[17px] font-light text-brand-reference-muted lg:flex" aria-label="Основная навигация">
             {navigation.map(([label, href]) =>
               href ? (
                 <NavLink
