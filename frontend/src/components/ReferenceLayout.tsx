@@ -12,7 +12,7 @@ const SYMBOLS = [
 
 export function ReferenceLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto grid w-full max-w-[1534px] gap-8 px-5 py-8 lg:px-8 xl:grid-cols-[128px_minmax(0,1fr)_220px] xl:py-9">
+    <div className="mx-auto grid w-full max-w-[1534px] gap-6 px-4 py-6 sm:px-5 sm:py-8 lg:px-8 xl:grid-cols-[128px_minmax(0,1fr)_220px] xl:gap-8 xl:py-9">
       <SymbolRail />
       <div className="min-w-0">{children}</div>
       <CalendarRail />

@@ -60,19 +60,19 @@ export function SiteHeader() {
         </div>
       </div>
 
-      <div className="grid min-h-[104px] grid-cols-[84px_1fr] items-center gap-4 px-5 py-4 lg:hidden">
-        <NavLink to="/" aria-label="На главную">
-          <img className="h-20 w-20 object-contain" src="/brand/symbols/symbol-06.png" alt="" />
+      <div className="grid min-h-[92px] grid-cols-[64px_minmax(0,1fr)] items-center gap-3 px-4 py-3 sm:min-h-[104px] sm:grid-cols-[84px_minmax(0,1fr)] sm:gap-4 sm:px-5 sm:py-4 lg:hidden">
+        <NavLink to="/" aria-label="На главную" className="self-center">
+          <img className="h-16 w-16 object-contain sm:h-20 sm:w-20" src="/brand/symbols/symbol-06.png" alt="" />
         </NavLink>
-        <p className="font-referenceHeading text-[clamp(1.35rem,5vw,1.85rem)] leading-tight text-brand-reference-text">
+        <p className="min-w-0 break-words font-referenceHeading text-[clamp(1.05rem,5.1vw,1.55rem)] font-normal leading-[1.08] text-brand-reference-text sm:text-[clamp(1.35rem,4.2vw,1.85rem)]">
           Д.·. Л.·. «Астрея» №3 на Востоке г. Санкт-Петербурга
         </p>
       </div>
 
       <TricolorBand />
 
-      <div className="relative mx-auto max-w-[1534px] px-5 lg:px-8">
-        <div className="flex min-h-[68px] items-center lg:px-[155px] lg:pr-[225px]">
+      <div className="relative mx-auto max-w-[1534px] px-4 sm:px-5 lg:px-8">
+        <div className="flex min-h-[56px] items-center sm:min-h-[64px] lg:min-h-[68px] lg:px-[155px] lg:pr-[225px]">
           <nav className="hidden w-full items-center justify-center gap-10 text-[17px] font-light text-brand-reference-muted lg:flex" aria-label="Основная навигация">
             {navigation.map(([label, href]) =>
               href ? (
@@ -94,27 +94,34 @@ export function SiteHeader() {
           </nav>
 
           <button
-            className="ml-auto border border-white/20 px-4 py-2 text-sm uppercase tracking-[0.12em] text-brand-reference-text lg:hidden"
+            className="ml-auto inline-flex min-h-10 items-center justify-center rounded-[5px] border border-white/20 px-4 py-2 text-sm uppercase tracking-[0.12em] text-brand-reference-text transition-colors hover:border-white/35 hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand-reference-line lg:hidden"
             type="button"
             aria-expanded={open}
             aria-controls="mobile-nav"
             onClick={() => setOpen((value) => !value)}
           >
-            Меню
+            {open ? 'Закрыть' : 'Меню'}
           </button>
         </div>
       </div>
 
       {open ? (
-        <nav id="mobile-nav" className="border-t border-white/10 bg-brand-reference-panelDeep px-5 py-4 lg:hidden" aria-label="Мобильная навигация">
+        <nav id="mobile-nav" className="border-t border-white/10 bg-brand-reference-panelDeep px-4 py-3 sm:px-5 sm:py-4 lg:hidden" aria-label="Мобильная навигация">
           <div className="mx-auto grid max-w-[1534px] gap-1 text-base text-brand-reference-muted">
             {navigation.map(([label, href]) =>
               href ? (
-                <NavLink key={label} to={href} onClick={() => setOpen(false)} className="py-2 hover:text-white">
+                <NavLink
+                  key={label}
+                  to={href}
+                  onClick={() => setOpen(false)}
+                  className={({ isActive }) =>
+                    `rounded-[5px] px-3 py-2.5 transition-colors hover:bg-white/5 hover:text-white focus:bg-white/5 focus:text-white ${isActive ? 'bg-white/5 text-white' : ''}`
+                  }
+                >
                   {label}
                 </NavLink>
               ) : (
-                <span key={label} aria-disabled="true" className="py-2 text-brand-reference-muted/55">
+                <span key={label} aria-disabled="true" className="px-3 py-2.5 text-brand-reference-muted/45">
                   {label}
                 </span>
               ),
