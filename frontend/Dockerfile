@@ -16,7 +16,9 @@ RUN npm run build
 
 FROM nginx:1.27.5-alpine
 
-COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+ENV ASTREA_HOST_PROXY_IP=127.0.0.1
+
+COPY nginx/default.conf /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80
