@@ -1,6 +1,6 @@
 # Project Blueprint: Astrea
 
-Current stage: the Stage 4 application foundation and administration flows, protected Admin Dashboard, guarded public candidate-form integration, Stage 5.1 production-like runtime, Stage 5.2 deployment security hardening, Stage 5.3A backup/restore foundation, Stage 5.3B operations/retention/scheduling, Stage 5.3C SMTP readiness implementation, CI Foundation, the PostgreSQL Integration Gate and SEO Foundation are accepted. Public News, Video and predefined managed-page integrations are accepted. Repository governance now uses `main` as the default protected branch with the accepted CI checks required by an active ruleset. Controlled candidate-workflow acceptance is partially complete, but public candidate intake remains disabled pending approved legal texts/version identifiers, live SMTP-provider verification and production infrastructure prerequisites.
+Current stage: the Stage 4 application foundation and administration flows, protected Admin Dashboard, guarded public candidate-form integration, Stage 5.1 production-like runtime, Stage 5.2 deployment security hardening, Stage 5.3A backup/restore foundation, Stage 5.3B operations/retention/scheduling, Stage 5.3C SMTP readiness implementation, CI Foundation, the PostgreSQL Integration Gate, SEO Foundation, production runtime readiness and the read-only production preflight/smoke harness are accepted. Public News, Video and predefined managed-page integrations are accepted. Repository governance uses `main` as the default protected branch with the accepted CI checks required by an active ruleset. The repository is ready for an informational production launch once the real VPS/domain/DNS/TLS inputs are supplied and deployment is explicitly approved. Controlled candidate-workflow acceptance remains partially complete; public candidate intake and SMTP/mail remain intentionally disabled pending separate legal/mail activation work.
 
 ## Purpose
 
@@ -301,7 +301,7 @@ The accepted SEO baseline is documented in `docs/SEO_FOUNDATION_ACCEPTANCE.md` a
 
 PR #54 passed Backend, Frontend and PostgreSQL Integration. Controlled local E2E then exposed one Nginx SPA-fallback edge case for `/admin`; PR #55 corrected it and again passed all three required checks. Final runtime verification confirmed `/robots.txt`, `/api/v1/health`, `/healthz`, `/admin`, `/admin?probe=1`, public `/`, and browser metadata on both `/` and unpublished `/o-lozhe`. The public root is `index, follow`; unpublished `/o-lozhe` is `noindex, nofollow, noarchive`; localhost receives no canonical in either case.
 
-Sitemap generation and production canonical activation remain intentionally deferred until the approved production domain/subdomain exists. No fake absolute origin is committed.
+Production sitemap generation is fail-safe and build-time: a valid public bare HTTPS `VITE_PUBLIC_SITE_ORIGIN` generates `dist/sitemap.xml` and appends the absolute sitemap URL to the built `robots.txt`; empty, local or otherwise invalid origins generate no sitemap. The static sitemap contains only deterministic indexable public routes and deliberately excludes publication-dependent managed pages, dynamic news details, admin, API and health paths. Production smoke verifies the final sitemap/robots origin after TLS cutover.
 
 ## Accepted Stage 5.1 Production-like Runtime Foundation
 
@@ -393,19 +393,31 @@ Per current project direction, candidate legal activation and SMTP/mail work rem
 
 ## Stage 5.5 Production Deployment
 
-Status: pending.
+Status: **repository-ready for informational launch; real deployment pending explicit approval and external infrastructure inputs**.
 
-Requires client production infrastructure details, expected to include:
-- VPS access;
+Accepted repository readiness now includes:
+- production environment template with fail-closed candidate gates;
+- host Nginx TLS/HSTS and trusted-proxy templates;
+- root-controlled initial-admin bootstrap flow;
+- production backup-directory and systemd/operations runbooks;
+- read-only preflight checks for environment/Compose invariants;
+- read-only post-TLS smoke checks for health, security headers, crawler controls, admin/private boundaries and disabled candidate intake;
+- build-time production sitemap generation from the validated `VITE_PUBLIC_SITE_ORIGIN`;
+- CI coverage for production Compose/shell/preflight/sitemap invariants.
+
+Actual informational deployment requires:
+- VPS access and final host topology;
 - production domain/subdomain decision;
-- DNS and TLS;
-- external root-controlled environment/secrets provisioning;
-- service mailbox / SMTP provider details;
-- real backup directory provisioning;
-- systemd unit/timer installation and validation;
-- trusted-proxy revalidation against the real topology;
-- production `VITE_PUBLIC_SITE_ORIGIN`, canonical activation and sitemap generation;
-- final controlled acceptance and cutover.
+- DNS control;
+- TLS certificate/renewal path;
+- external root-controlled production environment/secrets;
+- real backup directory provisioning and first validated backup;
+- systemd backup/prune installation after manual operational acceptance;
+- trusted-proxy revalidation against the real Docker/network topology;
+- production `VITE_PUBLIC_SITE_ORIGIN` so canonical and sitemap use the final HTTPS origin;
+- final preflight, smoke and cutover acceptance.
+
+SMTP/service-mailbox details are not required for the informational launch while candidate intake is disabled. Candidate activation remains a separate later release and still requires the unresolved legal/version and live SMTP acceptance work.
 
 No deployment is performed without explicit approval.
 
@@ -433,13 +445,14 @@ The `religion` field remains disabled unless separately approved legal wording a
 ## Current Next Steps
 
 1. **Public managed content - accepted.** News, Video and five predefined managed public pages are connected to the public APIs and reviewed; managed-page controlled E2E is complete.
-2. **Admin Dashboard - accepted.** `/admin` is now a real protected overview with four quick-access cards and up to five recent candidate applications through the existing authenticated API; local E2E visual acceptance is complete.
-3. **SEO Foundation - accepted.** Route metadata, publication-aware indexability, crawler controls and fail-safe canonical handling are implemented and E2E-verified; sitemap and production canonical activation wait for the real production origin.
-4. **CI Foundation + PostgreSQL Integration - accepted.** GitHub Actions runs three independent gates on PRs to `main` and pushes to `main`: Backend, Frontend and real PostgreSQL migration/seed verification.
+2. **Admin Dashboard - accepted.** `/admin` is a real protected overview with four quick-access cards and up to five recent candidate applications through the existing authenticated API; local E2E visual acceptance is complete.
+3. **SEO Foundation + production sitemap - accepted.** Route metadata, publication-aware indexability, crawler controls and fail-safe canonical handling are implemented; production build generates a sitemap only from a valid final HTTPS origin and the smoke harness verifies it after cutover.
+4. **CI Foundation + PostgreSQL Integration - accepted.** GitHub Actions runs three independent gates on PRs to `main` and pushes to `main`: Backend, Frontend and real PostgreSQL migration/seed verification; deployment/preflight/sitemap configuration is validated inside the existing gates.
 5. **Repository governance - accepted.** GitHub default branch is `main`; the active `Protect main` ruleset requires Backend, Frontend and PostgreSQL Integration, and GitHub reports `main` as protected. The historical seed `master` branch remains untouched for now.
-6. **Candidate technical acceptance - partially complete.** Core form/persistence/private-media/admin/security flow was exercised with synthetic data, but full Stage 5.4 remains blocked by legal and live SMTP requirements.
-7. **Legal candidate activation - deferred/frozen.** Do not activate candidate intake or finalize legal version identifiers until approved client texts are available.
-8. **SMTP live verification - deferred/frozen.** Do not request/use production credentials until the client service-mailbox/provider arrangement is known; repository readiness remains accepted.
-9. **Stage 5.5 production infrastructure - pending.** Resolve VPS, domain/subdomain, DNS/TLS, secrets, service mailbox, backup/systemd provisioning, production canonical/sitemap activation and final cutover.
+6. **Production repository readiness - accepted.** Production env/proxy/TLS templates, admin bootstrap, backup/systemd guidance, preflight and smoke harnesses are ready without activating candidate intake or SMTP.
+7. **Candidate technical acceptance - partially complete.** Core form/persistence/private-media/admin/security flow was exercised with synthetic data, but full Stage 5.4 remains blocked by legal and live SMTP requirements.
+8. **Legal candidate activation - deferred/frozen.** Do not activate candidate intake or finalize legal version identifiers until approved client texts are available.
+9. **SMTP live verification - deferred/frozen.** Do not request/use production credentials until the client service-mailbox/provider arrangement is known; repository readiness remains accepted.
+10. **Next active step: real informational deployment.** Obtain/confirm VPS access, production domain/subdomain, DNS control and TLS method, then execute the reviewed production preflight/deployment/smoke/cutover sequence under explicit approval.
 
 `_ref/` contains local client source materials and is never committed or used as a runtime application directory.

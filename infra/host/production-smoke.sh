@@ -65,7 +65,7 @@ expect_header() {
 }
 
 expect_status GET / 200
-expect_header Strict-Transport-Security '.*max-age=' 
+expect_header Strict-Transport-Security '.*max-age='
 expect_header Content-Security-Policy '.+'
 expect_header Permissions-Policy '.+'
 expect_header Referrer-Policy 'strict-origin-when-cross-origin'
@@ -101,7 +101,16 @@ expect_status GET /robots.txt 200
 grep -Fq 'Disallow: /admin' "$BODY" || fail "robots.txt does not disallow /admin"
 grep -Fq 'Disallow: /api/' "$BODY" || fail "robots.txt does not disallow /api/"
 grep -Fq 'Disallow: /healthz' "$BODY" || fail "robots.txt does not disallow /healthz"
-pass "robots controls"
+grep -Fq "Sitemap: $ORIGIN/sitemap.xml" "$BODY" || fail "robots.txt does not advertise the production sitemap"
+pass "robots controls and sitemap discovery"
+
+expect_status GET /sitemap.xml 200
+grep -Fq "<loc>$ORIGIN/</loc>" "$BODY" || fail "sitemap does not contain the production root"
+grep -Fq "<loc>$ORIGIN/novosti</loc>" "$BODY" || fail "sitemap does not contain the public news index"
+if grep -Fq '/admin' "$BODY" || grep -Fq '/api/' "$BODY"; then
+    fail "sitemap exposes a non-public path"
+fi
+pass "production sitemap"
 
 for path in /o-lozhe /novosti /video /faq /kontakty /vstuplenie; do
     expect_status GET "$path" 200

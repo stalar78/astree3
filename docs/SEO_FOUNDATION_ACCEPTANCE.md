@@ -1,10 +1,10 @@
 # SEO Foundation Acceptance
 
-Status: **accepted** on 2026-08-24 after repository review, required CI and controlled local E2E verification.
+Status: **accepted** on 2026-08-24 after repository review, required CI and controlled local E2E verification. Production sitemap readiness was added later as a fail-safe Stage 5.5 follow-up without inventing a deployment origin.
 
 ## Accepted behavior
 
-The frontend now has a fail-safe SEO baseline without inventing a production deployment origin:
+The frontend has a fail-safe SEO baseline without inventing a production deployment origin:
 
 - route-level title and description handling is centralized through the SEO helper;
 - `VITE_PUBLIC_SITE_ORIGIN` is optional and empty by default;
@@ -22,6 +22,22 @@ Crawler controls are also present at the static/Nginx boundary:
 - the Nginx rule evaluates the original request URI so the header survives SPA fallback and remains correct for query-string variants such as `/admin?probe=1`;
 - the public root does not receive the noindex response header.
 
+## Production sitemap readiness
+
+The production build runs `frontend/scripts/generate-sitemap.mjs` after the Vite build.
+
+The generator intentionally mirrors the canonical-origin safety contract:
+
+- a sitemap is generated only for a valid public bare HTTPS `VITE_PUBLIC_SITE_ORIGIN`;
+- empty, localhost, `.local`, HTTP, credential-bearing and path/query/fragment origins produce no `dist/sitemap.xml`;
+- when generated, the build also appends the exact absolute sitemap URL to the built `robots.txt`;
+- the source `frontend/public/robots.txt` stays origin-neutral;
+- the static sitemap contains only deterministic public routes whose indexability does not depend on publication state;
+- unpublished managed pages and dynamic news detail URLs are not guessed at build time;
+- admin, API and health paths are never included.
+
+Published managed pages and news articles retain their publication-aware runtime SEO behavior and can be discovered through public navigation. If a future dynamic sitemap is added, it must query only the published public-content boundary and must not enumerate drafts/placeholders.
+
 ## Acceptance evidence
 
 PR #54 implemented the SEO foundation and passed the required `Backend`, `Frontend` and `PostgreSQL Integration` checks. Controlled local E2E then found one Nginx edge case: `/admin` lost its response-level robots header after SPA fallback because `$uri` changed to `/index.html`. PR #55 corrected the mapping to use the original request URI with query-safe patterns and again passed all three required checks.
@@ -35,8 +51,6 @@ The final `astrea-e2e` runtime verified:
 - browser runtime on `/` reports `title = Astrea`, the accepted public description, `robots = index, follow` and no canonical on localhost;
 - browser runtime on unpublished `/o-lozhe` reports `title = О ложе | Astrea`, `robots = noindex, nofollow, noarchive` and no canonical while the public page API returns `404`.
 
-## Deliberate deferral
+The production sitemap follow-up adds CI coverage for both sides of the fail-safe contract: a valid HTTPS example origin must generate the expected sitemap/robots entries, while an invalid HTTP origin must remove the sitemap and origin advertisement. The post-TLS production smoke harness also verifies `/sitemap.xml` and the final `robots.txt` against the real production origin.
 
-No sitemap is generated yet. Sitemap entries require absolute URLs, and the real production domain/subdomain is not approved. `VITE_PUBLIC_SITE_ORIGIN` must remain unset until that origin is known. Sitemap generation and production canonical activation are therefore a small Stage 5.5 follow-up rather than something to fake in local or repository defaults.
-
-This acceptance does not alter candidate/legal activation, SMTP/mail configuration or production deployment status.
+This acceptance does not alter candidate/legal activation or SMTP/mail configuration. Those remain separately frozen until explicitly resumed.
