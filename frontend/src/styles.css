@@ -53,12 +53,12 @@ img {
 .public-redesign {
   color-scheme: dark;
   background:
-    linear-gradient(180deg, #27282c 0%, #28292d 45%, #292b30 67%, #293247 100%);
+    linear-gradient(180deg, #0b0d12 0%, #0d1017 43%, #0b1327 68%, #071a44 100%);
   color: #d8dade;
 }
 
 .public-redesign ::selection {
-  background: rgba(227, 38, 32, 0.72);
+  background: rgba(213, 43, 30, 0.78);
   color: #fff;
 }
 
