@@ -27,7 +27,7 @@ function SymbolRail() {
         {SYMBOLS.map((src) => (
           <div
             key={src}
-            className="flex aspect-square items-center justify-center rounded-sm border border-brand-reference-line/35 bg-brand-reference-panelDeep p-[18%] shadow-symbolCard"
+            className="flex aspect-square items-center justify-center rounded-sm border border-brand-reference-line/45 bg-brand-reference-panelDeep p-[18%] shadow-symbolCard"
             aria-hidden="true"
           >
             <img src={src} alt="" className="h-full w-full object-contain" />
@@ -43,7 +43,7 @@ function CalendarRail() {
 
   return (
     <aside className="hidden xl:block" aria-label="Календарь">
-      <div className="space-y-8 pt-[86px]">
+      <div className="space-y-8 pt-10">
         {Array.from({ length: MONTHS_TO_SHOW }, (_, index) => {
           const date = new Date(now.getFullYear(), now.getMonth() + index, 1);
           return <MonthCalendar key={`${date.getFullYear()}-${date.getMonth()}`} date={date} today={now} />;
