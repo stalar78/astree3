@@ -41,6 +41,26 @@ img {
   max-width: 100%;
 }
 
+.public-redesign,
+.public-redesign p,
+.public-redesign li,
+.public-redesign button,
+.public-redesign input,
+.public-redesign textarea {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+}
+
+.public-redesign {
+  color-scheme: dark;
+  background: #252a34;
+  color: #d8dade;
+}
+
+.public-redesign ::selection {
+  background: rgba(227, 38, 32, 0.72);
+  color: #fff;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
