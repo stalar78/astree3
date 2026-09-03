@@ -21,9 +21,9 @@ export function PageShell() {
   }, [location.pathname, meta]);
 
   return (
-    <div className="min-h-screen bg-brand-paper text-brand-ink">
+    <div className="public-redesign min-h-screen bg-brand-reference-canvas text-brand-reference-text">
       <SiteHeader />
-      <main id="content">
+      <main id="content" className="min-h-[45vh]">
         <Outlet />
       </main>
       <SiteFooter />
