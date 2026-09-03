@@ -70,6 +70,7 @@ export function AdminShell({
               { to: '/admin/candidates', label: 'Кандидаты', end: false },
               { to: '/admin/news', label: 'Новости', end: false },
               { to: '/admin/videos', label: 'Видео', end: false },
+              { to: '/admin/pages/materials', label: 'Материалы', end: true },
               { to: '/admin/pages', label: 'Страницы', end: false },
             ].map(({ to, label, end }) => (
               <NavLink
