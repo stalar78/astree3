@@ -27,7 +27,7 @@ function SymbolRail() {
           </div>
         ))}
       </div>
-      <p className="mt-4 text-center text-[10px] uppercase tracking-[0.12em] text-brand-reference-muted/45">Временные символы</p>
+      <p className="mt-4 text-center text-[10px] uppercase tracking-[0.12em] text-brand-reference-muted/40">Временные символы</p>
     </aside>
   );
 }
@@ -76,7 +76,7 @@ function MonthCalendar({ date, today }: { date: Date; today: Date }) {
   return (
     <section>
       <h2 className="mb-2 text-center text-[17px] font-light capitalize text-brand-reference-muted">{monthLabel}</h2>
-      <div className="grid grid-cols-7 gap-y-1 text-center text-[13px] leading-5 text-brand-reference-muted/55" aria-hidden="true">
+      <div className="grid grid-cols-7 gap-y-1 text-center text-[13px] leading-5 text-brand-reference-muted/50" aria-hidden="true">
         {WEEKDAYS.map((weekday) => <span key={weekday}>{weekday.slice(0, 1)}</span>)}
       </div>
       <div className="mt-1 grid grid-cols-7 gap-y-1 text-center text-[16px] leading-6 text-brand-reference-text/90">
