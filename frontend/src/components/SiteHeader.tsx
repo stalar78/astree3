@@ -13,9 +13,9 @@ const navigation = [
 function TricolorBand() {
   return (
     <div aria-hidden="true" className="relative z-10">
-      <div className="h-[6px] bg-white" />
-      <div className="h-[2px] bg-brand-reference-flagBlue" />
-      <div className="h-[5px] bg-brand-reference-flagRed" />
+      <div className="h-[4px] bg-white" />
+      <div className="h-[4px] bg-brand-reference-flagBlue" />
+      <div className="h-[4px] bg-brand-reference-flagRed" />
     </div>
   );
 }
@@ -33,7 +33,7 @@ export function SiteHeader() {
       </a>
 
       <div className="relative mx-auto hidden h-[118px] max-w-[1534px] lg:block">
-        <NavLink to="/" aria-label="На главную" className="absolute left-8 top-[24px] z-30 block xl:left-10">
+        <NavLink to="/" aria-label="На главную" className="absolute left-8 top-[38px] z-30 block xl:left-10">
           <img
             className="h-[138px] w-[138px] object-contain drop-shadow-[0_0_12px_rgba(21,59,147,0.28)]"
             src="/brand/symbols/symbol-06.png"
@@ -41,15 +41,15 @@ export function SiteHeader() {
           />
         </NavLink>
 
-        <div className="flex h-full items-center justify-center px-[220px] pb-2 text-center">
+        <div className="flex h-full items-center justify-center px-[240px] pb-2 text-center">
           <p className="font-referenceHeading text-[clamp(1.9rem,2.25vw,2.2rem)] font-normal leading-none tracking-normal text-brand-reference-text">
             Д.·. Л.·. «Астрея» №3 на Востоке г. Санкт-Петербурга
           </p>
         </div>
 
-        <div className="absolute right-7 top-[13px] z-30 xl:right-9" aria-hidden="true">
+        <div className="absolute right-6 top-[18px] z-30 xl:right-8" aria-hidden="true">
           <img
-            className="h-[224px] w-[176px] object-contain object-top drop-shadow-[0_0_10px_rgba(132,151,255,0.34)] drop-shadow-[0_0_22px_rgba(72,91,170,0.22)] drop-shadow-[0_10px_16px_rgba(0,0,0,0.5)]"
+            className="h-[282px] w-[220px] object-contain object-top drop-shadow-[0_0_9px_rgba(166,177,255,0.5)] drop-shadow-[0_0_24px_rgba(75,93,190,0.34)] drop-shadow-[0_14px_22px_rgba(0,0,0,0.58)]"
             src="/brand/astrea-standard-transparent.png"
             alt=""
           />
@@ -68,7 +68,7 @@ export function SiteHeader() {
       <TricolorBand />
 
       <div className="relative mx-auto max-w-[1534px] px-5 lg:px-8">
-        <div className="flex min-h-[68px] items-center lg:px-[155px] lg:pr-[205px]">
+        <div className="flex min-h-[68px] items-center lg:px-[155px] lg:pr-[245px]">
           <nav className="hidden w-full items-center justify-center gap-10 text-[17px] font-light text-brand-reference-muted lg:flex" aria-label="Основная навигация">
             {navigation.map(([label, href]) =>
               href ? (
