@@ -1,27 +1,52 @@
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
 import { ReferenceInnerPage, ReferencePanel } from '../components/ReferenceInnerPage';
+import { usePublicManagedPage } from '../publicContent/usePublicManagedPage';
+import { applyDocumentSeo, seoDescriptionFromText, siteTitle } from '../seo/seo';
+
+const FALLBACK_TITLE = 'Материалы';
+const FALLBACK_LEAD = 'Публикации, новости и видеоматериалы Д.·. Л.·. «Астрея» №3.';
 
 export function MaterialsPage() {
+  const location = useLocation();
+  const { status, page } = usePublicManagedPage('materials');
+  const readyPage = status === 'ready' && page ? page : null;
+  const title = readyPage?.title ?? FALLBACK_TITLE;
+  const description = readyPage ? seoDescriptionFromText(readyPage.content, FALLBACK_LEAD) : FALLBACK_LEAD;
+
+  useEffect(() => {
+    applyDocumentSeo({
+      title: siteTitle(title),
+      description,
+      pathname: location.pathname,
+      indexable: true,
+    });
+  }, [description, location.pathname, title]);
+
   return (
-    <ReferenceInnerPage
-      eyebrow="Материалы"
-      title="Материалы"
-      lead="Публикации, новости и видеоматериалы Д.·. Л.·. «Астрея» №3."
-    >
-      <div className="grid gap-6 md:grid-cols-2">
-        <MaterialLink
-          to="/novosti"
-          eyebrow="Публикации"
-          title="Новости и события"
-          text="Официальные сообщения и опубликованные материалы ложи."
-        />
-        <MaterialLink
-          to="/video"
-          eyebrow="Медиа"
-          title="Видео"
-          text="Опубликованные видеоматериалы и ссылки на утвержденные внешние источники."
-        />
+    <ReferenceInnerPage eyebrow="Материалы" title={title} lead={readyPage ? undefined : FALLBACK_LEAD}>
+      <div className="space-y-6">
+        {readyPage ? (
+          <ReferencePanel>
+            <div className="whitespace-pre-wrap text-[15px] font-light leading-8 text-brand-reference-muted">{readyPage.content}</div>
+          </ReferencePanel>
+        ) : null}
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <MaterialLink
+            to="/novosti"
+            eyebrow="Публикации"
+            title="Новости и события"
+            text="Официальные сообщения и опубликованные материалы ложи."
+          />
+          <MaterialLink
+            to="/video"
+            eyebrow="Медиа"
+            title="Видео"
+            text="Опубликованные видеоматериалы и ссылки на утвержденные внешние источники."
+          />
+        </div>
       </div>
     </ReferenceInnerPage>
   );
