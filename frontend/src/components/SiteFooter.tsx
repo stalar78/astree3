@@ -2,11 +2,11 @@ export function SiteFooter() {
   return (
     <footer className="relative bg-brand-reference-footer text-brand-reference-text">
       <div aria-hidden="true" className="relative">
-        <div className="h-[6px] bg-white" />
-        <div className="h-[2px] bg-brand-reference-flagBlue" />
-        <div className="h-[5px] bg-brand-reference-flagRed" />
+        <div className="h-[4px] bg-white" />
+        <div className="h-[4px] bg-brand-reference-flagBlue" />
+        <div className="h-[4px] bg-brand-reference-flagRed" />
         <img
-          className="absolute left-1/2 top-1/2 z-20 h-[112px] w-[112px] -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_8px_14px_rgba(0,0,0,0.4)] lg:h-[132px] lg:w-[132px]"
+          className="absolute left-1/2 top-[20px] z-20 h-[112px] w-[112px] -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_8px_14px_rgba(0,0,0,0.4)] lg:h-[132px] lg:w-[132px]"
           src="/brand/grand-lodge-russia-emblem.png"
           alt=""
         />
