@@ -6,9 +6,14 @@ import { listPublicNews, type PublicNewsListItem } from '../publicContent/public
 
 const WELCOME_TEXT =
   'Единственная регулярная Великая Ложа, действующая на территории России, признанная регулярными Великими Ложами стран мира. Вновь учрежденная в 1995 году, Великая Ложа России неукоснительно хранит древние традиции Ордена и содействует распространению масонского света на территории России и СНГ.';
+const HOME_WELCOME_IMAGE = '/media/home/home-welcome.webp';
+const HOME_EVENTS_IMAGE = '/media/home/home-events.webp';
+const HOME_MEDIA_IMAGE = '/media/home/home-media.webp';
 
 export function HomePage() {
   const [news, setNews] = useState<PublicNewsListItem[]>([]);
+  const firstNews = news[0];
+  const secondNews = news[1];
 
   useEffect(() => {
     const controller = new AbortController();
@@ -29,35 +34,47 @@ export function HomePage() {
           eyebrow="Астрея №3"
           title={'Добро пожаловать в достопочтенную ложу «Астрея» № 3 на Востоке Санкт-Петербурга'}
           text={WELCOME_TEXT}
+          imageUrl={HOME_WELCOME_IMAGE}
+          imagePosition="center 44%"
         />
 
-        {news.length > 0
-          ? news.map((item) => (
-              <ReferenceCard
-                key={item.slug}
-                eyebrow="События"
-                title={item.title}
-                text={item.excerpt}
-                imageUrl={item.image_url ?? undefined}
-                href={`/novosti/${item.slug}`}
-              />
-            ))
-          : (
-            <>
-              <ReferenceCard
-                eyebrow="События"
-                title="Новости ложи"
-                text="Официальные сообщения появятся здесь после публикации через административную панель."
-                href="/novosti"
-              />
-              <ReferenceCard
-                eyebrow="Материалы"
-                title="Публикации и медиа"
-                text="Разделы сайта подготовлены для утвержденных материалов, фотографий и видеопубликаций."
-                href="/video"
-              />
-            </>
-          )}
+        {firstNews ? (
+          <ReferenceCard
+            eyebrow="События"
+            title={firstNews.title}
+            text={firstNews.excerpt}
+            imageUrl={firstNews.image_url ?? HOME_EVENTS_IMAGE}
+            imagePosition={firstNews.image_url ? undefined : 'center 44%'}
+            href={`/novosti/${firstNews.slug}`}
+          />
+        ) : (
+          <ReferenceCard
+            eyebrow="События"
+            title="Новости ложи"
+            text="Официальные сообщения появятся здесь после публикации через административную панель."
+            imageUrl={HOME_EVENTS_IMAGE}
+            imagePosition="center 44%"
+            href="/novosti"
+          />
+        )}
+
+        {secondNews ? (
+          <ReferenceCard
+            eyebrow="События"
+            title={secondNews.title}
+            text={secondNews.excerpt}
+            imageUrl={secondNews.image_url ?? HOME_MEDIA_IMAGE}
+            href={`/novosti/${secondNews.slug}`}
+          />
+        ) : (
+          <ReferenceCard
+            eyebrow="Материалы"
+            title="Публикации и медиа"
+            text="Разделы сайта подготовлены для утвержденных материалов, фотографий и видеопубликаций."
+            imageUrl={HOME_MEDIA_IMAGE}
+            href="/video"
+          />
+        )}
       </div>
     </ReferenceLayout>
   );
@@ -68,6 +85,7 @@ function ReferenceCard({
   title,
   text,
   imageUrl,
+  imagePosition,
   href,
   primary = false,
 }: {
@@ -75,6 +93,7 @@ function ReferenceCard({
   title: string;
   text: string;
   imageUrl?: string;
+  imagePosition?: string;
   href?: string;
   primary?: boolean;
 }) {
@@ -84,7 +103,7 @@ function ReferenceCard({
       <div className="grid gap-5 md:grid-cols-[36%_1fr] md:items-start md:gap-6">
         <div className="overflow-hidden rounded-[5px] border border-brand-reference-line/20 bg-brand-reference-panelDeep">
           {imageUrl ? (
-            <img src={imageUrl} alt="" className="aspect-[16/10] w-full object-cover sm:aspect-[1.45/1]" />
+            <img src={imageUrl} alt="" className="aspect-[16/10] w-full object-cover sm:aspect-[1.45/1]" style={imagePosition ? { objectPosition: imagePosition } : undefined} />
           ) : (
             <div className="aspect-[16/10] bg-[#0A0D13] sm:aspect-[1.45/1]" aria-hidden="true" />
           )}
