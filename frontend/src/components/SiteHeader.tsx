@@ -13,9 +13,9 @@ const navigation = [
 function TricolorBand() {
   return (
     <div aria-hidden="true" className="relative z-10">
-      <div className="h-[9px] bg-white" />
-      <div className="h-[3px] bg-brand-reference-flagBlue" />
-      <div className="h-[6px] bg-brand-reference-flagRed" />
+      <div className="h-[6px] bg-white" />
+      <div className="h-[2px] bg-brand-reference-flagBlue" />
+      <div className="h-[5px] bg-brand-reference-flagRed" />
     </div>
   );
 }
@@ -33,7 +33,7 @@ export function SiteHeader() {
       </a>
 
       <div className="relative mx-auto hidden h-[118px] max-w-[1534px] lg:block">
-        <NavLink to="/" aria-label="На главную" className="absolute left-8 top-[18px] z-30 block xl:left-10">
+        <NavLink to="/" aria-label="На главную" className="absolute left-8 top-[24px] z-30 block xl:left-10">
           <img
             className="h-[138px] w-[138px] object-contain drop-shadow-[0_0_12px_rgba(21,59,147,0.28)]"
             src="/brand/symbols/symbol-06.png"
@@ -47,9 +47,9 @@ export function SiteHeader() {
           </p>
         </div>
 
-        <div className="absolute right-7 top-[5px] z-30 xl:right-9" aria-hidden="true">
+        <div className="absolute right-7 top-[13px] z-30 xl:right-9" aria-hidden="true">
           <img
-            className="h-[224px] w-[176px] object-contain object-top drop-shadow-[0_10px_16px_rgba(0,0,0,0.48)]"
+            className="h-[224px] w-[176px] object-contain object-top drop-shadow-[0_0_10px_rgba(132,151,255,0.34)] drop-shadow-[0_0_22px_rgba(72,91,170,0.22)] drop-shadow-[0_10px_16px_rgba(0,0,0,0.5)]"
             src="/brand/astrea-standard-transparent.png"
             alt=""
           />
