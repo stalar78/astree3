@@ -127,6 +127,11 @@ function MonthCalendar({
 }
 
 function UpcomingEvents({ events, state }: { events: PublicEvent[]; state: 'idle' | 'loading' | 'ready' | 'error' }) {
+  if (state === 'idle') return null;
+
+  const todayKey = localDateKey(new Date());
+  const upcoming = events.filter((event) => event.event_date >= todayKey).slice(0, 5);
+
   return (
     <section className="mt-6 rounded-[6px] border border-brand-reference-line/30 bg-brand-reference-panel px-5 py-5 shadow-referenceCard sm:mt-8 sm:px-6 sm:py-6 xl:hidden" aria-labelledby="upcoming-events-title">
       <p className="text-xs uppercase tracking-[0.14em] text-brand-reference-muted/55">Календарь</p>
@@ -137,13 +142,13 @@ function UpcomingEvents({ events, state }: { events: PublicEvent[]; state: 'idle
 
       {state === 'loading' ? <p className="text-[15px] font-light leading-7 text-brand-reference-muted">Календарь загружается.</p> : null}
       {state === 'error' ? <p className="text-[15px] font-light leading-7 text-brand-reference-muted">Календарь временно недоступен.</p> : null}
-      {state === 'ready' && events.length === 0 ? (
+      {state === 'ready' && upcoming.length === 0 ? (
         <p className="text-[15px] font-light leading-7 text-brand-reference-muted">Ближайшие публичные даты пока не опубликованы.</p>
       ) : null}
 
-      {state === 'ready' && events.length > 0 ? (
+      {state === 'ready' && upcoming.length > 0 ? (
         <div className="grid gap-4">
-          {events.slice(0, 5).map((event) => (
+          {upcoming.map((event) => (
             <article key={event.id} className="border-l-2 border-brand-reference-red pl-4">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs uppercase tracking-[0.1em] text-brand-reference-muted/60">
                 <time dateTime={event.event_date}>{UPCOMING_DATE.format(parsePublicDate(event.event_date))}</time>
@@ -168,10 +173,11 @@ function useHostingEvents(): { events: PublicEvent[]; state: 'idle' | 'loading' 
 
     const controller = new AbortController();
     const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
     const end = new Date(now.getFullYear(), now.getMonth() + MONTHS_TO_SHOW, 0);
     setState('loading');
 
-    void listPublicEvents({ from: localDateKey(now), to: localDateKey(end) }, controller.signal)
+    void listPublicEvents({ from: localDateKey(start), to: localDateKey(end) }, controller.signal)
       .then((items) => {
         setEvents(items);
         setState('ready');
