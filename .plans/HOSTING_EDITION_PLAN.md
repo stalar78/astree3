@@ -1,23 +1,34 @@
 # Astrea Hosting Edition Plan
 
-Status: proposed implementation plan. Build work starts only after explicit approval.
+Status: approved product direction; this revision freezes the client-driven MVP before Build.
 
-## Goal
+## Product goal
+
+The HOSTING edition exists to solve four concrete client problems, not to become a general-purpose CMS:
+
+1. Show that the lodge is active by publishing a small number of lodge news items each year.
+2. Give a candidate a compact set of introductory materials: a few books, videos, audio/podcast items and, if needed, articles.
+3. Preserve the accepted visual language and sense of mystery/closedness through the symbolic rail and restrained presentation.
+4. Make dates of works/events and the Saint Petersburg location obvious enough that visitors understand where the lodge operates before applying.
+
+## Editions
 
 Keep one visual/public React application while supporting two deployment editions from the same repository:
 
-- **FULL edition** — existing VPS stack: React + FastAPI + PostgreSQL + protected full Admin + candidate workflow.
-- **HOSTING edition** — shared-hosting stack: the same public React UI + PHP API + MySQL + a small protected **Astrea Lite Editor**.
+- **FULL edition** — existing VPS stack: React + FastAPI + PostgreSQL + protected full Admin + existing candidate workflow.
+- **HOSTING edition** — shared-hosting stack: the same public React UI + PHP API + MySQL + protected **Astrea Lite Editor**.
 
 The editions must not become two copied frontends. Public components, layout, styles, routes, brand assets and responsive behavior stay shared.
 
 ## Non-goals
 
-- Do not remove, downgrade or rewrite the existing FastAPI/PostgreSQL implementation.
-- Do not fork the React app into a second copied site.
-- Do not require GitHub, JSON editing or manual rebuilds for normal client editorial work.
+- Do not remove, downgrade or rewrite the existing FULL implementation.
+- Do not fork React into a copied second site.
+- Do not require the client to edit JSON, GitHub, SQL or rebuild the frontend after normal editorial changes.
 - Do not introduce WordPress or another general-purpose CMS.
-- Do not activate a shared-hosting candidate workflow until its separate security/legal acceptance slice is approved.
+- Do not build arbitrary custom-page creation in the first HOSTING release.
+- Do not build roles, member areas or symbol-based access control in the first HOSTING release.
+- Do not activate shared-hosting candidate intake until a separate security/legal slice is explicitly approved.
 
 ## Architecture
 
@@ -35,191 +46,204 @@ The editions must not become two copied frontends. Public components, layout, st
          Astrea Lite Editor            Full Admin
 ```
 
-### Contract strategy
+Prefer compatibility over parallel application logic. The PHP public API should expose response shapes close to the accepted FastAPI contracts where that is useful, while HOSTING-only content types may have their own narrow contracts.
 
-Prefer compatibility over parallel application logic. The PHP API should expose response shapes close to the accepted FastAPI public/content contracts so public React pages can use the same data types and rendering code.
-
-A build-time edition setting may choose runtime capabilities, for example:
+Use one explicit build-time edition contract, conceptually:
 
 ```text
 VITE_ASTREA_EDITION=full
 VITE_ASTREA_EDITION=hosting
 ```
 
-The exact variable name is implementation detail; there must be one explicit edition contract, validated at build time.
+FULL remains the default. HOSTING is selected only by an explicit hosting build command.
 
-FULL remains the default unless the hosting build command explicitly selects HOSTING.
+## HOSTING MVP content model
 
-## Hosting edition content model
+### 1. News
 
-### 1. Predefined pages
+This is the primary editorial workflow. The client expects only a few news posts per year, but must be able to manage them without technical help.
 
-Editable fixed pages remain available:
-
-- about
-- lodges_spb
-- principles
-- faq
-- contacts
-- materials intro/landing copy
-
-The client edits title, text and publication state through Lite Editor.
-
-### 2. News
-
-Client can:
+Lite Editor supports:
 
 - create;
 - edit;
 - publish/unpublish;
 - delete;
-- set slug, title, excerpt, body and image.
-
-Public behavior remains compatible with the current `/novosti` and `/novosti/:slug` routes.
-
-### 3. Materials
-
-Materials become a real editorial collection rather than only a landing link.
-
-Client can create/edit/publish/delete material articles with a schema deliberately close to News:
-
 - slug;
 - title;
 - excerpt;
 - body;
 - optional image;
-- publication state/date.
+- publication timestamp.
 
-`/materialy` remains the landing/index route and may continue exposing the existing News/Video cross-links while also listing published material articles.
+Public behavior remains compatible with `/novosti` and `/novosti/:slug`.
 
-A safe detail route will be added, preferably `/materialy/:slug`.
+### 2. Materials
 
-### 4. Video
+Use one unified `materials` collection rather than separate mini-CMS modules for books, videos, audio and articles.
 
-Client can create/edit/publish/delete video records using the accepted RuTube-oriented model:
+Each material has:
+
+- type: `book | video | audio | article`;
+- slug;
+- title;
+- short description;
+- optional body;
+- optional author;
+- optional external/source URL;
+- optional public media/image path;
+- publication state/date;
+- optional sort/order value.
+
+Type-specific expectations:
+
+- **book** — title, author, recommendation text, optional external link;
+- **video** — title, description, safe source URL; embed/provider data is server-derived when embedding is supported;
+- **audio** — title, description and either an allowed uploaded audio asset or external source URL;
+- **article** — title, excerpt/body and optional image/source URL.
+
+`/materialy` becomes the candidate-oriented materials index. A safe detail route may be added for article-like records when needed. The existing `/video` public route may remain as a filtered presentation of published `video` materials in HOSTING mode so the accepted public navigation does not regress.
+
+No arbitrary iframe/HTML input is accepted.
+
+### 3. Events / calendar
+
+Events are a first-class HOSTING MVP content type because the client explicitly wants visitors to understand when lodge works and other events occur.
+
+Each event has:
 
 - title;
-- description;
-- source URL;
+- event date;
+- optional end date/time only if later required;
+- short public note;
+- type/category such as lodge work, feast or other event;
 - publication state.
 
-Provider/embed data remains server-derived. Arbitrary iframe/HTML input is not accepted.
+The accepted five-month calendar rail remains visually intact but can mark published event dates. Event information must also remain understandable on layouts where the desktop calendar rail is hidden; therefore the shared frontend will expose a compact upcoming-events presentation, not rely on color/hover alone.
 
-### 5. Additional standalone pages
+### 4. Predefined pages
 
-The client requirement includes adding pages, not only editing predefined ones. Implement this as a separate controlled `custom_pages` content type instead of weakening the immutable predefined-page contract.
+The Lite Editor may update only the existing predefined site pages needed by the public site, including the existing managed keys such as:
 
-Initial safe public route:
+- about;
+- lodges_spb;
+- principles;
+- faq;
+- contacts;
+- materials intro/landing copy.
 
-```text
-/stranicy/:slug
-```
+The client may edit title, text and publication state.
 
-Client can create/edit/publish/delete custom pages. Automatic top-navigation editing is out of the first slice; navigation management can be added later if actually needed.
+Creating arbitrary standalone pages and editing top navigation are out of the first HOSTING release.
 
-This model should also be portable later into FULL edition instead of creating HOSTING-only content that cannot migrate.
+## Saint Petersburg clarity
+
+The existing public design already references Saint Petersburg. The HOSTING integration must preserve and strengthen this where necessary, especially on candidate-facing content.
+
+Acceptance requires that a visitor can understand before submitting an application that D.L. Astrea No. 3 operates in Saint Petersburg. Do not solve this with location tracking or geoblocking.
+
+## Symbol rail / mystery
+
+The accepted five-symbol rail remains a deliberate visual element. In the first HOSTING release:
+
+- symbols remain decorative/ambiguous unless a separately approved interaction is added;
+- no member authorization or hidden-member content system is introduced;
+- inaccessible-looking symbolism is a design device, not a fake security boundary;
+- desktop geometry must not be casually changed.
 
 ## Astrea Lite Editor
 
-The client must not edit files, JSON, SQL or GitHub.
+The editor is intentionally small and task-oriented.
 
-Lite Editor is a protected web UI with simple forms and the minimum navigation needed for editorial work:
+Primary navigation:
 
-- Overview
-- News
-- Materials
-- Video
-- Pages
-- Images/media where required
+```text
+Overview
+News
+Materials
+Events
+Pages
+```
 
 Normal workflow:
 
 ```text
-Open editor -> edit/create -> Save or Publish -> content is immediately visible
+Open editor -> create/edit -> Save or Publish -> public site updates immediately
 ```
 
-No manual frontend rebuild after an editorial change.
+The client must never need GitHub, JSON, SQL or a frontend rebuild for those tasks.
 
-For the first version, body content remains plain text with preserved line breaks, matching the current safe rendering model. No raw HTML editor and no `dangerouslySetInnerHTML`.
+For the first version, textual body content remains plain text with preserved line breaks or an equivalently safe limited editor. No raw HTML editor and no `dangerouslySetInnerHTML`.
 
-## Lite Editor authentication and security baseline
+## Authentication and security baseline
 
-Required before acceptance:
+Required before Lite Editor acceptance:
 
 - server-side PHP session;
 - `HttpOnly` session cookie;
 - `SameSite=Strict`;
 - `Secure` in HTTPS production;
 - CSRF protection for writes;
-- password stored only through PHP `password_hash` / `password_verify`;
+- password stored only with PHP `password_hash` / `password_verify`;
 - no credentials in repository;
 - no public registration;
-- no password in browser storage;
-- login rate limiting / throttling;
+- no password/token in browser storage;
+- login throttling;
 - PDO prepared statements only;
 - generic production errors without SQL/config leakage;
-- protected editor endpoints excluded from indexing.
+- editor endpoints excluded from indexing;
+- authorization enforced server-side, not by hiding React routes.
 
-Production configuration containing DB credentials is created on the host and is not committed.
+Production DB credentials are host configuration and are never committed.
 
-## Editorial image uploads
+## Editorial uploads
 
-Editorial images are public assets, unlike candidate photographs.
+Public editorial media is distinct from candidate private photos.
 
-Upload baseline:
+Image/audio upload baseline:
 
-- explicit MIME allowlist;
-- size limit;
-- image validation with server-supported PHP facilities;
+- explicit extension and MIME allowlists;
+- strict size limits;
 - generated non-user-controlled filenames;
 - no executable extensions;
-- upload directory configured so scripts cannot execute;
+- upload directories configured so scripts cannot execute;
 - path traversal protection;
-- old-file cleanup only when safe and explicit.
+- server validation using available PHP facilities;
+- safe failure if optional GD/Imagick/media tooling is unavailable;
+- destructive old-file cleanup only when deliberate and safe.
 
-Do not assume Imagick/GD availability until the real Timeweb PHP environment is checked. The implementation must degrade safely if server-side re-encoding is unavailable.
+Actual shared-hosting PHP limits and available extensions must be checked before production acceptance.
 
-## Candidate Lite — separate controlled slice
+## Candidate intake — separate future slice
 
-Candidate intake is not part of the first editorial Hosting build.
+Candidate submission is not required to launch the first HOSTING editorial MVP.
 
-The public candidate page may remain present but disabled until Candidate Lite is separately approved.
+The public candidate page may remain visible with intake disabled. Existing legal texts/version identifiers are not changed by this phase.
 
-Before Candidate Lite activation, verify the shared-hosting environment and define:
+A later Candidate Lite slice requires separate explicit approval and must define, at minimum:
 
-- server-side validation equivalent to the accepted public contract where practical;
+- server-side validation;
 - consent evidence/versioning;
 - anti-spam/rate limits;
-- private candidate-photo storage that is not directly web-readable;
-- protected Lite Editor candidate access;
-- retention/deletion policy;
-- whether notification is email-only or DB + email;
-- mail transport available on the real host;
+- private non-web-readable candidate-photo storage;
+- protected candidate list/detail access;
+- retention/deletion rules;
+- mail transport/readiness;
 - no candidate PII in logs/URLs/browser storage.
 
-Existing legal texts/version identifiers are not changed by this project slice.
+The FULL candidate workflow remains untouched.
 
-FULL candidate workflow remains untouched and disabled/activated under its existing gates.
+## MySQL portability
 
-## MySQL portability rules
+HOSTING data should remain portable toward FULL where practical.
 
-Hosting schemas should deliberately preserve the conceptual FULL models so migration later is deterministic.
-
-At minimum preserve:
-
-- stable slugs/keys;
-- title/body/excerpt semantics;
-- publication state and timestamps;
-- source image URL/path;
-- RuTube source URL semantics.
-
-Provide an import/export path later:
+Preserve stable slugs/keys, publication state, timestamps, media paths/source URLs and explicit material/event types. A later migration path may be:
 
 ```text
-HOSTING MySQL -> validated export -> FULL PostgreSQL import
+HOSTING MySQL -> validated export -> FULL import
 ```
 
-Do not couple public URLs to MySQL numeric IDs when a stable key/slug exists.
+FULL may require a future material/event schema extension before importing HOSTING-only types; that future extension is not part of this MVP.
 
 ## Proposed repository layout
 
@@ -230,27 +254,25 @@ hosting/
   api/                    # PHP API/router/controllers
   config/                 # safe config templates, no secrets
   db/                     # MySQL schema/migrations/install SQL
-  public/                 # shared-hosting entry/rewrite files as needed
+  public/                 # Apache/shared-hosting rewrite/entry files
   tests/                  # PHP/API contract checks where practical
   README.md               # local/deploy/operator notes
 infra/                    # existing FULL/VPS deployment
 ```
 
-Exact PHP file layout may be adjusted during implementation, but HOSTING code stays isolated under `hosting/` except for intentional shared frontend/build changes.
+HOSTING code stays isolated under `hosting/` except for intentional shared frontend/build changes.
 
 ## Shared-hosting routing
 
-HOSTING must support React Router deep links and PHP API routing on Apache-compatible hosting.
+Provide reviewed Apache-compatible `.htaccess` behavior that:
 
-Provide reviewed `.htaccess` rules that:
+1. never rewrites API/editor/media requests to `index.html`;
+2. routes PHP API requests to the PHP entry point;
+3. routes SPA deep links to `index.html` only when the file/directory does not exist;
+4. denies direct access to config/private paths;
+5. denies script execution in public upload directories.
 
-1. never rewrite API/editor-media requests to `index.html`;
-2. route PHP API requests to the PHP entry point;
-3. route public SPA paths to `index.html` only when the file/directory does not exist;
-4. deny direct access to config/private paths;
-5. deny script execution inside public upload directories.
-
-Rules must be validated against the actual Timeweb hosting behavior before production acceptance.
+The exact rules must be validated on the real Timeweb hosting before production acceptance.
 
 ## Build profiles
 
@@ -260,113 +282,111 @@ Add an explicit HOSTING build command, conceptually:
 npm run build:hosting
 ```
 
-It should produce a deployable shared-hosting artifact containing only what the hosting edition requires.
-
 The normal FULL build remains available and must continue to pass existing CI.
 
-HOSTING build must not accidentally ship privileged FULL-only routes/configuration as an assumed security boundary. Backend authorization remains authoritative even if routes are omitted from the UI.
+The HOSTING artifact must not rely on omission of FULL-only UI routes as a security boundary; PHP authorization remains authoritative.
 
 ## Implementation slices
 
 ### H0 — Architecture freeze
 
-- approve this plan;
-- record Hosting/FULL edition decision in project documentation;
-- confirm real hosting supports required PHP/MySQL/Apache rewrite capabilities before deployment, not by assumption.
+- record this approved four-goal client MVP;
+- merge the plan;
+- preserve FULL as a separate future deployment edition.
 
 ### H1 — Edition/build foundation
 
-- add edition configuration and `build:hosting`;
-- preserve FULL as existing default;
-- add hosting package layout and safe config templates;
-- add CI checks for both frontend build modes;
-- add rewrite/routing skeleton without candidate activation.
+- add validated edition configuration;
+- add `build:hosting` while preserving the current FULL build as default;
+- create the hosting package layout and safe config templates;
+- add CI checks for the HOSTING frontend build/package skeleton;
+- add Apache rewrite/routing skeleton;
+- keep candidate intake disabled.
 
-Acceptance: FULL remains unchanged and green; HOSTING artifact builds deterministically.
+Acceptance: FULL remains green and behaviorally unchanged; HOSTING builds deterministically without requiring FastAPI/PostgreSQL at runtime.
 
 ### H2 — PHP/MySQL public content foundation
 
-- MySQL schema/migrations for pages, custom pages, news, materials, videos;
-- PHP DB/config bootstrap;
+- MySQL schema for news, materials, events, predefined pages and editor account/bootstrap data;
+- PHP config/DB bootstrap;
 - published-only public endpoints;
-- stable validation and error contracts;
-- no editor yet.
+- stable validation/error contracts;
+- no editor writes yet.
 
-Acceptance: public HOSTING APIs return only published content and match the agreed frontend contract.
+Acceptance: public HOSTING APIs expose only published content and support the shared frontend contract.
 
-### H3 — Lite Editor editorial administration
+### H3 — Lite Editor
 
-- authentication/session/CSRF;
-- editor overview;
-- CRUD for news/materials/video/custom pages;
-- update predefined pages;
+- login/session/CSRF/throttling;
+- Overview;
+- News CRUD;
+- Materials CRUD with `book/video/audio/article` type;
+- Events CRUD;
+- predefined-page editing;
+- editorial image/audio upload where supported;
 - publication controls;
-- editorial image upload;
-- no candidate access yet.
+- no candidate module.
 
-Acceptance: client can manage normal site content without files/Git/SQL/rebuilds.
+Acceptance: client can perform the four agreed editorial tasks without files/Git/SQL/rebuilds.
 
 ### H4 — Shared frontend integration
 
-- make current public pages consume HOSTING APIs in hosting mode while preserving FULL behavior;
-- add material article listing/detail;
-- add custom page route;
-- expose Lite Editor route/build only for HOSTING;
-- verify desktop/mobile parity with the accepted design.
+- connect current public pages to HOSTING APIs in hosting mode while preserving FULL behavior;
+- make `/materialy` display candidate-oriented materials;
+- preserve `/video` by filtering/mapping video materials if appropriate;
+- connect published events to the accepted calendar and a mobile-accessible upcoming-events presentation;
+- preserve/strengthen Saint Petersburg messaging on candidate-facing UI;
+- verify desktop/mobile visual parity with the accepted design.
 
-Acceptance: public HOSTING site is visually equivalent to FULL for shared pages/content.
+Acceptance: HOSTING public site meets the four client goals and visually remains the accepted Astrea design.
 
-### H5 — Candidate Lite security slice
+### H5 — Timeweb package and deployment acceptance
+
+- upload-ready HOSTING artifact;
+- installation/config instructions;
+- MySQL initialization/bootstrap procedure;
+- HTTPS/origin/SEO settings;
+- smoke checklist;
+- backup/export procedure;
+- validate actual PHP/MySQL/Apache limits on the account;
+- production deploy only with explicit approval.
+
+### Future H6 — Candidate Lite
 
 Only after separate explicit approval:
 
 - hosting candidate endpoint;
 - private persistence/photo handling;
-- protected Lite Editor candidate list/detail;
+- protected candidate access;
 - consent evidence;
 - anti-spam/rate limiting;
-- mail/readiness decision;
+- mail readiness;
 - controlled E2E.
-
-Acceptance: candidate activation is fail-closed until all agreed security/legal checks pass.
-
-### H6 — Timeweb release package and deployment acceptance
-
-- create upload-ready HOSTING artifact;
-- installation/config instructions;
-- DB initialization/bootstrap procedure;
-- HTTPS/origin/SEO settings;
-- smoke checklist;
-- backup/export procedure;
-- production deploy only with explicit approval.
 
 ## CI expectations
 
 Existing required gates remain green.
 
-Add HOSTING-specific checks incrementally, including where practical:
+Add HOSTING-specific checks incrementally, where practical:
 
 - PHP syntax/lint;
-- deterministic schema validation;
+- schema validation;
 - public/editor API contract tests;
 - hosting frontend typecheck/lint/build;
 - no committed secrets;
-- `.htaccess`/package structure checks;
-- ensure candidate hosting route remains unavailable before H5 approval.
+- package/rewrite structure checks;
+- candidate HOSTING endpoint remains unavailable before Future H6 approval.
 
 ## Release strategy
 
-The first deploy target is HOSTING edition on the client's existing shared hosting/domain strategy.
+The first deployment target is HOSTING edition on the client's existing shared hosting. FULL remains production-ready source code for a later VPS migration.
 
-FULL edition remains production-ready source code for later VPS migration. When the client later moves to FULL:
+The HOSTING release is accepted when the client can independently:
 
-1. export validated Hosting content;
-2. import into PostgreSQL;
-3. point the shared React frontend at FULL APIs/build;
-4. switch DNS/origin;
-5. perform redirects/canonical/sitemap cutover;
-6. retire HOSTING backend only after acceptance.
+- publish a lodge news item;
+- add/update recommended books/video/audio/article material;
+- add/change a public lodge event date and see it reflected for visitors;
+- edit the predefined public copy needed for the site;
+- do all of the above without touching source files or rebuilding the frontend.
 
-## Decision required before Build
-
-Approve or amend this plan. After approval, implementation starts from fresh `main` in `feat/hosting-edition` and proceeds H1 -> H4 first. H5 Candidate Lite remains a separate explicit approval gate.
+The public site must also preserve the accepted symbolic design and clearly communicate Saint Petersburg as the lodge location.
