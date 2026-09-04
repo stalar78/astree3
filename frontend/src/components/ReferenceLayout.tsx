@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 
 import { isHostingEdition } from '../config/edition';
 import { listPublicEvents, type PublicEvent, type PublicEventType } from '../publicContent/publicContentApi';
@@ -37,8 +37,10 @@ export function ReferenceLayout({ children }: { children: ReactNode }) {
 
 function SymbolRail() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [password, setPassword] = useState('');
+  const [accessFeedback, setAccessFeedback] = useState<string | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const passwordRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!dialogOpen) return;
@@ -59,12 +61,25 @@ function SymbolRail() {
       return;
     }
 
-    closeButtonRef.current?.focus();
+    passwordRef.current?.focus();
   }, [dialogOpen]);
 
   function openDialog(trigger: HTMLButtonElement) {
     triggerRef.current = trigger;
+    setPassword('');
+    setAccessFeedback(null);
     setDialogOpen(true);
+  }
+
+  function handleAccessSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!password.trim()) {
+      setAccessFeedback('Введите пароль.');
+      passwordRef.current?.focus();
+      return;
+    }
+
+    setAccessFeedback('Доступ к разделу не предоставлен.');
   }
 
   return (
@@ -99,16 +114,46 @@ function SymbolRail() {
               Закрытый раздел
             </h2>
             <p className="mt-3 text-[15px] font-light leading-7 text-brand-reference-muted">
-              Доступ к этому разделу будет реализован в следующей версии сайта. Функция находится в разработке.
+              Введите пароль для доступа к разделу.
             </p>
-            <button
-              ref={closeButtonRef}
-              type="button"
-              className="mt-5 inline-flex min-h-10 items-center justify-center rounded-[5px] border border-brand-reference-line/65 px-4 py-2 text-sm font-medium uppercase tracking-[0.08em] text-brand-reference-text transition-colors hover:border-brand-reference-white hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand-reference-line"
-              onClick={() => setDialogOpen(false)}
-            >
-              Закрыть
-            </button>
+            <form className="mt-4" onSubmit={handleAccessSubmit}>
+              <label htmlFor="symbol-section-password" className="sr-only">
+                Пароль
+              </label>
+              <input
+                ref={passwordRef}
+                id="symbol-section-password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  setAccessFeedback(null);
+                }}
+                className="w-full rounded-[5px] border border-brand-reference-line/65 bg-brand-reference-panelDeep px-4 py-3 text-base text-brand-reference-text outline-none transition focus:border-brand-reference-white focus:ring-1 focus:ring-brand-reference-white/20"
+                placeholder="Пароль"
+              />
+              {accessFeedback ? (
+                <p className="mt-3 text-sm font-light leading-6 text-brand-reference-muted" role="status" aria-live="polite">
+                  {accessFeedback}
+                </p>
+              ) : null}
+              <div className="mt-5 flex flex-wrap gap-3">
+                <button
+                  type="submit"
+                  className="inline-flex min-h-10 items-center justify-center rounded-[5px] border border-brand-reference-red bg-brand-reference-red px-4 py-2 text-sm font-medium uppercase tracking-[0.08em] text-white transition-colors hover:bg-transparent hover:text-brand-reference-text focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand-reference-red"
+                >
+                  Войти
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex min-h-10 items-center justify-center rounded-[5px] border border-brand-reference-line/65 px-4 py-2 text-sm font-medium uppercase tracking-[0.08em] text-brand-reference-text transition-colors hover:border-brand-reference-white hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand-reference-line"
+                  onClick={() => setDialogOpen(false)}
+                >
+                  Закрыть
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       ) : null}

@@ -15,8 +15,8 @@ const env = {
   VITE_ASTREA_EDITION: edition,
 };
 
-if (edition === 'hosting') {
-  // Candidate intake is deliberately outside the approved HOSTING MVP.
+if (edition === 'hosting' && process.env.VITE_CANDIDATE_FORM_ENABLED === undefined) {
+  // HOSTING stays disabled by default, but an explicit preview/build flag may opt in.
   env.VITE_CANDIDATE_FORM_ENABLED = 'false';
 }
 

@@ -11,8 +11,8 @@ const TEXTAREA_CLASS = `${FIELD_CLASS} min-h-36 resize-y`;
 const HELP_CLASS = 'text-sm font-light leading-6 text-brand-reference-muted/70';
 const FIELDSET_CLASS =
   'rounded-[6px] border border-brand-reference-line/30 bg-brand-reference-panel px-4 py-6 shadow-referenceCard sm:px-6 lg:px-7 lg:py-7';
-const LEGEND_CLASS =
-  'ml-4 px-1 font-referenceHeading text-[clamp(1.55rem,3vw,2.05rem)] font-medium text-brand-reference-text sm:ml-6 lg:ml-7 lg:text-[1.75rem]';
+const SECTION_TITLE_CLASS =
+  'mb-5 font-referenceHeading text-[clamp(1.55rem,3vw,2.05rem)] font-medium leading-tight text-brand-reference-text sm:mb-7 lg:text-[1.75rem]';
 const STATUS_NEUTRAL_CLASS = 'border-brand-reference-line/35 bg-brand-reference-panelDeep text-brand-reference-muted';
 const STATUS_ERROR_CLASS = 'border-brand-reference-red/55 bg-brand-reference-red/5 text-brand-reference-text';
 const STATUS_SUCCESS_CLASS = 'border-brand-reference-red/55 bg-brand-reference-red/10 text-brand-reference-text shadow-referenceCard';
@@ -110,8 +110,9 @@ export function CandidatePage() {
           </div>
 
           <fieldset disabled={disabled} className={FIELDSET_CLASS}>
-            <legend className={LEGEND_CLASS}>Анкета кандидата</legend>
-            <div className="mt-5 grid gap-5 sm:mt-7 sm:gap-6 lg:grid-cols-2">
+            <legend className="sr-only">Анкета кандидата</legend>
+            <h2 className={SECTION_TITLE_CLASS}>Анкета кандидата</h2>
+            <div className="grid gap-5 sm:gap-6 lg:grid-cols-2">
               <FormField id="full_name" label="Фамилия, имя, отчество" required className="lg:col-span-2">
                 <input
                   id="full_name"
@@ -208,8 +209,9 @@ export function CandidatePage() {
           </fieldset>
 
           <fieldset disabled={disabled} className={FIELDSET_CLASS}>
-            <legend className={LEGEND_CLASS}>Фотография</legend>
-            <div className="mt-5 grid gap-4 sm:mt-7">
+            <legend className="sr-only">Фотография</legend>
+            <h2 className={SECTION_TITLE_CLASS}>Фотография</h2>
+            <div className="grid gap-4">
               <div className="grid gap-2">
                 <label htmlFor="photo" className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-reference-muted">
                   Фотография<span aria-hidden="true" className="text-brand-reference-red"> *</span>
@@ -228,8 +230,9 @@ export function CandidatePage() {
           </fieldset>
 
           <fieldset disabled={disabled} className={FIELDSET_CLASS}>
-            <legend className={LEGEND_CLASS}>Согласия</legend>
-            <div className="mt-5 space-y-3 sm:mt-7 sm:space-y-4">
+            <legend className="sr-only">Согласия</legend>
+            <h2 className={SECTION_TITLE_CLASS}>Согласия</h2>
+            <div className="space-y-3 sm:space-y-4">
               <ConsentRow id="personal_data_processing" name="personal_data_processing">
                 <span>
                   <Link

@@ -25,7 +25,7 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="relative z-20 bg-brand-reference-shell text-brand-reference-text">
+    <header className="relative z-20 bg-brand-reference-footer text-brand-reference-text">
       <a
         href="#content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-white focus:px-4 focus:py-2 focus:text-black"
@@ -42,9 +42,9 @@ export function SiteHeader() {
           />
         </NavLink>
 
-        <div className="flex h-full items-center justify-center px-[170px] pb-1 text-center xl:px-[208px]">
+        <div className="flex h-full items-center justify-center pl-[132px] pr-[132px] pt-[18px] text-center xl:pr-[198px]">
           <p
-            className="text-[clamp(1.65rem,2vw,1.9rem)] font-normal leading-none tracking-normal text-brand-reference-text"
+            className="text-[clamp(1.9rem,2.3vw,2.2rem)] font-normal leading-none tracking-normal text-brand-reference-text"
             style={{ fontFamily: '"Times New Roman", Times, serif', fontWeight: 400 }}
           >
             Д∴ Л∴ «Астрея» №3 на Востоке г. Санкт-Петербурга
