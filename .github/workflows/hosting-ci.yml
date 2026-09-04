@@ -143,4 +143,13 @@ jobs:
           test ! -e hosting/release/astrea-hosting/private/config/config.local.php
           grep -q 'https://hosting-ci.example/' hosting/release/astrea-hosting/public/sitemap.xml
           grep -q 'Sitemap: https://hosting-ci.example/sitemap.xml' hosting/release/astrea-hosting/public/robots.txt
+          grep -q '"public_indexing": true' hosting/release/astrea-hosting/manifest.json
           grep -q '"candidate_intake": false' hosting/release/astrea-hosting/manifest.json
+
+      - name: Build and verify transitional noindex package
+        run: |
+          node hosting/scripts/build-package.mjs --origin=https://hosting-ci.example --noindex
+          test ! -e hosting/release/astrea-hosting/public/sitemap.xml
+          grep -q '^Disallow: /$' hosting/release/astrea-hosting/public/robots.txt
+          ! grep -q '^Sitemap:' hosting/release/astrea-hosting/public/robots.txt
+          grep -q '"public_indexing": false' hosting/release/astrea-hosting/manifest.json
