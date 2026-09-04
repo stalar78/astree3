@@ -64,6 +64,11 @@ function CalendarRail({ events }: { events: PublicEvent[] }) {
           const date = new Date(now.getFullYear(), now.getMonth() + index, 1);
           return <MonthCalendar key={`${date.getFullYear()}-${date.getMonth()}`} date={date} today={now} eventsByDate={eventsByDate} />;
         })}
+        {events.length > 0 ? (
+          <p className="text-center text-xs font-light leading-5 text-brand-reference-muted/60">
+            <span aria-hidden="true">●</span> опубликованное событие
+          </p>
+        ) : null}
       </div>
     </aside>
   );
@@ -202,6 +207,8 @@ function eventTypeLabel(type: PublicEventType): string {
     case 'feast':
       return 'Праздник';
     case 'other':
+      return 'Событие';
+    default:
       return 'Событие';
   }
 }
