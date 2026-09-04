@@ -13,6 +13,7 @@ import { applyDocumentSeo, seoDescriptionFromText, siteTitle } from '../seo/seo'
 
 const FALLBACK_TITLE = 'Материалы';
 const FALLBACK_LEAD = 'Публикации, новости и видеоматериалы Д.·. Л.·. «Астрея» №3.';
+const HOSTING_FALLBACK_LEAD = 'Книги, видео, аудио и статьи для первого знакомства с традицией и работой Д.·. Л.·. «Астрея» №3.';
 const DATE = new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
 
 const MATERIAL_GROUPS: Array<{
@@ -30,8 +31,9 @@ export function MaterialsPage() {
   const location = useLocation();
   const { status, page } = usePublicManagedPage('materials');
   const readyPage = status === 'ready' && page ? page : null;
+  const fallbackLead = isHostingEdition ? HOSTING_FALLBACK_LEAD : FALLBACK_LEAD;
   const title = readyPage?.title ?? FALLBACK_TITLE;
-  const description = readyPage ? seoDescriptionFromText(readyPage.content, FALLBACK_LEAD) : FALLBACK_LEAD;
+  const description = readyPage ? seoDescriptionFromText(readyPage.content, fallbackLead) : fallbackLead;
   const [materials, setMaterials] = useState<PublicMaterial[]>([]);
   const [materialsState, setMaterialsState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
 
@@ -65,7 +67,7 @@ export function MaterialsPage() {
   }, []);
 
   return (
-    <ReferenceInnerPage eyebrow="Материалы" title={title} lead={readyPage ? undefined : FALLBACK_LEAD}>
+    <ReferenceInnerPage eyebrow="Материалы" title={title} lead={readyPage ? undefined : fallbackLead}>
       <div className="space-y-6">
         {readyPage ? (
           <ReferencePanel>
