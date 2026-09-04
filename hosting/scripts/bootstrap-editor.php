@@ -37,7 +37,7 @@ if (!is_string($username) || preg_match(ASTREA_EDITOR_USERNAME_PATTERN, $usernam
 }
 
 fwrite(STDOUT, "Enter editor password via stdin: ");
-$password = stream_get_contents(STDIN);
+$password = fgets(STDIN);
 if (!is_string($password)) {
     fwrite(STDERR, "Unable to read password.\n");
     exit(2);
