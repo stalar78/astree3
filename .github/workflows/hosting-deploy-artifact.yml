@@ -1,0 +1,54 @@
+name: HOSTING Deploy Artifact
+
+on:
+  push:
+    branches:
+      - ops/new-mason-deploy-package
+
+permissions:
+  contents: read
+
+jobs:
+  build-deploy-artifact:
+    name: Build new.mason-astrea.ru package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+
+      - name: Build transitional HOSTING package
+        run: node hosting/scripts/build-package.mjs --origin=https://new.mason-astrea.ru --noindex
+
+      - name: Verify deployment contract
+        run: |
+          test -f hosting/release/astrea-hosting/public/index.html
+          test -f hosting/release/astrea-hosting/public/.htaccess
+          test -f hosting/release/astrea-hosting/public/api/index.php
+          test -f hosting/release/astrea-hosting/public/editor/index.php
+          test -f hosting/release/astrea-hosting/private/config/config.local.php.example
+          test ! -e hosting/release/astrea-hosting/private/config/config.local.php
+          test ! -e hosting/release/astrea-hosting/public/sitemap.xml
+          grep -q '^Disallow: /$' hosting/release/astrea-hosting/public/robots.txt
+          grep -q '"site_origin": "https://new.mason-astrea.ru"' hosting/release/astrea-hosting/manifest.json
+          grep -q '"public_indexing": false' hosting/release/astrea-hosting/manifest.json
+          grep -q '"candidate_intake": false' hosting/release/astrea-hosting/manifest.json
+
+      - name: Upload deployment package
+        uses: actions/upload-artifact@v4
+        with:
+          name: astrea-hosting-new-mason-astrea
+          path: hosting/release/astrea-hosting/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
