@@ -8,7 +8,8 @@ if (!allowedEditions.has(edition)) {
   process.exit(2);
 }
 
-const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const isWindows = process.platform === 'win32';
+const npmCommand = isWindows ? 'npm' : 'npm';
 const env = {
   ...process.env,
   VITE_ASTREA_EDITION: edition,
@@ -24,6 +25,7 @@ console.log(`Building Astrea ${edition.toUpperCase()} edition.`);
 const result = spawnSync(npmCommand, ['run', 'build:app'], {
   cwd: process.cwd(),
   env,
+  shell: isWindows,
   stdio: 'inherit',
 });
 

@@ -6,14 +6,14 @@ export function SiteFooter() {
         <div className="h-[4px] bg-brand-reference-flagBlue" />
         <div className="h-[4px] bg-brand-reference-flagRed" />
         <img
-          className="absolute left-1/2 top-[32px] z-20 h-24 w-24 -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_8px_14px_rgba(0,0,0,0.4)] sm:top-[34px] sm:h-[112px] sm:w-[112px] lg:h-[132px] lg:w-[132px]"
+          className="absolute left-1/2 top-[36px] z-20 h-24 w-24 -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_8px_14px_rgba(0,0,0,0.4)] sm:top-[38px] sm:h-[112px] sm:w-[112px] lg:top-[40px] lg:h-[120px] lg:w-[120px]"
           src="/brand/grand-lodge-russia-emblem.png"
           alt=""
         />
       </div>
 
-      <div className="mx-auto max-w-[1534px] px-4 pb-8 pt-[76px] text-center sm:px-5 sm:pb-9 sm:pt-[80px] lg:px-8 lg:pb-10 lg:pt-[76px]">
-        <div className="mx-auto max-w-5xl space-y-1.5 text-[clamp(0.92rem,4vw,1.08rem)] font-light leading-snug text-brand-reference-text/90 sm:text-[clamp(1rem,2.4vw,1.18rem)] lg:text-[clamp(1rem,1.45vw,1.28rem)] lg:leading-tight">
+      <div className="mx-auto max-w-[1280px] px-4 pb-8 pt-[80px] text-center sm:px-5 sm:pb-9 sm:pt-[84px] lg:px-7 lg:pb-8 lg:pt-[74px]">
+        <div className="mx-auto max-w-4xl space-y-1.5 text-[clamp(0.92rem,4vw,1.08rem)] font-light leading-snug text-brand-reference-text/90 sm:text-[clamp(1rem,2.4vw,1.18rem)] lg:text-[clamp(0.92rem,1.2vw,1.08rem)] lg:leading-tight">
           <div className="space-y-1 sm:hidden">
             <p>127287 Полтавская ул. д. 18</p>
             <p>Москва, Россия · +7 495 611 30 11</p>

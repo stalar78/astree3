@@ -10,9 +10,9 @@ const FIELD_CLASS =
 const TEXTAREA_CLASS = `${FIELD_CLASS} min-h-36 resize-y`;
 const HELP_CLASS = 'text-sm font-light leading-6 text-brand-reference-muted/70';
 const FIELDSET_CLASS =
-  'rounded-[6px] border border-brand-reference-line/30 bg-brand-reference-panel px-4 py-6 shadow-referenceCard sm:px-6 lg:px-8 lg:py-8';
+  'rounded-[6px] border border-brand-reference-line/30 bg-brand-reference-panel px-4 py-6 shadow-referenceCard sm:px-6 lg:px-7 lg:py-7';
 const LEGEND_CLASS =
-  'px-2 font-referenceHeading text-[clamp(1.65rem,3vw,2.2rem)] font-normal text-brand-reference-text';
+  'ml-4 px-1 font-referenceHeading text-[clamp(1.55rem,3vw,2.05rem)] font-medium text-brand-reference-text sm:ml-6 lg:ml-7 lg:text-[1.75rem]';
 const STATUS_NEUTRAL_CLASS = 'border-brand-reference-line/35 bg-brand-reference-panelDeep text-brand-reference-muted';
 const STATUS_ERROR_CLASS = 'border-brand-reference-red/55 bg-brand-reference-red/5 text-brand-reference-text';
 const STATUS_SUCCESS_CLASS = 'border-brand-reference-red/55 bg-brand-reference-red/10 text-brand-reference-text shadow-referenceCard';
@@ -273,7 +273,7 @@ export function CandidatePage() {
               }`}
             >
               {submissionState === 'success' ? (
-                <p className="mb-3 font-referenceHeading text-2xl text-brand-reference-text">Заявка успешно отправлена</p>
+                <p className="mb-3 font-referenceHeading text-2xl font-medium text-brand-reference-text">Заявка успешно отправлена</p>
               ) : null}
               {feedback ?? (active ? 'Заполните все поля, прикрепите фотографию и отметьте все три согласия.' : INACTIVE_COPY)}
             </div>

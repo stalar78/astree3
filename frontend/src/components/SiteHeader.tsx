@@ -33,27 +33,27 @@ export function SiteHeader() {
         К содержанию
       </a>
 
-      <div className="relative mx-auto hidden h-[118px] max-w-[1534px] lg:block">
-        <NavLink to="/" aria-label="На главную" className="absolute left-8 top-[38px] z-30 block xl:left-10">
+      <div className="relative mx-auto hidden h-[96px] max-w-[1280px] lg:block">
+        <NavLink to="/" aria-label="На главную" className="absolute left-7 top-[34px] z-30 block xl:left-8">
           <img
-            className="h-[138px] w-[138px] object-contain drop-shadow-[0_0_12px_rgba(21,59,147,0.28)]"
+            className="h-[118px] w-[118px] object-contain drop-shadow-[0_0_12px_rgba(21,59,147,0.28)]"
             src="/brand/symbols/symbol-06.png"
             alt=""
           />
         </NavLink>
 
-        <div className="flex h-full items-center justify-center px-[240px] pb-2 text-center">
+        <div className="flex h-full items-center justify-center px-[170px] pb-1 text-center xl:px-[208px]">
           <p
-            className="text-[clamp(1.9rem,2.25vw,2.2rem)] font-normal leading-none tracking-normal text-brand-reference-text"
+            className="text-[clamp(1.65rem,2vw,1.9rem)] font-normal leading-none tracking-normal text-brand-reference-text"
             style={{ fontFamily: '"Times New Roman", Times, serif' }}
           >
-            Д.·. Л.·. «Астрея» №3 на Востоке г. Санкт-Петербурга
+            Д∴ Л∴ «Астрея» №3 на Востоке г. Санкт-Петербурга
           </p>
         </div>
 
-        <div className="absolute right-6 top-[14px] z-30 xl:right-8" aria-hidden="true">
+        <div className="absolute right-5 top-[10px] z-30 hidden xl:block xl:right-6" aria-hidden="true">
           <img
-            className="h-[258px] w-[202px] object-contain object-top"
+            className="h-[226px] w-[178px] object-contain object-top"
             style={{
               filter:
                 'drop-shadow(0 0 1px rgba(238,240,255,0.98)) drop-shadow(0 0 4px rgba(184,192,255,0.92)) drop-shadow(0 0 10px rgba(121,136,255,0.72)) drop-shadow(0 0 24px rgba(79,96,205,0.46)) drop-shadow(0 12px 18px rgba(0,0,0,0.55))',
@@ -72,15 +72,15 @@ export function SiteHeader() {
           className="min-w-0 break-words text-[clamp(1.05rem,5.1vw,1.55rem)] font-normal leading-[1.08] text-brand-reference-text sm:text-[clamp(1.35rem,4.2vw,1.85rem)]"
           style={{ fontFamily: '"Times New Roman", Times, serif' }}
         >
-          Д.·. Л.·. «Астрея» №3 на Востоке г. Санкт-Петербурга
+          Д∴ Л∴ «Астрея» №3 на Востоке г. Санкт-Петербурга
         </p>
       </div>
 
       <TricolorBand />
 
-      <div className="relative mx-auto max-w-[1534px] px-4 sm:px-5 lg:px-8">
-        <div className="flex min-h-[56px] items-center sm:min-h-[64px] lg:min-h-[68px] lg:px-[155px] lg:pr-[225px]">
-          <nav className="hidden w-full items-center justify-center gap-4 text-[15px] font-light text-brand-reference-muted lg:flex xl:gap-8 xl:text-[17px]" aria-label="Основная навигация">
+      <div className="relative mx-auto max-w-[1280px] px-4 sm:px-5 lg:px-7">
+        <div className="flex min-h-[56px] items-center sm:min-h-[64px] lg:min-h-[58px] lg:px-[132px] xl:pr-[198px]">
+          <nav className="hidden w-full items-center justify-center gap-4 text-[14px] font-medium text-brand-reference-muted lg:flex xl:gap-7 xl:text-[15px]" aria-label="Основная навигация">
             {navigation.map(([label, href]) => (
               <NavLink
                 key={label}
