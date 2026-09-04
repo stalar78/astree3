@@ -45,7 +45,7 @@ export function SiteHeader() {
         <div className="flex h-full items-center justify-center pl-[132px] pr-[132px] pt-[18px] text-center xl:pr-[198px]">
           <p
             className="text-[clamp(1.9rem,2.3vw,2.2rem)] font-normal leading-none tracking-normal text-brand-reference-text"
-            style={{ fontFamily: '\"Times New Roman\", Times, serif', fontWeight: 400 }}
+            style={{ fontFamily: '"Times New Roman", Times, serif', fontWeight: 400 }}
           >
             Д∴ Л∴ «Астрея» №3 на Востоке г. Санкт-Петербурга
           </p>
@@ -70,7 +70,7 @@ export function SiteHeader() {
         </NavLink>
         <p
           className="min-w-0 break-words text-[clamp(1.05rem,5.1vw,1.55rem)] font-normal leading-[1.08] text-brand-reference-text sm:text-[clamp(1.35rem,4.2vw,1.85rem)]"
-          style={{ fontFamily: '\"Times New Roman\", Times, serif', fontWeight: 400 }}
+          style={{ fontFamily: '"Times New Roman", Times, serif', fontWeight: 400 }}
         >
           Д∴ Л∴ «Астрея» №3 на Востоке г. Санкт-Петербурга
         </p>
