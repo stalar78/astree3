@@ -26,3 +26,5 @@ uploads/
 backups/
 var/private/
 hosting/config/config.local.php
+/private/config/config.local.php
+hosting/release/

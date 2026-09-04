@@ -9,8 +9,19 @@ function astrea_config(): array
         return $config;
     }
 
-    $localPath = dirname(__DIR__) . '/config/config.local.php';
-    if (is_file($localPath)) {
+    // Production HOSTING packages keep secrets outside the public document root:
+    //   <site>/public/api/bootstrap.php
+    //   <site>/private/config/config.local.php
+    // The legacy/source-tree path remains supported for CI and local development.
+    $candidatePaths = [
+        dirname(__DIR__, 2) . '/private/config/config.local.php',
+        dirname(__DIR__) . '/config/config.local.php',
+    ];
+
+    foreach ($candidatePaths as $localPath) {
+        if (!is_file($localPath)) {
+            continue;
+        }
         $loaded = require $localPath;
         if (!is_array($loaded)) {
             throw new RuntimeException('Invalid HOSTING configuration.');
