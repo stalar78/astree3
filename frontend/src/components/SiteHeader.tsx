@@ -14,7 +14,7 @@ const navigation = [
 function TricolorBand() {
   return (
     <div aria-hidden="true" className="astrea-ceremonial-band relative z-10">
-      <div className="h-[8px] bg-white" />
+      <div className="h-[12px] bg-white" />
       <div className="h-[4px] bg-black" />
       <div className="h-[4px] bg-brand-reference-flagRed" />
     </div>
@@ -56,7 +56,7 @@ export function SiteHeader() {
             className="h-[226px] w-[178px] object-contain object-top"
             style={{
               filter:
-                'drop-shadow(0 0 1px rgba(238,240,255,0.98)) drop-shadow(0 0 4px rgba(184,192,255,0.92)) drop-shadow(0 0 10px rgba(121,136,255,0.72)) drop-shadow(0 0 24px rgba(79,96,205,0.46)) drop-shadow(0 12px 18px rgba(0,0,0,0.55))',
+                'drop-shadow(0 0 1px rgba(255,255,255,0.98)) drop-shadow(0 0 5px rgba(255,255,255,0.72)) drop-shadow(0 0 14px rgba(245,245,240,0.46)) drop-shadow(0 12px 18px rgba(0,0,0,0.55))',
             }}
             src="/brand/astrea-standard-transparent.png"
             alt=""

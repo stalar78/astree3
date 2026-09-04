@@ -2,7 +2,7 @@ export function SiteFooter() {
   return (
     <footer className="relative bg-brand-reference-footer text-brand-reference-text">
       <div aria-hidden="true" className="astrea-ceremonial-band relative">
-        <div className="h-[8px] bg-white" />
+        <div className="h-[4px] bg-white" />
         <div className="h-[4px] bg-black" />
         <div className="h-[4px] bg-brand-reference-flagRed" />
         <img
