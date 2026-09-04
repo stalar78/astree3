@@ -13,9 +13,9 @@ const navigation = [
 
 function TricolorBand() {
   return (
-    <div aria-hidden="true" className="relative z-10">
-      <div className="h-[4px] bg-white" />
-      <div className="h-[4px] bg-brand-reference-flagBlue" />
+    <div aria-hidden="true" className="astrea-ceremonial-band relative z-10">
+      <div className="h-[8px] bg-white" />
+      <div className="h-[4px] bg-black" />
       <div className="h-[4px] bg-brand-reference-flagRed" />
     </div>
   );
@@ -45,7 +45,7 @@ export function SiteHeader() {
         <div className="flex h-full items-center justify-center px-[170px] pb-1 text-center xl:px-[208px]">
           <p
             className="text-[clamp(1.65rem,2vw,1.9rem)] font-normal leading-none tracking-normal text-brand-reference-text"
-            style={{ fontFamily: '"Times New Roman", Times, serif' }}
+            style={{ fontFamily: '"Times New Roman", Times, serif', fontWeight: 400 }}
           >
             Д∴ Л∴ «Астрея» №3 на Востоке г. Санкт-Петербурга
           </p>
@@ -70,7 +70,7 @@ export function SiteHeader() {
         </NavLink>
         <p
           className="min-w-0 break-words text-[clamp(1.05rem,5.1vw,1.55rem)] font-normal leading-[1.08] text-brand-reference-text sm:text-[clamp(1.35rem,4.2vw,1.85rem)]"
-          style={{ fontFamily: '"Times New Roman", Times, serif' }}
+          style={{ fontFamily: '"Times New Roman", Times, serif', fontWeight: 400 }}
         >
           Д∴ Л∴ «Астрея» №3 на Востоке г. Санкт-Петербурга
         </p>
@@ -105,6 +105,8 @@ export function SiteHeader() {
           </button>
         </div>
       </div>
+
+      <div aria-hidden="true" className="astrea-header-nav-separator h-[2px] bg-white" />
 
       {open ? (
         <nav id="mobile-nav" className="border-t border-white/10 bg-brand-reference-panelDeep px-4 py-3 sm:px-5 sm:py-4 lg:hidden" aria-label="Мобильная навигация">

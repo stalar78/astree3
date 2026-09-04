@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: "Astrea SF Pro Display";
+  src: url("/fonts/SFProDisplay-Light.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Astrea SF Pro Display";
+  src: url("/fonts/SFProDisplay-Medium.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
 :root {
   color-scheme: light;
   font-family: "PT Sans", "Helvetica Neue", Arial, sans-serif;
@@ -48,11 +64,12 @@ img {
 .public-redesign input,
 .public-redesign textarea {
   font-family: var(--astrea-body-font), -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  font-weight: 300;
 }
 
 .public-redesign {
-  --astrea-heading-font: "SFProDisplay-Medium";
-  --astrea-body-font: "SFProDisplay-Light";
+  --astrea-heading-font: "Astrea SF Pro Display";
+  --astrea-body-font: "Astrea SF Pro Display";
   color-scheme: dark;
   background:
     linear-gradient(180deg, #0b0d12 0%, #0d1017 43%, #0b1327 68%, #071a44 100%);
@@ -61,6 +78,22 @@ img {
 
 .public-redesign :is(h1, h2, h3, h4, h5, h6, legend) {
   font-family: var(--astrea-heading-font), -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  font-weight: 500;
+}
+
+.public-redesign .astrea-symbol-button:hover,
+.public-redesign .astrea-symbol-button:focus-visible {
+  border-color: rgba(255, 255, 255, 0.65);
+  background: #07142d;
+  box-shadow:
+    0 0 0 1px rgba(226, 235, 255, 0.5),
+    0 10px 24px rgba(0, 0, 0, 0.42),
+    0 0 36px rgba(40, 88, 190, 0.58);
+}
+
+.public-redesign .astrea-symbol-button:hover img,
+.public-redesign .astrea-symbol-button:focus-visible img {
+  filter: brightness(1.25);
 }
 
 .public-redesign ::selection {

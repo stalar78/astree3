@@ -40,7 +40,7 @@ export default {
         formal: '0 24px 70px rgba(0, 0, 0, 0.26)',
         referenceCard: '0 0 0 1px rgba(47, 67, 114, 0.48), 0 12px 34px rgba(0, 0, 0, 0.44), 0 0 26px rgba(14, 49, 132, 0.22)',
         symbolCard: '0 0 0 1px rgba(47, 67, 114, 0.52), 0 10px 24px rgba(0, 0, 0, 0.42), 0 0 18px rgba(24, 58, 147, 0.3)',
-        symbolCardHover: '0 0 0 1px rgba(76, 102, 166, 0.72), 0 10px 24px rgba(0, 0, 0, 0.42), 0 0 28px rgba(24, 58, 147, 0.42)',
+        symbolCardHover: '0 0 0 1px rgba(226, 235, 255, 0.5), 0 10px 24px rgba(0, 0, 0, 0.42), 0 0 36px rgba(40, 88, 190, 0.58)',
         calendarToday: '0 0 10px rgba(70, 94, 153, 0.34)',
         calendarSpecial: '0 0 10px rgba(47, 67, 114, 0.22)',
       },

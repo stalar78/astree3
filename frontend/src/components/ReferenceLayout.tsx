@@ -75,12 +75,12 @@ function SymbolRail() {
             <button
               key={src}
               type="button"
-              className="flex aspect-square items-center justify-center rounded-[5px] border border-brand-reference-line/45 bg-brand-reference-panelDeep p-[8%] shadow-symbolCard transition-colors hover:border-brand-reference-line/75 hover:bg-brand-reference-panel focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand-reference-line focus-visible:shadow-symbolCardHover"
+              className="astrea-symbol-button flex aspect-square items-center justify-center rounded-[5px] border border-brand-reference-line/45 bg-brand-reference-panelDeep p-[8%] shadow-symbolCard transition-[background-color,border-color,box-shadow] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-white/70"
               aria-haspopup="dialog"
               aria-label={`Открыть закрытый раздел ${index + 1}`}
               onClick={(event) => openDialog(event.currentTarget)}
             >
-              <img src={src} alt="" className="h-full w-full object-contain" />
+              <img src={src} alt="" className="h-full w-full object-contain transition-[filter]" />
             </button>
           ))}
         </div>
