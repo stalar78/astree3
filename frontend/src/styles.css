@@ -96,6 +96,37 @@ img {
   filter: brightness(1.25);
 }
 
+.public-redesign aside[aria-label="Календарь"] span[aria-label][tabindex="0"]::after {
+  content: attr(aria-label);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 40;
+  width: max-content;
+  max-width: 220px;
+  transform: translateX(-50%) translateY(3px);
+  border: 1px solid rgba(244, 245, 246, 0.26);
+  border-radius: 5px;
+  background: #061432;
+  padding: 6px 8px;
+  color: #f4f5f6;
+  font-size: 12px;
+  font-weight: 300;
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.public-redesign aside[aria-label="Календарь"] span[aria-label][tabindex="0"]:hover::after,
+.public-redesign aside[aria-label="Календарь"] span[aria-label][tabindex="0"]:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 .public-redesign ::selection {
   background: rgba(213, 43, 30, 0.78);
   color: #fff;
