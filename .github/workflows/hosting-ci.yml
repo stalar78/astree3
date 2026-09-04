@@ -84,6 +84,9 @@ jobs:
       - name: Verify Lite Editor auth contracts
         run: php hosting/tests/editor_auth_contract.php
 
+      - name: Verify Lite Editor content contracts
+        run: php hosting/tests/editor_content_contract.php
+
       - name: Verify one-time editor bootstrap
         run: |
           printf '%s' 'ci-editor-password-123456' | php hosting/scripts/bootstrap-editor.php ciadmin
