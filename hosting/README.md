@@ -2,7 +2,7 @@
 
 This directory contains the shared-hosting backend/package layer for the approved Astrea HOSTING edition.
 
-Current implementation stage: **H3A Lite Editor authentication foundation**. Public read APIs are available from H2; protected editorial CRUD and final Timeweb packaging remain later slices.
+Current implementation stage: **H3B Lite Editor content CRUD**. Public read APIs are available from H2, H3A provides the protected authentication/session shell, and H3B adds the four approved editorial workflows. Final frontend HOSTING integration and Timeweb packaging remain later slices.
 
 ## Runtime target
 
@@ -31,7 +31,7 @@ Candidate intake is deliberately **not part of the current HOSTING MVP**. The ho
 ## Source layout
 
 - `api/` — PHP bootstrap, published-only public queries and router;
-- `editor/` — protected Lite Editor session/authentication and UI;
+- `editor/` — protected Lite Editor authentication, content validation and server-rendered UI;
 - `scripts/` — CLI-only operational/bootstrap commands;
 - `config/` — safe templates only; production/local credentials are never committed;
 - `db/` — MySQL schema/migrations;
@@ -98,9 +98,18 @@ Lists accept bounded `limit`/`offset`. Materials may be filtered with `?type=boo
 
 The `/videos` contract is derived from published `video` materials and accepts only canonical HTTPS RuTube URLs matching the FULL-edition provider model. Arbitrary iframe/HTML is never exposed.
 
-## Lite Editor authentication — H3A
+## Lite Editor — H3A/H3B
 
-`/editor/` now provides the protected editor shell and overview. Content edit forms arrive in the following H3 slice.
+`/editor/` provides the protected editor shell, overview and task-oriented content management for:
+
+- News — create, edit, publish/unpublish and delete;
+- Materials — create, edit, publish/unpublish and delete for `book`, `video`, `audio` and `article`;
+- Events — create, edit, publish/unpublish and delete;
+- Pages — edit only the six predefined page keys; arbitrary page creation is not exposed.
+
+All state-changing editor actions require the authenticated PHP session and a valid CSRF token. Destructive UI actions require an explicit deletion confirmation. Server-side validation controls slugs, dates, material/event types and external URLs. Video materials require a valid RuTube HTTPS URL. Public API isolation remains authoritative: drafts are not returned publicly.
+
+Editorial binary uploads are not implemented in H3B. News may use an optional HTTPS image URL and materials may use approved external/source URLs. Upload support must be capability-checked against the real shared-hosting PHP limits before production acceptance rather than assumed.
 
 Security baseline already active:
 
