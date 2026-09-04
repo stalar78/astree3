@@ -2,7 +2,7 @@
 
 This directory contains the shared-hosting backend/package layer for the approved Astrea HOSTING edition.
 
-Current implementation stage: **H3B Lite Editor content CRUD**. Public read APIs are available from H2, H3A provides the protected authentication/session shell, and H3B adds the four approved editorial workflows. Final frontend HOSTING integration and Timeweb packaging remain later slices.
+Current implementation stage: **H4 shared frontend integration**. H2 provides published-only PHP/MySQL read APIs, H3A/H3B provide the protected Lite Editor and the four approved editorial workflows, and H4 connects HOSTING materials/events to the accepted shared React public UI. Final Timeweb packaging and deployment acceptance remain H5.
 
 ## Runtime target
 
@@ -134,6 +134,22 @@ php hosting/scripts/bootstrap-editor.php <username>
 ```
 
 The bootstrap refuses to create a second account. H5 will document the exact Timeweb invocation and configuration placement.
+
+## Shared public frontend — H4
+
+The React public site stays shared between FULL and HOSTING. HOSTING-only requests are guarded by the explicit edition setting so the default FULL build does not call HOSTING-only materials/events endpoints.
+
+In HOSTING mode:
+
+- `/materialy` loads the published unified materials collection and presents books, video, audio/podcast items and articles in the accepted reference styling;
+- the managed `materials` page still controls the editable introduction/title without requiring a rebuild;
+- `/video` keeps using the accepted public video contract, which the PHP layer derives from published `video` materials;
+- the five-month desktop calendar marks published event dates while retaining its accepted geometry;
+- mobile/tablet layouts, where the calendar rail is hidden, show a compact textual list of upcoming published events;
+- event markers have a visible shape/legend and accessible labels rather than relying on hover or color alone;
+- the existing public Saint Petersburg wording remains preserved, including the homepage lodge heading and candidate confirmation language.
+
+Normal publication remains immediate: an editor can publish or change approved content in Lite Editor and the public HOSTING UI reads the updated data on the next request without GitHub, SQL or a frontend rebuild.
 
 ## Expected final document-root shape
 
