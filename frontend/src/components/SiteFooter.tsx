@@ -18,7 +18,7 @@ export function SiteFooter() {
             <p>127287 Полтавская ул. д. 18</p>
             <p>Москва, Россия · +7 495 611 30 11</p>
           </div>
-          <div className="hidden grid-cols-[1fr_118px_1fr] items-center gap-2 sm:grid lg:grid-cols-[1fr_138px_1fr]">
+          <div className="hidden grid-cols-[1fr_150px_1fr] items-center gap-2 sm:grid lg:grid-cols-[1fr_180px_1fr]">
             <p className="text-right">127287 Полтавская ул. д. 18</p>
             <span aria-hidden="true" />
             <p className="text-left">Москва, Россия · +7 495 611 30 11</p>
