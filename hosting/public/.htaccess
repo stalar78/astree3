@@ -1,0 +1,27 @@
+Options -Indexes
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Never expose private/configuration source paths if packaging changes later.
+  RewriteRule ^(?:config|private)(?:/|$) - [F,L,NC]
+
+  # HOSTING PHP API owns the /api namespace.
+  RewriteRule ^api(?:/.*)?$ api/index.php [QSA,L]
+
+  # Lite Editor is reserved for H3 and must never fall through to the public SPA.
+  RewriteRule ^editor(?:/.*)?$ - [L]
+
+  # Serve real files/directories unchanged.
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # React Router fallback for public deep links.
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+<FilesMatch "(^\.|config\.local\.php$)">
+  Require all denied
+</FilesMatch>
