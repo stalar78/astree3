@@ -2,7 +2,7 @@
 
 This directory contains the shared-hosting backend/package layer for the approved Astrea HOSTING edition.
 
-Current implementation stage: **H2 public content foundation**. It is not yet production-deployable because Lite Editor writes/authentication and final Timeweb packaging are later slices.
+Current implementation stage: **H3A Lite Editor authentication foundation**. Public read APIs are available from H2; protected editorial CRUD and final Timeweb packaging remain later slices.
 
 ## Runtime target
 
@@ -10,14 +10,14 @@ Current implementation stage: **H2 public content foundation**. It is not yet pr
 - Apache-compatible shared hosting;
 - PHP 8.x backend under `/api`;
 - MySQL persistence;
-- protected Astrea Lite Editor added in H3;
+- protected server-rendered Astrea Lite Editor under `/editor/`;
 - no FastAPI/PostgreSQL runtime requirement for the HOSTING edition.
 
 The existing `backend/` and `infra/` directories remain the FULL/VPS edition and are not replaced by this package.
 
 ## Client-facing MVP
 
-Lite Editor will be limited to the agreed tasks:
+Lite Editor is limited to the agreed tasks:
 
 - News;
 - Materials (`book`, `video`, `audio`, `article`);
@@ -31,6 +31,8 @@ Candidate intake is deliberately **not part of the current HOSTING MVP**. The ho
 ## Source layout
 
 - `api/` — PHP bootstrap, published-only public queries and router;
+- `editor/` — protected Lite Editor session/authentication and UI;
+- `scripts/` — CLI-only operational/bootstrap commands;
 - `config/` — safe templates only; production/local credentials are never committed;
 - `db/` — MySQL schema/migrations;
 - `public/` — Apache/shared-hosting routing templates;
@@ -40,7 +42,7 @@ Candidate intake is deliberately **not part of the current HOSTING MVP**. The ho
 
 `config/config.example.php` is a non-secret template. A real installation will use `config/config.local.php`, which is ignored by Git and must stay outside public reach in the final Timeweb package.
 
-For CI/local automation the same database settings may be supplied through:
+For CI/local automation the database settings may be supplied through:
 
 ```text
 ASTREA_HOSTING_DB_DSN
@@ -50,26 +52,34 @@ ASTREA_HOSTING_DB_PASSWORD
 
 No production credentials belong in Git.
 
+The production editor session is configured with an `HttpOnly` cookie, `SameSite=Strict` and `Secure=true`. Local HTTP development may override `secure` only in ignored local configuration.
+
 ## Database
 
-`db/001_initial.sql` creates the H2 schema and is safe to apply again without overwriting existing predefined-page content.
+Apply migrations in order:
 
-Tables:
+```text
+hosting/db/001_initial.sql
+hosting/db/002_editor_auth.sql
+```
+
+They are idempotent for the intended installation/re-application checks.
+
+Core tables:
 
 - `pages` — six immutable/predefined public page keys;
 - `news` — lodge news;
 - `materials` — unified `book | video | audio | article` collection;
 - `events` — public calendar dates;
-- `editor_users` — account storage reserved for H3, with no seeded credentials;
-- `hosting_schema_migrations` — HOSTING schema version marker.
+- `editor_users` — Lite Editor accounts, with no seeded credentials;
+- `editor_login_attempts` — hashed-client login throttling data;
+- `hosting_schema_migrations` — HOSTING schema version markers.
 
 The predefined pages are seeded unpublished with the same keys used by the FULL edition.
 
 ## Public API — H2
 
-The PHP API is read-only in H2 and returns only rows explicitly marked published.
-
-Existing shared-frontend-compatible routes:
+The PHP public API is read-only and returns only rows explicitly marked published.
 
 ```text
 GET /api/health
@@ -77,23 +87,44 @@ GET /api/v1/health
 GET /api/v1/pages/{key}
 GET /api/v1/news
 GET /api/v1/news/{slug}
-GET /api/v1/videos
-GET /api/v1/videos/{id}
-```
-
-HOSTING-specific routes for the agreed MVP:
-
-```text
 GET /api/v1/materials
 GET /api/v1/materials/{slug}
+GET /api/v1/videos
+GET /api/v1/videos/{id}
 GET /api/v1/events
 ```
 
-Lists accept bounded `limit`/`offset`. Materials may be filtered with `?type=book|video|audio|article`. Events accept optional ISO date bounds such as `?from=2026-09-01&to=2027-01-31`.
+Lists accept bounded `limit`/`offset`. Materials may be filtered with `?type=book|video|audio|article`. Events accept optional ISO date bounds.
 
-The `/videos` contract is derived from published `video` materials and accepts only canonical HTTPS RuTube URLs matching the already accepted FULL-edition provider model. Arbitrary iframe/HTML is never exposed.
+The `/videos` contract is derived from published `video` materials and accepts only canonical HTTPS RuTube URLs matching the FULL-edition provider model. Arbitrary iframe/HTML is never exposed.
 
-No public or editor write endpoint exists yet. Candidate submission paths remain absent and return `404`.
+## Lite Editor authentication — H3A
+
+`/editor/` now provides the protected editor shell and overview. Content edit forms arrive in the following H3 slice.
+
+Security baseline already active:
+
+- PHP server-side session;
+- `HttpOnly` cookie;
+- `SameSite=Strict`;
+- `Secure` cookie in production configuration;
+- session-id rotation on login/logout;
+- eight-hour idle expiry;
+- CSRF token for authenticated writes/logout;
+- `password_hash` / `password_verify` only;
+- generic login errors;
+- login throttling after repeated failures;
+- only a SHA-256 client key is stored for throttle state, not the plain IP address;
+- `noindex`/`nofollow`, no-store and restrictive editor response headers;
+- no public registration.
+
+No editor account is seeded by migrations. One initial account is created explicitly with the CLI-only bootstrap command, which reads the password from standard input rather than command-line arguments:
+
+```text
+php hosting/scripts/bootstrap-editor.php <username>
+```
+
+The bootstrap refuses to create a second account. H5 will document the exact Timeweb invocation and configuration placement.
 
 ## Expected final document-root shape
 
@@ -105,8 +136,8 @@ assets/
 brand/
 media/
 api/
-editor/        # H3
+editor/
 .htaccess
 ```
 
-Private configuration/database bootstrap sources are not to be exposed as public static files.
+Private configuration/database bootstrap sources are not to be exposed as public static files. Candidate submission paths remain absent until a separately approved future Candidate Lite slice.

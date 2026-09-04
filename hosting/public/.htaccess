@@ -10,8 +10,8 @@ DirectoryIndex index.html
   # HOSTING PHP API owns the /api namespace.
   RewriteRule ^api(?:/.*)?$ api/index.php [QSA,L]
 
-  # Lite Editor is reserved for H3 and must never fall through to the public SPA.
-  RewriteRule ^editor(?:/.*)?$ - [L]
+  # Astrea Lite Editor is server-rendered PHP and must never fall through to the public SPA.
+  RewriteRule ^editor(?:/.*)?$ editor/index.php [QSA,L]
 
   # Serve real files/directories unchanged.
   RewriteCond %{REQUEST_FILENAME} -f [OR]
