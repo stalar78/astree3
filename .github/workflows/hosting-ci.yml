@@ -1,0 +1,79 @@
+name: Hosting CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hosting-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hosting-mysql:
+    name: HOSTING MySQL
+    runs-on: ubuntu-latest
+    env:
+      ASTREA_HOSTING_DB_DSN: mysql:host=127.0.0.1;port=3306;dbname=astrea_hosting_ci;charset=utf8mb4
+      ASTREA_HOSTING_DB_USER: astrea_ci
+      ASTREA_HOSTING_DB_PASSWORD: astrea_ci
+      MYSQL_PWD: astrea_ci
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: astrea_hosting_ci
+          MYSQL_USER: astrea_ci
+          MYSQL_PASSWORD: astrea_ci
+          MYSQL_ROOT_PASSWORD: astrea_root_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pastrea_root_ci"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: pdo_mysql
+          coverage: none
+
+      - name: Install MySQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y default-mysql-client
+
+      - name: PHP syntax
+        run: find hosting/api hosting/config hosting/tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Apply HOSTING schema twice
+        run: |
+          mysql -h127.0.0.1 -uastrea_ci astrea_hosting_ci < hosting/db/001_initial.sql
+          mysql -h127.0.0.1 -uastrea_ci astrea_hosting_ci < hosting/db/001_initial.sql
+
+      - name: Verify schema seed
+        run: |
+          test "$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e 'SELECT COUNT(*) FROM pages')" = "6"
+          test "$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e \"SELECT COUNT(*) FROM hosting_schema_migrations WHERE version='001_initial'\")" = "1"
+          test "$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e 'SELECT COUNT(*) FROM editor_users')" = "0"
+
+      - name: Verify published-only public contracts
+        run: php hosting/tests/public_content_contract.php
+
+      - name: Candidate endpoint remains absent
+        run: |
+          ! grep -R -n -E 'candidate-applications|candidate_applications' hosting/api hosting/db
