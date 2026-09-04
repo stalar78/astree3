@@ -1,6 +1,6 @@
 # Astrea Hosting Edition Plan
 
-Status: approved product direction; this revision freezes the client-driven MVP before Build.
+Status: approved product direction; build authorized by user on 2026-09-04 after client scope clarification.
 
 ## Product goal
 
