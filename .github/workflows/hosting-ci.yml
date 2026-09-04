@@ -97,3 +97,50 @@ jobs:
       - name: Candidate endpoint remains absent
         run: |
           ! grep -R -n -E 'candidate-applications|candidate_applications' hosting/api hosting/db hosting/editor
+
+  hosting-package:
+    name: HOSTING Package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: pdo_mysql
+          coverage: none
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+
+      - name: Build and validate HOSTING package
+        run: node hosting/scripts/build-package.mjs --origin=https://hosting-ci.example
+
+      - name: Verify packaged capability preflight
+        run: php hosting/release/astrea-hosting/private/scripts/preflight.php
+
+      - name: Verify public/private package boundary
+        run: |
+          test -f hosting/release/astrea-hosting/public/index.html
+          test -f hosting/release/astrea-hosting/public/.htaccess
+          test -f hosting/release/astrea-hosting/public/api/index.php
+          test -f hosting/release/astrea-hosting/public/editor/index.php
+          test -f hosting/release/astrea-hosting/private/config/config.local.php.example
+          test -f hosting/release/astrea-hosting/private/db/001_initial.sql
+          test -f hosting/release/astrea-hosting/private/scripts/bootstrap-editor.php
+          test ! -e hosting/release/astrea-hosting/public/config
+          test ! -e hosting/release/astrea-hosting/public/private
+          test ! -e hosting/release/astrea-hosting/private/config/config.local.php
+          grep -q 'https://hosting-ci.example/' hosting/release/astrea-hosting/public/sitemap.xml
+          grep -q 'Sitemap: https://hosting-ci.example/sitemap.xml' hosting/release/astrea-hosting/public/robots.txt
+          grep -q '"candidate_intake": false' hosting/release/astrea-hosting/manifest.json
