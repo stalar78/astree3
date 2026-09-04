@@ -182,6 +182,15 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Build HOSTING edition
+        run: |
+          npm run build:hosting
+          test -f dist/index.html
+          test -f ../hosting/api/index.php
+          test -f ../hosting/config/config.example.php
+          test -f ../hosting/public/.htaccess
+          ! grep -R -n -E 'candidate-applications|candidate_applications' ../hosting/api ../hosting/public
+
       - name: Validate production sitemap generation
         run: |
           test ! -e dist/sitemap.xml
