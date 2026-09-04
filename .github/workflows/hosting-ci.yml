@@ -135,12 +135,15 @@ jobs:
           test -f hosting/release/astrea-hosting/public/.htaccess
           test -f hosting/release/astrea-hosting/public/api/index.php
           test -f hosting/release/astrea-hosting/public/editor/index.php
+          test -f hosting/release/astrea-hosting/public/brand/astrea-seal.png
           test -f hosting/release/astrea-hosting/private/config/config.local.php.example
           test -f hosting/release/astrea-hosting/private/db/001_initial.sql
           test -f hosting/release/astrea-hosting/private/scripts/bootstrap-editor.php
           test ! -e hosting/release/astrea-hosting/public/config
           test ! -e hosting/release/astrea-hosting/public/private
           test ! -e hosting/release/astrea-hosting/private/config/config.local.php
+          grep -q 'rel="icon"' hosting/release/astrea-hosting/public/index.html
+          grep -q 'favicon\\.ico' hosting/release/astrea-hosting/public/.htaccess
           grep -q 'https://hosting-ci.example/' hosting/release/astrea-hosting/public/sitemap.xml
           grep -q 'Sitemap: https://hosting-ci.example/sitemap.xml' hosting/release/astrea-hosting/public/robots.txt
           grep -q '"public_indexing": true' hosting/release/astrea-hosting/manifest.json

@@ -7,6 +7,9 @@ DirectoryIndex index.html
   # Never expose private/configuration source paths if packaging changes later.
   RewriteRule ^(?:config|private)(?:/|$) - [F,L,NC]
 
+  # Browser favicon fallback for server-rendered routes such as /editor/.
+  RewriteRule ^favicon\.ico$ brand/astrea-seal.png [L]
+
   # HOSTING PHP API owns the /api namespace.
   RewriteRule ^api(?:/.*)?$ api/index.php [QSA,L]
 
