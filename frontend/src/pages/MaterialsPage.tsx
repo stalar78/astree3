@@ -19,12 +19,11 @@ const MATERIAL_GROUPS: Array<{
   type: PublicMaterialType;
   eyebrow: string;
   title: string;
-  emptyText: string;
 }> = [
-  { type: 'book', eyebrow: 'Библиотека', title: 'Книги', emptyText: 'Рекомендованные книги пока не опубликованы.' },
-  { type: 'video', eyebrow: 'Медиа', title: 'Видео', emptyText: 'Рекомендованные видео пока не опубликованы.' },
-  { type: 'audio', eyebrow: 'Аудио', title: 'Аудио и подкасты', emptyText: 'Аудиоматериалы пока не опубликованы.' },
-  { type: 'article', eyebrow: 'Чтение', title: 'Статьи', emptyText: 'Статьи пока не опубликованы.' },
+  { type: 'book', eyebrow: 'Библиотека', title: 'Книги' },
+  { type: 'video', eyebrow: 'Медиа', title: 'Видео' },
+  { type: 'audio', eyebrow: 'Аудио', title: 'Аудио и подкасты' },
+  { type: 'article', eyebrow: 'Чтение', title: 'Статьи' },
 ];
 
 export function MaterialsPage() {
@@ -173,12 +172,6 @@ function MaterialCard({ material }: { material: PublicMaterial }) {
         <div className="h-px bg-brand-reference-line/65" />
         <p className="text-[15px] font-light leading-7 text-brand-reference-muted">{material.excerpt}</p>
 
-        {material.type === 'audio' && material.media_url ? (
-          <audio controls preload="none" className="w-full" src={material.media_url}>
-            Ваш браузер не поддерживает воспроизведение аудио.
-          </audio>
-        ) : null}
-
         {material.body ? (
           <details className="pt-1 text-[15px] font-light leading-7 text-brand-reference-muted">
             <summary className="cursor-pointer select-none font-semibold text-brand-reference-text">Читать полностью</summary>
@@ -221,6 +214,8 @@ function materialTypeLabel(type: PublicMaterialType): string {
       return 'Аудио';
     case 'article':
       return 'Статья';
+    default:
+      return 'Материал';
   }
 }
 
