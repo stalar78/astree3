@@ -67,9 +67,12 @@ jobs:
 
       - name: Verify schema seed
         run: |
-          test "$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e 'SELECT COUNT(*) FROM pages')" = "6"
-          test "$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e \"SELECT COUNT(*) FROM hosting_schema_migrations WHERE version='001_initial'\")" = "1"
-          test "$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e 'SELECT COUNT(*) FROM editor_users')" = "0"
+          page_count="$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e 'SELECT COUNT(*) FROM pages')"
+          migration_count="$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e "SELECT COUNT(*) FROM hosting_schema_migrations WHERE version = '001_initial'")"
+          editor_count="$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e 'SELECT COUNT(*) FROM editor_users')"
+          test "$page_count" = "6"
+          test "$migration_count" = "1"
+          test "$editor_count" = "0"
 
       - name: Verify published-only public contracts
         run: php hosting/tests/public_content_contract.php
