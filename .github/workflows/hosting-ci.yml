@@ -58,25 +58,39 @@ jobs:
           sudo apt-get install -y default-mysql-client
 
       - name: PHP syntax
-        run: find hosting/api hosting/config hosting/tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+        run: find hosting/api hosting/config hosting/editor hosting/scripts hosting/tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
 
       - name: Apply HOSTING schema twice
         run: |
           mysql -h127.0.0.1 -uastrea_ci astrea_hosting_ci < hosting/db/001_initial.sql
+          mysql -h127.0.0.1 -uastrea_ci astrea_hosting_ci < hosting/db/002_editor_auth.sql
           mysql -h127.0.0.1 -uastrea_ci astrea_hosting_ci < hosting/db/001_initial.sql
+          mysql -h127.0.0.1 -uastrea_ci astrea_hosting_ci < hosting/db/002_editor_auth.sql
 
       - name: Verify schema seed
         run: |
           page_count="$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e 'SELECT COUNT(*) FROM pages')"
-          migration_count="$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e "SELECT COUNT(*) FROM hosting_schema_migrations WHERE version = '001_initial'")"
+          migration_001_count="$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e "SELECT COUNT(*) FROM hosting_schema_migrations WHERE version = '001_initial'")"
+          migration_002_count="$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e "SELECT COUNT(*) FROM hosting_schema_migrations WHERE version = '002_editor_auth'")"
           editor_count="$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e 'SELECT COUNT(*) FROM editor_users')"
           test "$page_count" = "6"
-          test "$migration_count" = "1"
+          test "$migration_001_count" = "1"
+          test "$migration_002_count" = "1"
           test "$editor_count" = "0"
 
       - name: Verify published-only public contracts
         run: php hosting/tests/public_content_contract.php
 
+      - name: Verify Lite Editor auth contracts
+        run: php hosting/tests/editor_auth_contract.php
+
+      - name: Verify one-time editor bootstrap
+        run: |
+          printf '%s' 'ci-editor-password-123456' | php hosting/scripts/bootstrap-editor.php ciadmin
+          editor_count="$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e 'SELECT COUNT(*) FROM editor_users')"
+          test "$editor_count" = "1"
+          ! printf '%s' 'another-ci-password-123456' | php hosting/scripts/bootstrap-editor.php ciadmin2
+
       - name: Candidate endpoint remains absent
         run: |
-          ! grep -R -n -E 'candidate-applications|candidate_applications' hosting/api hosting/db
+          ! grep -R -n -E 'candidate-applications|candidate_applications' hosting/api hosting/db hosting/editor
