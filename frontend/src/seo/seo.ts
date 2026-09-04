@@ -21,9 +21,10 @@ export function applyDocumentSeo({
 }
 
 export function setDocumentIndexability(pathname: string, indexable: boolean) {
-  setNamedMeta('robots', indexable ? INDEX_ROBOTS : NOINDEX_ROBOTS);
+  const effectiveIndexable = publicIndexingEnabled() && indexable;
+  setNamedMeta('robots', effectiveIndexable ? INDEX_ROBOTS : NOINDEX_ROBOTS);
 
-  const canonicalHref = indexable ? buildCanonicalHref(pathname) : null;
+  const canonicalHref = effectiveIndexable ? buildCanonicalHref(pathname) : null;
   let canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
 
   if (!canonicalHref) {
@@ -58,6 +59,10 @@ function setNamedMeta(name: string, content: string) {
     document.head.appendChild(element);
   }
   element.content = content;
+}
+
+function publicIndexingEnabled(): boolean {
+  return import.meta.env.VITE_PUBLIC_INDEXING_ENABLED !== 'false';
 }
 
 function buildCanonicalHref(pathname: string): string | null {
