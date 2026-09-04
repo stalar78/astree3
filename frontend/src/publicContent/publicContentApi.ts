@@ -28,6 +28,37 @@ export type PublicVideo = {
   published_at: string | null;
 };
 
+export type PublicMaterialType = 'book' | 'video' | 'audio' | 'article';
+
+export type PublicMaterial = {
+  id: number;
+  type: PublicMaterialType;
+  slug: string;
+  title: string;
+  excerpt: string;
+  body: string | null;
+  author: string | null;
+  source_url: string | null;
+  media_url: string | null;
+  sort_order: number;
+  published_at: string | null;
+};
+
+export type PublicEventType = 'work' | 'feast' | 'other';
+
+export type PublicEvent = {
+  id: number;
+  title: string;
+  event_date: string;
+  event_type: PublicEventType;
+  note: string | null;
+};
+
+export type PublicEventsQuery = {
+  from?: string;
+  to?: string;
+};
+
 export class PublicContentApiError extends Error {
   readonly status: number;
 
@@ -52,6 +83,17 @@ export async function getPublicPage(key: string, signal?: AbortSignal): Promise<
 
 export async function listPublicVideos(signal?: AbortSignal): Promise<PublicVideo[]> {
   return requestPublicJson<PublicVideo[]>(`${PUBLIC_CONTENT_ROOT}/videos`, signal);
+}
+
+export async function listPublicMaterials(signal?: AbortSignal): Promise<PublicMaterial[]> {
+  return requestPublicJson<PublicMaterial[]>(`${PUBLIC_CONTENT_ROOT}/materials?limit=100`, signal);
+}
+
+export async function listPublicEvents(query: PublicEventsQuery = {}, signal?: AbortSignal): Promise<PublicEvent[]> {
+  const params = new URLSearchParams({ limit: '100' });
+  if (query.from) params.set('from', query.from);
+  if (query.to) params.set('to', query.to);
+  return requestPublicJson<PublicEvent[]>(`${PUBLIC_CONTENT_ROOT}/events?${params.toString()}`, signal);
 }
 
 async function requestPublicJson<T>(url: string, signal?: AbortSignal): Promise<T> {
