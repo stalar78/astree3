@@ -12,7 +12,7 @@ export function SiteFooter() {
         />
       </div>
 
-      <div className="mx-auto max-w-[1280px] px-4 pb-8 pt-[80px] text-center sm:px-5 sm:pb-9 sm:pt-[84px] lg:px-7 lg:pb-8 lg:pt-[74px]">
+      <div className="mx-auto max-w-[1280px] px-4 pb-8 pt-[56px] text-center sm:px-5 sm:pb-9 sm:pt-[54px] lg:px-7 lg:pb-8 lg:pt-[46px]">
         <div className="mx-auto max-w-4xl space-y-1.5 text-[clamp(0.92rem,4vw,1.08rem)] font-light leading-snug text-brand-reference-text/90 sm:text-[clamp(1rem,2.4vw,1.18rem)] lg:text-[clamp(0.92rem,1.2vw,1.08rem)] lg:leading-tight">
           <div className="space-y-1 sm:hidden">
             <p>127287 Полтавская ул. д. 18</p>
