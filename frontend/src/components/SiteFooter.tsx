@@ -1,6 +1,6 @@
 export function SiteFooter() {
   return (
-    <footer className="relative bg-brand-reference-footer text-brand-reference-text">
+    <footer className="relative mt-12 bg-brand-reference-footer text-brand-reference-text sm:mt-14 lg:mt-0">
       <div aria-hidden="true" className="astrea-ceremonial-band relative">
         <div className="h-[4px] bg-white" />
         <div className="h-[4px] bg-black" />
