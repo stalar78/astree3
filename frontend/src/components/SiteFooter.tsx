@@ -6,7 +6,7 @@ export function SiteFooter() {
         <div className="h-[4px] bg-black" />
         <div className="h-[4px] bg-brand-reference-flagRed" />
         <img
-          className="absolute left-1/2 top-[36px] z-20 h-24 w-24 -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_8px_14px_rgba(0,0,0,0.4)] sm:top-[38px] sm:h-[112px] sm:w-[112px] lg:top-[40px] lg:h-[120px] lg:w-[120px]"
+          className="absolute left-1/2 top-[16px] z-20 h-24 w-24 -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_8px_14px_rgba(0,0,0,0.4)] sm:top-[16px] sm:h-[112px] sm:w-[112px] lg:top-[16px] lg:h-[120px] lg:w-[120px]"
           src="/brand/grand-lodge-russia-emblem.png"
           alt=""
         />
