@@ -31,6 +31,11 @@ function overview_counts(PDO $db): array {
     $queries=['news'=>'SELECT COUNT(*) FROM news','materials'=>'SELECT COUNT(*) FROM materials','events'=>'SELECT COUNT(*) FROM events','pages'=>'SELECT COUNT(*) FROM pages'];$out=[];
     foreach($queries as $key=>$sql)$out[$key]=(int)$db->query($sql)->fetchColumn(); return $out;
 }
+function editor_validation_error(string $message): void {
+    $code=http_response_code();
+    if(!is_int($code)||$code<400) http_response_code(422);
+    $GLOBALS['error']=$message;
+}
 
 $error=null; $statusMessage=null; $db=null;
 try {
@@ -57,18 +62,33 @@ try {
             throw new InvalidArgumentException('Некорректный запрос.');
         } else { http_response_code(400);$error='Некорректный запрос.'; }
     }
-} catch(InvalidArgumentException $ex){ http_response_code(422);$error=$ex->getMessage(); }
+} catch(InvalidArgumentException $ex){ editor_validation_error($ex->getMessage()); }
 catch(Throwable){ http_response_code(503);$db=null;$error='Редактор временно недоступен. Проверьте конфигурацию хостинга.'; }
 
 $authenticated=astrea_editor_is_authenticated();$csrfToken=$authenticated?astrea_editor_csrf_token():null;$username=$authenticated?astrea_editor_username():null;$section=editor_section();
 if($authenticated&&isset($_GET['saved']))$statusMessage='Изменения сохранены.'; if($authenticated&&isset($_GET['deleted']))$statusMessage='Запись удалена.';
-$counts=$authenticated&&$db instanceof PDO?overview_counts($db):[];
-$news=$materials=$events=$pages=[];$edit=null;
+$counts=[];$news=$materials=$events=$pages=[];$edit=null;
 if($authenticated&&$db instanceof PDO){
-    if($section==='news'){ $news=astrea_editor_list_news($db); if(isset($_GET['edit']))$edit=astrea_editor_get_news($db,positive_id($_GET['edit'])); }
-    elseif($section==='materials'){ $materials=astrea_editor_list_materials($db); if(isset($_GET['edit']))$edit=astrea_editor_get_material($db,positive_id($_GET['edit'])); }
-    elseif($section==='events'){ $events=astrea_editor_list_events($db); if(isset($_GET['edit']))$edit=astrea_editor_get_event($db,positive_id($_GET['edit'])); }
-    elseif($section==='pages'){ $pages=astrea_editor_list_pages($db); if(isset($_GET['edit'])&&is_string($_GET['edit']))$edit=astrea_editor_get_page($db,$_GET['edit']); }
+    try {
+        $counts=overview_counts($db);
+        if($section==='news'){
+            $news=astrea_editor_list_news($db);
+            if(isset($_GET['edit'])){ $edit=astrea_editor_get_news($db,positive_id($_GET['edit'])); if($edit===null)throw new InvalidArgumentException('Новость не найдена.'); }
+        }
+        elseif($section==='materials'){
+            $materials=astrea_editor_list_materials($db);
+            if(isset($_GET['edit'])){ $edit=astrea_editor_get_material($db,positive_id($_GET['edit'])); if($edit===null)throw new InvalidArgumentException('Материал не найден.'); }
+        }
+        elseif($section==='events'){
+            $events=astrea_editor_list_events($db);
+            if(isset($_GET['edit'])){ $edit=astrea_editor_get_event($db,positive_id($_GET['edit'])); if($edit===null)throw new InvalidArgumentException('Событие не найдено.'); }
+        }
+        elseif($section==='pages'){
+            $pages=astrea_editor_list_pages($db);
+            if(isset($_GET['edit'])&&is_string($_GET['edit'])){ $edit=astrea_editor_get_page($db,$_GET['edit']); if($edit===null)throw new InvalidArgumentException('Страница не найдена.'); }
+        }
+    } catch(InvalidArgumentException $ex){ editor_validation_error($ex->getMessage()); $edit=null; }
+    catch(Throwable){ http_response_code(503);$db=null;$error='Редактор временно недоступен. Проверьте конфигурацию хостинга.'; }
 }
 ?>
 <!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><title>Astrea Lite Editor</title>
