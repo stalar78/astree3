@@ -61,7 +61,7 @@ export function VideoPage() {
                       {DATE.format(new Date(video.published_at))}
                     </time>
                   ) : null}
-                  <h2 className="font-referenceHeading text-[clamp(1.75rem,2.4vw,2.4rem)] font-normal leading-tight text-brand-reference-text">
+                  <h2 className="font-referenceHeading text-[clamp(1.75rem,2.4vw,2.4rem)] font-medium leading-tight text-brand-reference-text">
                     {video.title}
                   </h2>
                   <div className="h-px bg-brand-reference-line/65" />

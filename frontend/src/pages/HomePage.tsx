@@ -28,7 +28,7 @@ export function HomePage() {
 
   return (
     <ReferenceLayout>
-      <div className="space-y-6 sm:space-y-8 lg:space-y-10">
+      <div className="space-y-6 sm:space-y-8 lg:space-y-7">
         <ReferenceCard
           primary
           eyebrow="Астрея №3"
@@ -99,8 +99,8 @@ function ReferenceCard({
 }) {
   const Heading = primary ? 'h1' : 'h2';
   const body = (
-    <article className="rounded-[6px] border border-brand-reference-line/30 bg-brand-reference-panel px-5 py-6 shadow-referenceCard transition-colors hover:border-brand-reference-line/45 sm:px-6 sm:py-7 lg:px-8 lg:py-8">
-      <div className="grid gap-5 md:grid-cols-[36%_1fr] md:items-start md:gap-6">
+    <article className="rounded-[6px] border border-brand-reference-line/30 bg-brand-reference-panel px-5 py-6 shadow-referenceCard transition-colors hover:border-brand-reference-line/45 sm:px-6 sm:py-7 lg:px-7 lg:py-7">
+      <div className="grid gap-5 md:grid-cols-[35%_1fr] md:items-start md:gap-5">
         <div className="overflow-hidden rounded-[5px] border border-brand-reference-line/20 bg-brand-reference-panelDeep">
           {imageUrl ? (
             <img src={imageUrl} alt="" className="aspect-[16/10] w-full object-cover sm:aspect-[1.45/1]" style={imagePosition ? { objectPosition: imagePosition } : undefined} />
@@ -111,12 +111,12 @@ function ReferenceCard({
 
         <div className="min-w-0">
           <p className="text-xs uppercase tracking-[0.12em] text-brand-reference-muted/55">{eyebrow}</p>
-          <Heading className="mt-2 break-words text-[clamp(1.45rem,6vw,1.85rem)] font-light leading-[1.12] text-brand-reference-text md:text-[clamp(1.35rem,1.85vw,1.85rem)]">{title}</Heading>
-          <div className="my-5 h-px bg-brand-reference-line/75" />
-          <p className="hidden text-[15px] font-light leading-[1.4] text-brand-reference-muted md:block">{text}</p>
+          <Heading className="mt-2 break-words font-referenceHeading text-[clamp(1.45rem,6vw,1.85rem)] font-medium leading-[1.12] text-brand-reference-text md:text-[clamp(1.28rem,1.55vw,1.58rem)]">{title}</Heading>
+          <div className="my-4 h-px bg-brand-reference-line/75" />
+          <p className="hidden text-[15px] font-light leading-[1.4] text-brand-reference-muted md:block lg:text-sm lg:leading-6">{text}</p>
         </div>
       </div>
-      <p className="mt-4 text-[15px] font-light leading-[1.5] text-brand-reference-muted sm:mt-5 sm:leading-[1.42]">{text}</p>
+      <p className="mt-4 text-[15px] font-light leading-[1.5] text-brand-reference-muted sm:mt-5 sm:leading-[1.42] lg:text-sm lg:leading-6">{text}</p>
     </article>
   );
 

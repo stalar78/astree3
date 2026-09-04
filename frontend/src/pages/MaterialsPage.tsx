@@ -12,8 +12,8 @@ import { usePublicManagedPage } from '../publicContent/usePublicManagedPage';
 import { applyDocumentSeo, seoDescriptionFromText, siteTitle } from '../seo/seo';
 
 const FALLBACK_TITLE = 'Материалы';
-const FALLBACK_LEAD = 'Публикации, новости и видеоматериалы Д.·. Л.·. «Астрея» №3.';
-const HOSTING_FALLBACK_LEAD = 'Книги, видео, аудио и статьи для первого знакомства с традицией и работой Д.·. Л.·. «Астрея» №3.';
+const FALLBACK_LEAD = 'Публикации, новости и видеоматериалы Д∴ Л∴ «Астрея» №3.';
+const HOSTING_FALLBACK_LEAD = 'Книги, видео, аудио и статьи для первого знакомства с традицией и работой Д∴ Л∴ «Астрея» №3.';
 const DATE = new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
 
 const MATERIAL_GROUPS: Array<{
@@ -131,7 +131,7 @@ function HostingMaterials({ state, materials }: { state: 'idle' | 'loading' | 'r
               <p className="text-xs uppercase tracking-[0.14em] text-brand-reference-muted/55">{group.eyebrow}</p>
               <h2
                 id={`materials-${group.type}`}
-                className="mt-2 font-referenceHeading text-[clamp(1.65rem,5vw,2.25rem)] font-normal leading-tight text-brand-reference-text"
+                className="mt-2 font-referenceHeading text-[clamp(1.65rem,5vw,2.25rem)] font-medium leading-tight text-brand-reference-text"
               >
                 {group.title}
               </h2>
@@ -165,7 +165,7 @@ function MaterialCard({ material }: { material: PublicMaterial }) {
           {material.published_at ? <time dateTime={material.published_at}>{DATE.format(new Date(material.published_at))}</time> : null}
         </div>
 
-        <h3 className="font-referenceHeading text-[clamp(1.45rem,4vw,1.9rem)] font-normal leading-tight text-brand-reference-text">
+        <h3 className="font-referenceHeading text-[clamp(1.45rem,4vw,1.9rem)] font-medium leading-tight text-brand-reference-text">
           {material.title}
         </h3>
 
@@ -236,7 +236,7 @@ function MaterialLink({
     <Link to={to} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-reference-line">
       <ReferencePanel className="h-full transition-colors hover:border-brand-reference-line/55">
         <p className="text-xs uppercase tracking-[0.14em] text-brand-reference-muted/55">{eyebrow}</p>
-        <h2 className="mt-2 font-referenceHeading text-[clamp(1.55rem,5vw,2rem)] font-normal leading-tight text-brand-reference-text">
+        <h2 className="mt-2 font-referenceHeading text-[clamp(1.55rem,5vw,2rem)] font-medium leading-tight text-brand-reference-text">
           {title}
         </h2>
         <div className="my-5 h-px bg-brand-reference-line/70" />
