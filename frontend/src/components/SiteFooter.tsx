@@ -6,13 +6,13 @@ export function SiteFooter() {
         <div className="h-[4px] bg-black" />
         <div className="h-[4px] bg-brand-reference-flagRed" />
         <img
-          className="absolute left-1/2 top-[16px] z-20 h-24 w-24 -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_8px_14px_rgba(0,0,0,0.4)] sm:top-[16px] sm:h-[112px] sm:w-[112px] lg:top-[16px] lg:h-[120px] lg:w-[120px]"
+          className="absolute left-1/2 top-0 z-20 h-24 w-24 -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_8px_14px_rgba(0,0,0,0.4)] sm:top-0 sm:h-[112px] sm:w-[112px] lg:top-0 lg:h-[120px] lg:w-[120px]"
           src="/brand/grand-lodge-russia-emblem.png"
           alt=""
         />
       </div>
 
-      <div className="mx-auto max-w-[1280px] px-4 pb-8 pt-[56px] text-center sm:px-5 sm:pb-9 sm:pt-[54px] lg:px-7 lg:pb-8 lg:pt-[46px]">
+      <div className="mx-auto max-w-[1280px] px-4 pb-8 pt-[40px] text-center sm:px-5 sm:pb-9 sm:pt-[38px] lg:px-7 lg:pb-8 lg:pt-[30px]">
         <div className="mx-auto max-w-4xl space-y-1.5 text-[clamp(0.92rem,4vw,1.08rem)] font-light leading-snug text-brand-reference-text/90 sm:text-[clamp(1rem,2.4vw,1.18rem)] lg:text-[clamp(0.92rem,1.2vw,1.08rem)] lg:leading-tight">
           <div className="space-y-1 sm:hidden">
             <p>127287 Полтавская ул. д. 18</p>
