@@ -12,12 +12,10 @@ function expect_true(bool $condition, string $message): void
 }
 
 $db = astrea_db();
-$db->beginTransaction();
+$db->exec('DELETE FROM editor_login_attempts');
+$db->exec('DELETE FROM editor_users');
 
 try {
-    $db->exec('DELETE FROM editor_login_attempts');
-    $db->exec('DELETE FROM editor_users');
-
     $password = 'correct-horse-battery-staple';
     $hash = password_hash($password, PASSWORD_DEFAULT);
     expect_true(is_string($hash), 'Unable to create test password hash.');
@@ -60,5 +58,6 @@ try {
 
     echo "HOSTING editor auth contract verified.\n";
 } finally {
-    $db->rollBack();
+    $db->exec('DELETE FROM editor_login_attempts');
+    $db->exec('DELETE FROM editor_users');
 }
