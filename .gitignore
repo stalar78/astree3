@@ -25,3 +25,4 @@ Thumbs.db
 uploads/
 backups/
 var/private/
+hosting/config/config.local.php
