@@ -1,7 +1,9 @@
 import type { RouteObject } from 'react-router-dom';
 
 import { AdminProtectedLayout } from './admin/AdminShell';
+import { isHostingEdition } from './config/edition';
 import { CandidatePage } from './pages/CandidatePage';
+import { CandidateUnavailablePage } from './pages/CandidateUnavailablePage';
 import { ContactsPage } from './pages/ContactsPage';
 import { FaqPage } from './pages/FaqPage';
 import { HomePage } from './pages/HomePage';
@@ -29,6 +31,9 @@ export type SeoMeta = {
 };
 
 const commonDescription = 'Официальный сайт Достопочтенной Ложи «Астрея» № 3 на Востоке Санкт-Петербурга.';
+const candidateDescription = isHostingEdition
+  ? 'Информация о вступлении в ДЛ «Астрея» №3 в Санкт-Петербурге.'
+  : 'Анкета кандидата для обращения в ДЛ «Астрея» №3 в Санкт-Петербурге.';
 
 export const routes: RouteObject[] = [
   {
@@ -52,8 +57,8 @@ export const routes: RouteObject[] = [
       },
       {
         path: '/vstuplenie',
-        element: <CandidatePage />,
-        handle: { title: 'Вступление | Astrea', description: 'Анкета кандидата для обращения в ДЛ «Астрея» №3 в Санкт-Петербурге.' } satisfies SeoMeta,
+        element: isHostingEdition ? <CandidateUnavailablePage /> : <CandidatePage />,
+        handle: { title: 'Вступление | Astrea', description: candidateDescription } satisfies SeoMeta,
       },
       {
         path: '/faq',
