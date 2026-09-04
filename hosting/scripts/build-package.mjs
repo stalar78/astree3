@@ -24,15 +24,20 @@ const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const originArg = process.argv.find((argument) => argument.startsWith('--origin='));
 const originInput = originArg?.slice('--origin='.length) || process.env.ASTREA_HOSTING_SITE_ORIGIN || '';
 const skipBuild = process.argv.includes('--skip-build');
+const publicIndexingEnabled = !process.argv.includes('--noindex');
 const siteOrigin = validateOrigin(originInput);
 
 if (!skipBuild) {
   console.log(`Building Astrea HOSTING frontend for ${siteOrigin}.`);
+  if (!publicIndexingEnabled) {
+    console.log('Transitional noindex mode enabled.');
+  }
   const build = spawnSync(npmCommand, ['run', 'build:hosting'], {
     cwd: frontendDir,
     env: {
       ...process.env,
       VITE_PUBLIC_SITE_ORIGIN: siteOrigin,
+      VITE_PUBLIC_INDEXING_ENABLED: publicIndexingEnabled ? 'true' : 'false',
     },
     stdio: 'inherit',
   });
@@ -73,6 +78,7 @@ if (existsSync(deploymentGuide)) {
 const manifest = {
   edition: 'hosting',
   site_origin: siteOrigin,
+  public_indexing: publicIndexingEnabled,
   document_root: 'public',
   private_root: 'private',
   candidate_intake: false,
@@ -88,7 +94,7 @@ console.log('Deploy only the public directory as the web document root; keep pri
 
 function validateOrigin(value) {
   if (!value) {
-    console.error('Usage: node hosting/scripts/build-package.mjs --origin=https://example.com');
+    console.error('Usage: node hosting/scripts/build-package.mjs --origin=https://example.com [--noindex]');
     console.error('Alternatively set ASTREA_HOSTING_SITE_ORIGIN.');
     process.exit(2);
   }
@@ -121,13 +127,15 @@ function validatePackage() {
     'index.html',
     '.htaccess',
     'robots.txt',
-    'sitemap.xml',
     'api/index.php',
     'api/bootstrap.php',
     'editor/index.php',
     'editor/auth.php',
     'editor/content.php',
   ];
+  if (publicIndexingEnabled) {
+    requiredPublicFiles.push('sitemap.xml');
+  }
   for (const path of requiredPublicFiles) {
     if (!existsSync(join(publicRoot, path))) {
       throw new Error(`HOSTING package missing public/${path}`);
@@ -169,7 +177,23 @@ function validatePackage() {
     }
   }
 
-  const sitemap = readFileSync(join(publicRoot, 'sitemap.xml'), 'utf8');
+  const robots = readFileSync(join(publicRoot, 'robots.txt'), 'utf8');
+  const sitemapPath = join(publicRoot, 'sitemap.xml');
+
+  if (!publicIndexingEnabled) {
+    if (existsSync(sitemapPath)) {
+      throw new Error('Transitional noindex package must not contain sitemap.xml.');
+    }
+    if (!/^Disallow:\s*\/$/m.test(robots)) {
+      throw new Error('Transitional noindex package must block crawling in robots.txt.');
+    }
+    if (/^Sitemap:/im.test(robots)) {
+      throw new Error('Transitional noindex package must not advertise a sitemap.');
+    }
+    return;
+  }
+
+  const sitemap = readFileSync(sitemapPath, 'utf8');
   if (!sitemap.includes(`<loc>${siteOrigin}/</loc>`)) {
     throw new Error('Generated sitemap does not contain the configured HOSTING site origin.');
   }
