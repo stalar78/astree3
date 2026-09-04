@@ -80,9 +80,21 @@ async function rewriteRobots(origin) {
   await writeFile(ROBOTS_PATH, robots, 'utf8');
 }
 
+async function writeNoindexRobots() {
+  await writeFile(ROBOTS_PATH, 'User-agent: *\nDisallow: /\n', 'utf8');
+}
+
 const origin = configuredPublicOrigin(process.env.VITE_PUBLIC_SITE_ORIGIN);
+const indexingEnabled = process.env.VITE_PUBLIC_INDEXING_ENABLED !== 'false';
 
 await mkdir(DIST_DIR, { recursive: true });
+
+if (!indexingEnabled) {
+  await rm(SITEMAP_PATH, { force: true });
+  await writeNoindexRobots();
+  console.log('Public indexing disabled: sitemap removed and robots.txt blocks crawling.');
+  process.exit(0);
+}
 
 if (!origin) {
   await rm(SITEMAP_PATH, { force: true });
