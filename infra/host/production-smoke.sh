@@ -107,12 +107,13 @@ pass "robots controls and sitemap discovery"
 expect_status GET /sitemap.xml 200
 grep -Fq "<loc>$ORIGIN/</loc>" "$BODY" || fail "sitemap does not contain the production root"
 grep -Fq "<loc>$ORIGIN/novosti</loc>" "$BODY" || fail "sitemap does not contain the public news index"
+grep -Fq "<loc>$ORIGIN/materialy</loc>" "$BODY" || fail "sitemap does not contain the materials page"
 if grep -Fq '/admin' "$BODY" || grep -Fq '/api/' "$BODY"; then
     fail "sitemap exposes a non-public path"
 fi
 pass "production sitemap"
 
-for path in /o-lozhe /novosti /video /faq /kontakty /vstuplenie; do
+for path in /o-lozhe /novosti /video /materialy /faq /kontakty /vstuplenie; do
     expect_status GET "$path" 200
     pass "public route $path"
 done

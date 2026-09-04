@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 
 const navigation = [
+  ['Главная', '/'],
   ['История', '/o-lozhe'],
   ['События', '/novosti'],
   ['Медиа', '/video'],
-  ['Материалы', null],
+  ['Материалы', '/materialy'],
   ['Кандидату', '/vstuplenie'],
   ['Контакты', '/kontakty'],
 ] as const;
@@ -42,7 +43,10 @@ export function SiteHeader() {
         </NavLink>
 
         <div className="flex h-full items-center justify-center px-[240px] pb-2 text-center">
-          <p className="font-referenceHeading text-[clamp(1.9rem,2.25vw,2.2rem)] font-normal leading-none tracking-normal text-brand-reference-text">
+          <p
+            className="text-[clamp(1.9rem,2.25vw,2.2rem)] font-normal leading-none tracking-normal text-brand-reference-text"
+            style={{ fontFamily: '"Times New Roman", Times, serif' }}
+          >
             Д.·. Л.·. «Астрея» №3 на Востоке г. Санкт-Петербурга
           </p>
         </div>
@@ -64,7 +68,10 @@ export function SiteHeader() {
         <NavLink to="/" aria-label="На главную" className="self-center">
           <img className="h-16 w-16 object-contain sm:h-20 sm:w-20" src="/brand/symbols/symbol-06.png" alt="" />
         </NavLink>
-        <p className="min-w-0 break-words font-referenceHeading text-[clamp(1.05rem,5.1vw,1.55rem)] font-normal leading-[1.08] text-brand-reference-text sm:text-[clamp(1.35rem,4.2vw,1.85rem)]">
+        <p
+          className="min-w-0 break-words text-[clamp(1.05rem,5.1vw,1.55rem)] font-normal leading-[1.08] text-brand-reference-text sm:text-[clamp(1.35rem,4.2vw,1.85rem)]"
+          style={{ fontFamily: '"Times New Roman", Times, serif' }}
+        >
           Д.·. Л.·. «Астрея» №3 на Востоке г. Санкт-Петербурга
         </p>
       </div>
@@ -73,24 +80,18 @@ export function SiteHeader() {
 
       <div className="relative mx-auto max-w-[1534px] px-4 sm:px-5 lg:px-8">
         <div className="flex min-h-[56px] items-center sm:min-h-[64px] lg:min-h-[68px] lg:px-[155px] lg:pr-[225px]">
-          <nav className="hidden w-full items-center justify-center gap-10 text-[17px] font-light text-brand-reference-muted lg:flex" aria-label="Основная навигация">
-            {navigation.map(([label, href]) =>
-              href ? (
-                <NavLink
-                  key={label}
-                  to={href}
-                  className={({ isActive }) =>
-                    `transition-colors hover:text-white focus:text-white ${isActive ? 'text-white' : ''}`
-                  }
-                >
-                  {label}
-                </NavLink>
-              ) : (
-                <span key={label} aria-disabled="true" className="cursor-default text-brand-reference-muted/70" title="Раздел будет подключен после уточнения назначения">
-                  {label}
-                </span>
-              ),
-            )}
+          <nav className="hidden w-full items-center justify-center gap-4 text-[15px] font-light text-brand-reference-muted lg:flex xl:gap-8 xl:text-[17px]" aria-label="Основная навигация">
+            {navigation.map(([label, href]) => (
+              <NavLink
+                key={label}
+                to={href}
+                className={({ isActive }) =>
+                  `transition-colors hover:text-white focus:text-white ${isActive ? 'text-white' : ''}`
+                }
+              >
+                {label}
+              </NavLink>
+            ))}
           </nav>
 
           <button
@@ -108,24 +109,18 @@ export function SiteHeader() {
       {open ? (
         <nav id="mobile-nav" className="border-t border-white/10 bg-brand-reference-panelDeep px-4 py-3 sm:px-5 sm:py-4 lg:hidden" aria-label="Мобильная навигация">
           <div className="mx-auto grid max-w-[1534px] gap-1 text-base text-brand-reference-muted">
-            {navigation.map(([label, href]) =>
-              href ? (
-                <NavLink
-                  key={label}
-                  to={href}
-                  onClick={() => setOpen(false)}
-                  className={({ isActive }) =>
-                    `rounded-[5px] px-3 py-2.5 transition-colors hover:bg-white/5 hover:text-white focus:bg-white/5 focus:text-white ${isActive ? 'bg-white/5 text-white' : ''}`
-                  }
-                >
-                  {label}
-                </NavLink>
-              ) : (
-                <span key={label} aria-disabled="true" className="px-3 py-2.5 text-brand-reference-muted/45">
-                  {label}
-                </span>
-              ),
-            )}
+            {navigation.map(([label, href]) => (
+              <NavLink
+                key={label}
+                to={href}
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `rounded-[5px] px-3 py-2.5 transition-colors hover:bg-white/5 hover:text-white focus:bg-white/5 focus:text-white ${isActive ? 'bg-white/5 text-white' : ''}`
+                }
+              >
+                {label}
+              </NavLink>
+            ))}
           </div>
         </nav>
       ) : null}

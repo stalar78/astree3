@@ -7,6 +7,7 @@ import { FaqPage } from './pages/FaqPage';
 import { HomePage } from './pages/HomePage';
 import { LegalPage } from './pages/LegalPage';
 import { LodgesPage } from './pages/LodgesPage';
+import { MaterialsPage } from './pages/MaterialsPage';
 import { NewsArticlePage } from './pages/NewsArticlePage';
 import { NewsPage } from './pages/NewsPage';
 import { PageShell } from './components/PageShell';
@@ -77,6 +78,11 @@ export const routes: RouteObject[] = [
         path: '/video',
         element: <VideoPage />,
         handle: { title: 'Видео | Astrea', description: 'Раздел внешних видеоматериалов, ожидающий утвержденных ссылок.' } satisfies SeoMeta,
+      },
+      {
+        path: '/materialy',
+        element: <MaterialsPage />,
+        handle: { title: 'Материалы | Astrea', description: 'Публикации, новости и видеоматериалы Д.Л. «Астрея» № 3.' } satisfies SeoMeta,
       },
       {
         path: '/kontakty',
