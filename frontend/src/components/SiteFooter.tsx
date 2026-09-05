@@ -29,6 +29,15 @@ export function SiteFooter() {
           <p>Пн – Пт 10.00 – 18.00</p>
         </div>
       </div>
+
+      <a
+        className="absolute bottom-3 right-4 text-xs font-light text-brand-reference-text/55 transition-colors hover:text-white sm:right-5 lg:right-7"
+        href="https://stalarvision.ru/"
+        target="_blank"
+        rel="noreferrer"
+      >
+        by StalarVision
+      </a>
     </footer>
   );
 }
