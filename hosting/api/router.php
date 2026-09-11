@@ -3,9 +3,23 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/public_content.php';
+require_once __DIR__ . '/candidate_mail.php';
 
-function astrea_dispatch(PDO $db, string $method, string $path, array $query): array
+function astrea_dispatch(PDO $db, string $method, string $path, array $query, ?array $form = null, ?array $files = null): array
 {
+    if ($method === 'POST' && $path === '/api/v1/candidate-applications') {
+        try {
+            astrea_candidate_submit($form ?? $_POST, $files ?? $_FILES);
+            return [201, ['accepted' => true]];
+        } catch (LengthException) {
+            return [413, ['detail' => 'Request too large']];
+        } catch (InvalidArgumentException) {
+            return [422, ['detail' => 'Invalid request']];
+        } catch (RuntimeException) {
+            return [503, ['detail' => 'Service unavailable']];
+        }
+    }
+
     if ($method !== 'GET') {
         return [404, ['detail' => 'Not found']];
     }
