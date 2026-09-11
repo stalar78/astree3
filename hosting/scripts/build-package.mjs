@@ -86,6 +86,8 @@ const manifest = {
   candidate_mail_to: 'freemasons@internet.ru',
   news_image_upload: true,
   news_image_storage: 'private/uploads/news',
+  content_image_upload: true,
+  content_image_storage: 'private/uploads/content',
   schema: ['001_initial', '002_editor_auth', '003_homepage_blocks'],
 };
 writeFileSync(join(releaseRoot, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
@@ -135,10 +137,12 @@ function validatePackage() {
     'api/bootstrap.php',
     'api/candidate_mail.php',
     'api/news_image.php',
+    'api/content_image.php',
     'editor/index.php',
     'editor/auth.php',
     'editor/content.php',
     'editor/news_images.php',
+    'editor/content_images.php',
   ];
   if (publicIndexingEnabled) {
     requiredPublicFiles.push('sitemap.xml');
@@ -185,6 +189,14 @@ function validatePackage() {
   const htaccess = readFileSync(join(publicRoot, '.htaccess'), 'utf8');
   if (!htaccess.includes('uploads/news/') || !htaccess.includes('api/news_image.php')) {
     throw new Error('HOSTING news image route is missing from the package.');
+  }
+  if (!htaccess.includes('uploads/content/') || !htaccess.includes('api/content_image.php')) {
+    throw new Error('HOSTING managed content image route is missing from the package.');
+  }
+
+  const editor = readFileSync(join(publicRoot, 'editor', 'index.php'), 'utf8');
+  if (!editor.includes('name="image_file"') || !editor.includes('name="media_file"')) {
+    throw new Error('HOSTING Lite Editor managed image upload controls are missing from the package.');
   }
 
   const robots = readFileSync(join(publicRoot, 'robots.txt'), 'utf8');
