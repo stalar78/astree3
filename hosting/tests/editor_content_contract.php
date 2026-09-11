@@ -16,9 +16,13 @@ $originalHome = astrea_editor_get_home_block($db, 'home_1');
 if (!is_array($originalPage)) throw new RuntimeException('Seeded materials page missing.');
 if (!is_array($originalHome)) throw new RuntimeException('Seeded homepage block missing.');
 
+$uploadRoot = sys_get_temp_dir() . '/astrea-news-upload-' . bin2hex(random_bytes(8));
+putenv('ASTREA_HOSTING_NEWS_UPLOAD_DIR=' . $uploadRoot);
+
 $newsId = null;
 $materialId = null;
 $eventId = null;
+$temporaryFiles = [];
 
 try {
     $visiblePages = astrea_editor_list_pages($db);
@@ -44,13 +48,34 @@ try {
     $homePayload = json_decode((string)$publicHome['content'], true);
     expect_true(is_array($homePayload) && $homePayload['eyebrow'] === 'CI Home', 'Homepage block payload is invalid.');
 
+    $pngBytes = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', true);
+    if (!is_string($pngBytes)) throw new RuntimeException('Unable to build test image.');
+    $tmpImage = tempnam(sys_get_temp_dir(), 'astrea-news-');
+    if (!is_string($tmpImage)) throw new RuntimeException('Unable to create test image.');
+    $temporaryFiles[] = $tmpImage;
+    file_put_contents($tmpImage, $pngBytes);
+    $imageFile = [
+        'name' => 'news.png',
+        'type' => 'image/png',
+        'tmp_name' => $tmpImage,
+        'error' => UPLOAD_ERR_OK,
+        'size' => filesize($tmpImage),
+    ];
+    $testImageStore = static fn(array $file): string => astrea_editor_store_news_image($file, false);
+
     $newsId = astrea_editor_save_news($db, [
         'slug' => 'ci-news-item',
         'title' => 'CI News',
         'excerpt' => 'Short text',
         'body' => 'Full text',
-    ]);
+    ], ['image_file' => $imageFile], $testImageStore);
     expect_true(astrea_public_news_post($db, 'ci-news-item') === null, 'Draft news leaked publicly.');
+
+    $storedNews = astrea_editor_get_news($db, $newsId);
+    $storedImageUrl = is_array($storedNews) ? ($storedNews['image_url'] ?? null) : null;
+    $storedFilename = astrea_editor_news_image_filename($storedImageUrl);
+    expect_true(is_string($storedFilename), 'Uploaded news image URL was not stored.');
+    expect_true(is_file($uploadRoot . DIRECTORY_SEPARATOR . $storedFilename), 'Uploaded news image file is missing.');
 
     astrea_editor_save_news($db, [
         'id' => $newsId,
@@ -62,6 +87,39 @@ try {
     ]);
     $publicNews = astrea_public_news_post($db, 'ci-news-item');
     expect_true(is_array($publicNews) && $publicNews['title'] === 'CI News Published', 'Published news unavailable publicly.');
+    expect_true(($publicNews['image_url'] ?? null) === $storedImageUrl, 'Published news lost uploaded image URL.');
+
+    astrea_editor_save_news($db, [
+        'id' => $newsId,
+        'slug' => 'ci-news-item',
+        'title' => 'CI News Published',
+        'excerpt' => 'Short text',
+        'body' => 'Full text',
+        'image_url' => $storedImageUrl,
+        'remove_image' => '1',
+        'is_published' => '1',
+    ]);
+    $withoutImage = astrea_editor_get_news($db, $newsId);
+    expect_true(is_array($withoutImage) && $withoutImage['image_url'] === null, 'News image removal did not persist.');
+    expect_true(!is_file($uploadRoot . DIRECTORY_SEPARATOR . $storedFilename), 'Removed news image file still exists.');
+
+    $badFile = tempnam(sys_get_temp_dir(), 'astrea-bad-image-');
+    if (!is_string($badFile)) throw new RuntimeException('Unable to create invalid image fixture.');
+    $temporaryFiles[] = $badFile;
+    file_put_contents($badFile, 'not an image');
+    $badRejected = false;
+    try {
+        astrea_editor_store_news_image([
+            'name' => 'fake.png',
+            'type' => 'image/png',
+            'tmp_name' => $badFile,
+            'error' => UPLOAD_ERR_OK,
+            'size' => filesize($badFile),
+        ], false);
+    } catch (InvalidArgumentException) {
+        $badRejected = true;
+    }
+    expect_true($badRejected, 'Non-image upload accepted as a news image.');
 
     $materialId = astrea_editor_save_material($db, [
         'material_type' => 'video',
@@ -145,6 +203,16 @@ try {
     if (is_int($newsId)) astrea_editor_delete_news($db, $newsId);
     if (is_int($materialId)) astrea_editor_delete_material($db, $materialId);
     if (is_int($eventId)) astrea_editor_delete_event($db, $eventId);
+    foreach ($temporaryFiles as $temporaryFile) {
+        if (is_string($temporaryFile) && is_file($temporaryFile)) @unlink($temporaryFile);
+    }
+    if (is_dir($uploadRoot)) {
+        foreach (glob($uploadRoot . DIRECTORY_SEPARATOR . '*') ?: [] as $file) {
+            if (is_file($file)) @unlink($file);
+        }
+        @rmdir($uploadRoot);
+    }
+    putenv('ASTREA_HOSTING_NEWS_UPLOAD_DIR');
     $restore = $db->prepare('UPDATE pages SET title=:title, content=:content, is_published=:is_published WHERE `key`=:key');
     $restore->execute([
         'title'=>$originalPage['title'],
