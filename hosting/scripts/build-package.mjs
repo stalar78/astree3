@@ -38,6 +38,7 @@ if (!skipBuild) {
       ...process.env,
       VITE_PUBLIC_SITE_ORIGIN: siteOrigin,
       VITE_PUBLIC_INDEXING_ENABLED: publicIndexingEnabled ? 'true' : 'false',
+      VITE_CANDIDATE_FORM_ENABLED: 'true',
     },
     stdio: 'inherit',
   });
@@ -81,8 +82,9 @@ const manifest = {
   public_indexing: publicIndexingEnabled,
   document_root: 'public',
   private_root: 'private',
-  candidate_intake: false,
-  schema: ['001_initial', '002_editor_auth'],
+  candidate_intake: true,
+  candidate_mail_to: 'freemasons@internet.ru',
+  schema: ['001_initial', '002_editor_auth', '003_homepage_blocks'],
 };
 writeFileSync(join(releaseRoot, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
 
@@ -129,6 +131,7 @@ function validatePackage() {
     'robots.txt',
     'api/index.php',
     'api/bootstrap.php',
+    'api/candidate_mail.php',
     'editor/index.php',
     'editor/auth.php',
     'editor/content.php',
@@ -146,6 +149,7 @@ function validatePackage() {
     'config/config.local.php.example',
     'db/001_initial.sql',
     'db/002_editor_auth.sql',
+    'db/003_homepage_blocks.sql',
     'scripts/bootstrap-editor.php',
     'scripts/preflight.php',
   ];
@@ -169,12 +173,9 @@ function validatePackage() {
     }
   }
 
-  const runtimeFiles = walkFiles(join(publicRoot, 'api')).concat(walkFiles(join(publicRoot, 'editor')));
-  for (const file of runtimeFiles) {
-    const contents = readFileSync(file, 'utf8');
-    if (contents.includes('candidate-applications') || contents.includes('candidate_applications')) {
-      throw new Error(`Candidate runtime unexpectedly present in HOSTING package: ${relative(publicRoot, file)}`);
-    }
+  const candidateRouter = readFileSync(join(publicRoot, 'api', 'router.php'), 'utf8');
+  if (!candidateRouter.includes('/api/v1/candidate-applications')) {
+    throw new Error('HOSTING candidate endpoint is missing from the package.');
   }
 
   const robots = readFileSync(join(publicRoot, 'robots.txt'), 'utf8');
