@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/api/public_content.php';
+require_once __DIR__ . '/news_images.php';
 
 const ASTREA_EDITOR_PAGE_KEYS = ['about', 'contacts', 'materials'];
 const ASTREA_EDITOR_HOME_KEYS = ['home_1', 'home_2', 'home_3'];
@@ -77,39 +78,73 @@ function astrea_editor_get_news(PDO $db, int $id): ?array
     return is_array($row) ? $row : null;
 }
 
-function astrea_editor_save_news(PDO $db, array $input): int
+function astrea_editor_save_news(PDO $db, array $input, array $files = [], ?callable $imageStore = null): int
 {
     $id = max(0, (int)($input['id'] ?? 0));
     $slug = astrea_editor_slug($input['slug'] ?? null);
     $title = astrea_editor_text($input['title'] ?? null, 255, true);
     $excerpt = astrea_editor_text($input['excerpt'] ?? null, 5000, true);
     $body = astrea_editor_text($input['body'] ?? null, 200000, true);
-    $imageUrl = astrea_editor_https_url($input['image_url'] ?? null, 500);
     $published = astrea_editor_bool($input['is_published'] ?? null);
     $existing = $id > 0 ? astrea_editor_get_news($db, $id) : null;
     if ($id > 0 && $existing === null) throw new InvalidArgumentException('Новость не найдена.');
     $publishedAt = astrea_editor_publish_timestamp($published, $existing['published_at'] ?? null);
 
+    $previousImageUrl = is_string($existing['image_url'] ?? null) ? $existing['image_url'] : null;
+    $newStoredImageUrl = null;
+    $upload = is_array($files['image_file'] ?? null) ? $files['image_file'] : null;
+    $hasUpload = is_array($upload) && (($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE);
+
     try {
-        $params = ['slug'=>$slug,'title'=>$title,'excerpt'=>$excerpt,'body'=>$body,'image_url'=>$imageUrl,'is_published'=>$published,'published_at'=>$publishedAt];
+        if ($hasUpload) {
+            $store = $imageStore ?? static fn(array $file): string => astrea_editor_store_news_image($file);
+            $newStoredImageUrl = $store($upload);
+            if (astrea_editor_news_image_filename($newStoredImageUrl) === null) {
+                throw new RuntimeException('Не удалось сохранить загруженное изображение.');
+            }
+            $imageUrl = $newStoredImageUrl;
+        } elseif (astrea_editor_bool($input['remove_image'] ?? null) === 1) {
+            $imageUrl = null;
+        } elseif (array_key_exists('image_url', $input)) {
+            $imageUrl = astrea_editor_news_image_url($input['image_url']);
+        } else {
+            $imageUrl = $previousImageUrl;
+        }
+
+        $params = [
+            'slug' => $slug,
+            'title' => $title,
+            'excerpt' => $excerpt,
+            'body' => $body,
+            'image_url' => $imageUrl,
+            'is_published' => $published,
+            'published_at' => $publishedAt,
+        ];
         if ($id > 0) {
             $st = $db->prepare('UPDATE news SET slug=:slug,title=:title,excerpt=:excerpt,body=:body,image_url=:image_url,is_published=:is_published,published_at=:published_at WHERE id=:id');
             $st->execute($params + ['id'=>$id]);
+            if ($previousImageUrl !== $imageUrl) astrea_editor_delete_news_image($previousImageUrl);
             return $id;
         }
         $st = $db->prepare('INSERT INTO news (slug,title,excerpt,body,image_url,is_published,published_at) VALUES (:slug,:title,:excerpt,:body,:image_url,:is_published,:published_at)');
         $st->execute($params);
         return (int)$db->lastInsertId();
     } catch (PDOException $error) {
+        if ($newStoredImageUrl !== null) astrea_editor_delete_news_image($newStoredImageUrl);
         if ((string)$error->getCode() === '23000') throw new InvalidArgumentException('Такой slug уже используется.');
+        throw $error;
+    } catch (Throwable $error) {
+        if ($newStoredImageUrl !== null) astrea_editor_delete_news_image($newStoredImageUrl);
         throw $error;
     }
 }
 
 function astrea_editor_delete_news(PDO $db, int $id): void
 {
+    $existing = astrea_editor_get_news($db, $id);
     $st = $db->prepare('DELETE FROM news WHERE id=:id');
     $st->execute(['id'=>$id]);
+    if (is_array($existing)) astrea_editor_delete_news_image($existing['image_url'] ?? null);
 }
 
 function astrea_editor_list_materials(PDO $db): array
