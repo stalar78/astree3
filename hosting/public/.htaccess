@@ -12,6 +12,7 @@ DirectoryIndex index.html
 
   # Persistent news uploads live outside the release document root and are streamed by PHP.
   RewriteRule ^uploads/news/([a-f0-9]{32}\.(?:jpg|png|webp))$ api/news_image.php?file=$1 [QSA,L,NC]
+  RewriteRule ^api/news_image\.php$ - [L]
 
   # HOSTING PHP API owns the /api namespace.
   RewriteRule ^api(?:/.*)?$ api/index.php [QSA,L]
