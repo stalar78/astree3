@@ -72,7 +72,12 @@ try {
     expect_status(astrea_dispatch($db, 'GET', '/api/v1/news', ['limit' => '101']), 422);
     expect_status(astrea_dispatch($db, 'GET', '/api/v1/events', ['from' => '2026-10-01', 'to' => '2026-09-01']), 422);
     expect_status(astrea_dispatch($db, 'POST', '/api/v1/news', []), 404);
-    expect_status(astrea_dispatch($db, 'POST', '/api/v1/candidate-applications', []), 404);
+    expect_status(astrea_dispatch($db, 'POST', '/api/v1/candidate-applications', [], [], []), 422);
+    $botResponse = expect_status(
+        astrea_dispatch($db, 'POST', '/api/v1/candidate-applications', [], ['website' => 'bot-value'], []),
+        201
+    );
+    expect_true(($botResponse['accepted'] ?? false) === true, 'Honeypot request must fail closed without mail delivery.');
 
     $editorUsers = (int) $db->query('SELECT COUNT(*) FROM editor_users')->fetchColumn();
     expect_true($editorUsers === 0, 'H2 must not seed editor credentials.');
