@@ -184,12 +184,14 @@ jobs:
 
       - name: Build HOSTING edition
         run: |
-          npm run build:hosting
+          VITE_CANDIDATE_FORM_ENABLED=true npm run build:hosting
           test -f dist/index.html
           test -f ../hosting/api/index.php
+          test -f ../hosting/api/candidate_mail.php
           test -f ../hosting/config/config.example.php
           test -f ../hosting/public/.htaccess
-          ! grep -R -n -E 'candidate-applications|candidate_applications' ../hosting/api ../hosting/public
+          grep -Fq '/api/v1/candidate-applications' ../hosting/api/router.php
+          grep -R -Fq 'Анкета кандидата' dist/assets
 
       - name: Validate production sitemap generation
         run: |

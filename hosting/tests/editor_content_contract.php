@@ -12,13 +12,38 @@ function expect_true(bool $condition, string $message): void
 
 $db = astrea_db();
 $originalPage = astrea_editor_get_page($db, 'materials');
+$originalHome = astrea_editor_get_home_block($db, 'home_1');
 if (!is_array($originalPage)) throw new RuntimeException('Seeded materials page missing.');
+if (!is_array($originalHome)) throw new RuntimeException('Seeded homepage block missing.');
 
 $newsId = null;
 $materialId = null;
 $eventId = null;
 
 try {
+    $visiblePages = astrea_editor_list_pages($db);
+    expect_true(count($visiblePages) === 3, 'Lite Editor page list must match the current frontend.');
+    $visibleKeys = array_map(static fn(array $row): string => (string)$row['key'], $visiblePages);
+    expect_true($visibleKeys === ['about', 'contacts', 'materials'], 'Unexpected Lite Editor page keys.');
+    expect_true(astrea_editor_get_page($db, 'faq') === null, 'FAQ must not be exposed in Lite Editor.');
+    expect_true(astrea_editor_get_page($db, 'lodges_spb') === null, 'Lodges page must not be exposed in Lite Editor.');
+    expect_true(astrea_editor_get_page($db, 'principles') === null, 'Principles page must not be exposed in Lite Editor.');
+
+    $homeBlocks = astrea_editor_list_home_blocks($db);
+    expect_true(count($homeBlocks) === 3, 'Expected three editable homepage blocks.');
+    astrea_editor_save_home_block($db, [
+        'key' => 'home_1',
+        'eyebrow' => 'CI Home',
+        'title' => 'CI Homepage Title',
+        'text' => 'CI homepage text',
+        'image_url' => '/media/home/home-welcome.webp',
+        'href' => '/materialy',
+    ]);
+    $publicHome = astrea_public_page($db, 'home_1');
+    expect_true(is_array($publicHome) && $publicHome['title'] === 'CI Homepage Title', 'Homepage block did not publish.');
+    $homePayload = json_decode((string)$publicHome['content'], true);
+    expect_true(is_array($homePayload) && $homePayload['eyebrow'] === 'CI Home', 'Homepage block payload is invalid.');
+
     $newsId = astrea_editor_save_news($db, [
         'slug' => 'ci-news-item',
         'title' => 'CI News',
@@ -126,5 +151,17 @@ try {
         'content'=>$originalPage['content'],
         'is_published'=>$originalPage['is_published'],
         'key'=>'materials',
+    ]);
+    $originalHomeContent = json_encode([
+        'eyebrow'=>$originalHome['eyebrow'],
+        'text'=>$originalHome['text'],
+        'image_url'=>$originalHome['image_url'] !== '' ? $originalHome['image_url'] : null,
+        'href'=>$originalHome['href'] !== '' ? $originalHome['href'] : null,
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $restore->execute([
+        'title'=>$originalHome['title'],
+        'content'=>$originalHomeContent,
+        'is_published'=>1,
+        'key'=>'home_1',
     ]);
 }

@@ -49,7 +49,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
-          extensions: pdo_mysql
+          extensions: pdo_mysql, fileinfo
           coverage: none
 
       - name: Install MySQL client
@@ -64,22 +64,29 @@ jobs:
         run: |
           mysql -h127.0.0.1 -uastrea_ci astrea_hosting_ci < hosting/db/001_initial.sql
           mysql -h127.0.0.1 -uastrea_ci astrea_hosting_ci < hosting/db/002_editor_auth.sql
+          mysql -h127.0.0.1 -uastrea_ci astrea_hosting_ci < hosting/db/003_homepage_blocks.sql
           mysql -h127.0.0.1 -uastrea_ci astrea_hosting_ci < hosting/db/001_initial.sql
           mysql -h127.0.0.1 -uastrea_ci astrea_hosting_ci < hosting/db/002_editor_auth.sql
+          mysql -h127.0.0.1 -uastrea_ci astrea_hosting_ci < hosting/db/003_homepage_blocks.sql
 
       - name: Verify schema seed
         run: |
           page_count="$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e 'SELECT COUNT(*) FROM pages')"
           migration_001_count="$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e "SELECT COUNT(*) FROM hosting_schema_migrations WHERE version = '001_initial'")"
           migration_002_count="$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e "SELECT COUNT(*) FROM hosting_schema_migrations WHERE version = '002_editor_auth'")"
+          migration_003_count="$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e "SELECT COUNT(*) FROM hosting_schema_migrations WHERE version = '003_homepage_blocks'")"
           editor_count="$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e 'SELECT COUNT(*) FROM editor_users')"
-          test "$page_count" = "6"
+          test "$page_count" = "9"
           test "$migration_001_count" = "1"
           test "$migration_002_count" = "1"
+          test "$migration_003_count" = "1"
           test "$editor_count" = "0"
 
       - name: Verify published-only public contracts
         run: php hosting/tests/public_content_contract.php
+
+      - name: Verify candidate mail contract
+        run: php hosting/tests/candidate_mail_contract.php
 
       - name: Verify Lite Editor auth contracts
         run: php hosting/tests/editor_auth_contract.php
@@ -93,10 +100,6 @@ jobs:
           editor_count="$(mysql -N -B -h127.0.0.1 -uastrea_ci astrea_hosting_ci -e 'SELECT COUNT(*) FROM editor_users')"
           test "$editor_count" = "1"
           ! printf '%s' 'another-ci-password-123456' | php hosting/scripts/bootstrap-editor.php ciadmin2
-
-      - name: Candidate endpoint remains absent
-        run: |
-          ! grep -R -n -E 'candidate-applications|candidate_applications' hosting/api hosting/db hosting/editor
 
   hosting-package:
     name: HOSTING Package
@@ -117,7 +120,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
-          extensions: pdo_mysql
+          extensions: pdo_mysql, fileinfo
           coverage: none
 
       - name: Install frontend dependencies
@@ -134,10 +137,12 @@ jobs:
           test -f hosting/release/astrea-hosting/public/index.html
           test -f hosting/release/astrea-hosting/public/.htaccess
           test -f hosting/release/astrea-hosting/public/api/index.php
+          test -f hosting/release/astrea-hosting/public/api/candidate_mail.php
           test -f hosting/release/astrea-hosting/public/editor/index.php
           test -f hosting/release/astrea-hosting/public/brand/astrea-seal.png
           test -f hosting/release/astrea-hosting/private/config/config.local.php.example
           test -f hosting/release/astrea-hosting/private/db/001_initial.sql
+          test -f hosting/release/astrea-hosting/private/db/003_homepage_blocks.sql
           test -f hosting/release/astrea-hosting/private/scripts/bootstrap-editor.php
           test ! -e hosting/release/astrea-hosting/public/config
           test ! -e hosting/release/astrea-hosting/public/private
@@ -147,7 +152,9 @@ jobs:
           grep -q 'https://hosting-ci.example/' hosting/release/astrea-hosting/public/sitemap.xml
           grep -q 'Sitemap: https://hosting-ci.example/sitemap.xml' hosting/release/astrea-hosting/public/robots.txt
           grep -q '"public_indexing": true' hosting/release/astrea-hosting/manifest.json
-          grep -q '"candidate_intake": false' hosting/release/astrea-hosting/manifest.json
+          grep -q '"candidate_intake": true' hosting/release/astrea-hosting/manifest.json
+          grep -q '"candidate_mail_to": "freemasons@internet.ru"' hosting/release/astrea-hosting/manifest.json
+          grep -q '"003_homepage_blocks"' hosting/release/astrea-hosting/manifest.json
 
       - name: Build and verify transitional noindex package
         run: |
