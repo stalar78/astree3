@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/api/public_content.php';
 
-const ASTREA_EDITOR_PAGE_KEYS = ['about', 'contacts', 'faq', 'lodges_spb', 'materials', 'principles'];
+const ASTREA_EDITOR_PAGE_KEYS = ['about', 'contacts', 'materials'];
+const ASTREA_EDITOR_HOME_KEYS = ['home_1', 'home_2', 'home_3'];
 const ASTREA_EDITOR_EVENT_TYPES = ['work', 'feast', 'other'];
 
 function astrea_editor_text(mixed $value, int $max, bool $required = true): ?string
@@ -44,6 +45,16 @@ function astrea_editor_https_url(mixed $value, int $max = 1000): ?string
         throw new InvalidArgumentException('Разрешены только корректные HTTPS-ссылки.');
     }
     return $url;
+}
+
+function astrea_editor_public_url(mixed $value, int $max = 1000): ?string
+{
+    $url = astrea_editor_text($value, $max, false);
+    if ($url === null) return null;
+    if (str_starts_with($url, '/') && !str_starts_with($url, '//') && preg_match('/[\r\n]/', $url) !== 1) {
+        return $url;
+    }
+    return astrea_editor_https_url($url, $max);
 }
 
 function astrea_editor_publish_timestamp(int $published, mixed $existing = null): ?string
@@ -187,9 +198,56 @@ function astrea_editor_delete_event(PDO $db,int $id):void
     $st=$db->prepare('DELETE FROM events WHERE id=:id'); $st->execute(['id'=>$id]);
 }
 
+function astrea_editor_list_home_blocks(PDO $db): array
+{
+    $st=$db->query("SELECT `key`,title,content,updated_at FROM pages WHERE `key` IN ('home_1','home_2','home_3') ORDER BY FIELD(`key`,'home_1','home_2','home_3')");
+    $rows=$st->fetchAll();
+    return array_map('astrea_editor_home_block_row',$rows);
+}
+
+function astrea_editor_get_home_block(PDO $db,string $key):?array
+{
+    if(!in_array($key,ASTREA_EDITOR_HOME_KEYS,true)) return null;
+    $st=$db->prepare('SELECT `key`,title,content,updated_at FROM pages WHERE `key`=:key LIMIT 1');
+    $st->execute(['key'=>$key]);
+    $row=$st->fetch();
+    return is_array($row)?astrea_editor_home_block_row($row):null;
+}
+
+function astrea_editor_home_block_row(array $row): array
+{
+    $decoded=json_decode((string)($row['content']??''),true);
+    if(!is_array($decoded)) $decoded=[];
+    return [
+        'key'=>(string)($row['key']??''),
+        'title'=>(string)($row['title']??''),
+        'eyebrow'=>is_string($decoded['eyebrow']??null)?$decoded['eyebrow']:'',
+        'text'=>is_string($decoded['text']??null)?$decoded['text']:'',
+        'image_url'=>is_string($decoded['image_url']??null)?$decoded['image_url']:'',
+        'href'=>is_string($decoded['href']??null)?$decoded['href']:'',
+        'updated_at'=>$row['updated_at']??null,
+    ];
+}
+
+function astrea_editor_save_home_block(PDO $db,array $input):string
+{
+    $key=is_string($input['key']??null)?$input['key']:'';
+    if(!in_array($key,ASTREA_EDITOR_HOME_KEYS,true)||astrea_editor_get_home_block($db,$key)===null) throw new InvalidArgumentException('Блок главной не найден.');
+    $title=astrea_editor_text($input['title']??null,255,true);
+    $eyebrow=astrea_editor_text($input['eyebrow']??null,120,true);
+    $text=astrea_editor_text($input['text']??null,5000,true);
+    $imageUrl=astrea_editor_public_url($input['image_url']??null,1000);
+    $href=astrea_editor_public_url($input['href']??null,1000);
+    $content=json_encode(['eyebrow'=>$eyebrow,'text'=>$text,'image_url'=>$imageUrl,'href'=>$href],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+    if(!is_string($content)) throw new RuntimeException('Не удалось сохранить блок главной.');
+    $st=$db->prepare('UPDATE pages SET title=:title,content=:content,is_published=1 WHERE `key`=:key');
+    $st->execute(['title'=>$title,'content'=>$content,'key'=>$key]);
+    return $key;
+}
+
 function astrea_editor_list_pages(PDO $db):array
 {
-    return $db->query('SELECT `key`,title,is_published,updated_at FROM pages ORDER BY `key` ASC')->fetchAll();
+    return $db->query("SELECT `key`,title,is_published,updated_at FROM pages WHERE `key` IN ('about','contacts','materials') ORDER BY FIELD(`key`,'about','contacts','materials')")->fetchAll();
 }
 
 function astrea_editor_get_page(PDO $db,string $key):?array
