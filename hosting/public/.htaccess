@@ -14,6 +14,10 @@ DirectoryIndex index.html
   RewriteRule ^uploads/news/([a-f0-9]{32}\.(?:jpg|png|webp))$ api/news_image.php?file=$1 [QSA,L,NC]
   RewriteRule ^api/news_image\.php$ - [L]
 
+  # Persistent homepage/material uploads use their own private storage and constrained public route.
+  RewriteRule ^uploads/content/([a-f0-9]{32}\.(?:jpg|png|webp))$ api/content_image.php?file=$1 [QSA,L,NC]
+  RewriteRule ^api/content_image\.php$ - [L]
+
   # HOSTING PHP API owns the /api namespace.
   RewriteRule ^api(?:/.*)?$ api/index.php [QSA,L]
 
