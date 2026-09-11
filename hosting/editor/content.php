@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/api/public_content.php';
 require_once __DIR__ . '/news_images.php';
+require_once __DIR__ . '/content_images.php';
 
 const ASTREA_EDITOR_PAGE_KEYS = ['about', 'contacts', 'materials'];
 const ASTREA_EDITOR_HOME_KEYS = ['home_1', 'home_2', 'home_3'];
@@ -160,7 +161,7 @@ function astrea_editor_get_material(PDO $db, int $id): ?array
     return is_array($row)?$row:null;
 }
 
-function astrea_editor_save_material(PDO $db, array $input): int
+function astrea_editor_save_material(PDO $db, array $input, array $files = [], ?callable $imageStore = null): int
 {
     $id=max(0,(int)($input['id']??0));
     $type=astrea_editor_text($input['material_type']??null,20,true);
@@ -178,23 +179,63 @@ function astrea_editor_save_material(PDO $db, array $input): int
     if($id>0&&$existing===null) throw new InvalidArgumentException('Материал не найден.');
     $publishedAt=astrea_editor_publish_timestamp($published,$existing['published_at']??null);
 
+    $previousMediaUrl=is_string($existing['media_url']??null)?$existing['media_url']:null;
+    $newStoredMediaUrl=null;
+    $upload=is_array($files['media_file']??null)?$files['media_file']:null;
+    $hasUpload=is_array($upload)&&(($upload['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE);
+
     try {
-        $params=['material_type'=>$type,'slug'=>$slug,'title'=>$title,'excerpt'=>$excerpt,'body'=>$body,'author'=>$author,'source_url'=>$sourceUrl,'sort_order'=>$sortOrder,'is_published'=>$published,'published_at'=>$publishedAt];
-        if($id>0){
-            $st=$db->prepare('UPDATE materials SET material_type=:material_type,slug=:slug,title=:title,excerpt=:excerpt,body=:body,author=:author,source_url=:source_url,sort_order=:sort_order,is_published=:is_published,published_at=:published_at WHERE id=:id');
-            $st->execute($params+['id'=>$id]); return $id;
+        if($hasUpload){
+            $store=$imageStore??static fn(array $file):string=>astrea_editor_store_content_image($file);
+            $newStoredMediaUrl=$store($upload);
+            if(astrea_editor_content_image_filename($newStoredMediaUrl)===null) throw new RuntimeException('Не удалось сохранить загруженное изображение.');
+            $mediaUrl=$newStoredMediaUrl;
+        } elseif(astrea_editor_bool($input['remove_media']??null)===1){
+            $mediaUrl=null;
+        } elseif(array_key_exists('media_url',$input)){
+            $mediaUrl=astrea_editor_content_image_url($input['media_url'],500);
+        } else {
+            $mediaUrl=$previousMediaUrl;
         }
-        $st=$db->prepare('INSERT INTO materials (material_type,slug,title,excerpt,body,author,source_url,sort_order,is_published,published_at) VALUES (:material_type,:slug,:title,:excerpt,:body,:author,:source_url,:sort_order,:is_published,:published_at)');
-        $st->execute($params); return (int)$db->lastInsertId();
+
+        $params=[
+            'material_type'=>$type,
+            'slug'=>$slug,
+            'title'=>$title,
+            'excerpt'=>$excerpt,
+            'body'=>$body,
+            'author'=>$author,
+            'source_url'=>$sourceUrl,
+            'media_url'=>$mediaUrl,
+            'sort_order'=>$sortOrder,
+            'is_published'=>$published,
+            'published_at'=>$publishedAt,
+        ];
+        if($id>0){
+            $st=$db->prepare('UPDATE materials SET material_type=:material_type,slug=:slug,title=:title,excerpt=:excerpt,body=:body,author=:author,source_url=:source_url,media_url=:media_url,sort_order=:sort_order,is_published=:is_published,published_at=:published_at WHERE id=:id');
+            $st->execute($params+['id'=>$id]);
+            if($previousMediaUrl!==$mediaUrl) astrea_editor_delete_content_image($previousMediaUrl);
+            return $id;
+        }
+        $st=$db->prepare('INSERT INTO materials (material_type,slug,title,excerpt,body,author,source_url,media_url,sort_order,is_published,published_at) VALUES (:material_type,:slug,:title,:excerpt,:body,:author,:source_url,:media_url,:sort_order,:is_published,:published_at)');
+        $st->execute($params);
+        return(int)$db->lastInsertId();
     } catch(PDOException $error){
+        if($newStoredMediaUrl!==null) astrea_editor_delete_content_image($newStoredMediaUrl);
         if((string)$error->getCode()==='23000') throw new InvalidArgumentException('Такой slug уже используется.');
+        throw $error;
+    } catch(Throwable $error){
+        if($newStoredMediaUrl!==null) astrea_editor_delete_content_image($newStoredMediaUrl);
         throw $error;
     }
 }
 
 function astrea_editor_delete_material(PDO $db,int $id):void
 {
-    $st=$db->prepare('DELETE FROM materials WHERE id=:id'); $st->execute(['id'=>$id]);
+    $existing=astrea_editor_get_material($db,$id);
+    $st=$db->prepare('DELETE FROM materials WHERE id=:id');
+    $st->execute(['id'=>$id]);
+    if(is_array($existing)) astrea_editor_delete_content_image($existing['media_url']??null);
 }
 
 function astrea_editor_list_events(PDO $db): array
@@ -264,20 +305,45 @@ function astrea_editor_home_block_row(array $row): array
     ];
 }
 
-function astrea_editor_save_home_block(PDO $db,array $input):string
+function astrea_editor_save_home_block(PDO $db,array $input,array $files=[],?callable $imageStore=null):string
 {
     $key=is_string($input['key']??null)?$input['key']:'';
-    if(!in_array($key,ASTREA_EDITOR_HOME_KEYS,true)||astrea_editor_get_home_block($db,$key)===null) throw new InvalidArgumentException('Блок главной не найден.');
+    $existing=in_array($key,ASTREA_EDITOR_HOME_KEYS,true)?astrea_editor_get_home_block($db,$key):null;
+    if($existing===null) throw new InvalidArgumentException('Блок главной не найден.');
     $title=astrea_editor_text($input['title']??null,255,true);
     $eyebrow=astrea_editor_text($input['eyebrow']??null,120,true);
     $text=astrea_editor_text($input['text']??null,5000,true);
-    $imageUrl=astrea_editor_public_url($input['image_url']??null,1000);
     $href=astrea_editor_public_url($input['href']??null,1000);
-    $content=json_encode(['eyebrow'=>$eyebrow,'text'=>$text,'image_url'=>$imageUrl,'href'=>$href],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
-    if(!is_string($content)) throw new RuntimeException('Не удалось сохранить блок главной.');
-    $st=$db->prepare('UPDATE pages SET title=:title,content=:content,is_published=1 WHERE `key`=:key');
-    $st->execute(['title'=>$title,'content'=>$content,'key'=>$key]);
-    return $key;
+
+    $previousImageUrl=is_string($existing['image_url']??null)&&$existing['image_url']!==''?$existing['image_url']:null;
+    $newStoredImageUrl=null;
+    $upload=is_array($files['image_file']??null)?$files['image_file']:null;
+    $hasUpload=is_array($upload)&&(($upload['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE);
+
+    try {
+        if($hasUpload){
+            $store=$imageStore??static fn(array $file):string=>astrea_editor_store_content_image($file);
+            $newStoredImageUrl=$store($upload);
+            if(astrea_editor_content_image_filename($newStoredImageUrl)===null) throw new RuntimeException('Не удалось сохранить загруженное изображение.');
+            $imageUrl=$newStoredImageUrl;
+        } elseif(astrea_editor_bool($input['remove_image']??null)===1){
+            $imageUrl=null;
+        } elseif(array_key_exists('image_url',$input)){
+            $imageUrl=astrea_editor_content_image_url($input['image_url'],1000);
+        } else {
+            $imageUrl=$previousImageUrl;
+        }
+
+        $content=json_encode(['eyebrow'=>$eyebrow,'text'=>$text,'image_url'=>$imageUrl,'href'=>$href],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+        if(!is_string($content)) throw new RuntimeException('Не удалось сохранить блок главной.');
+        $st=$db->prepare('UPDATE pages SET title=:title,content=:content,is_published=1 WHERE `key`=:key');
+        $st->execute(['title'=>$title,'content'=>$content,'key'=>$key]);
+        if($previousImageUrl!==$imageUrl) astrea_editor_delete_content_image($previousImageUrl);
+        return $key;
+    } catch(Throwable $error){
+        if($newStoredImageUrl!==null) astrea_editor_delete_content_image($newStoredImageUrl);
+        throw $error;
+    }
 }
 
 function astrea_editor_list_pages(PDO $db):array
