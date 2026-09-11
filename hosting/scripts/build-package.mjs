@@ -84,6 +84,8 @@ const manifest = {
   private_root: 'private',
   candidate_intake: true,
   candidate_mail_to: 'freemasons@internet.ru',
+  news_image_upload: true,
+  news_image_storage: 'private/uploads/news',
   schema: ['001_initial', '002_editor_auth', '003_homepage_blocks'],
 };
 writeFileSync(join(releaseRoot, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
@@ -132,9 +134,11 @@ function validatePackage() {
     'api/index.php',
     'api/bootstrap.php',
     'api/candidate_mail.php',
+    'api/news_image.php',
     'editor/index.php',
     'editor/auth.php',
     'editor/content.php',
+    'editor/news_images.php',
   ];
   if (publicIndexingEnabled) {
     requiredPublicFiles.push('sitemap.xml');
@@ -176,6 +180,11 @@ function validatePackage() {
   const candidateRouter = readFileSync(join(publicRoot, 'api', 'router.php'), 'utf8');
   if (!candidateRouter.includes('/api/v1/candidate-applications')) {
     throw new Error('HOSTING candidate endpoint is missing from the package.');
+  }
+
+  const htaccess = readFileSync(join(publicRoot, '.htaccess'), 'utf8');
+  if (!htaccess.includes('uploads/news/') || !htaccess.includes('api/news_image.php')) {
+    throw new Error('HOSTING news image route is missing from the package.');
   }
 
   const robots = readFileSync(join(publicRoot, 'robots.txt'), 'utf8');
