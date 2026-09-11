@@ -58,7 +58,7 @@ if (version_compare(PHP_VERSION, '8.2.0', '<')) {
     astrea_preflight_line('OK', 'PHP version', 'supported');
 }
 
-$requiredExtensions = ['pdo', 'pdo_mysql', 'json', 'session', 'filter', 'hash'];
+$requiredExtensions = ['pdo', 'pdo_mysql', 'json', 'session', 'filter', 'hash', 'fileinfo'];
 foreach ($requiredExtensions as $extension) {
     if (!extension_loaded($extension)) {
         astrea_preflight_fail('Extension ' . $extension, 'missing');
@@ -67,7 +67,13 @@ foreach ($requiredExtensions as $extension) {
     }
 }
 
-foreach (['fileinfo', 'gd', 'imagick'] as $extension) {
+if (!function_exists('mail')) {
+    astrea_preflight_fail('PHP mail', 'mail() is unavailable; candidate delivery cannot work.');
+} else {
+    astrea_preflight_line('OK', 'PHP mail', 'mail() available');
+}
+
+foreach (['gd', 'imagick'] as $extension) {
     astrea_preflight_line(
         extension_loaded($extension) ? 'OK' : 'INFO',
         'Optional extension ' . $extension,
@@ -125,7 +131,7 @@ if ($publicRoot === null) {
                 }
 
                 $versions = $db->query('SELECT version FROM hosting_schema_migrations ORDER BY version')->fetchAll(PDO::FETCH_COLUMN);
-                $expectedVersions = ['001_initial', '002_editor_auth'];
+                $expectedVersions = ['001_initial', '002_editor_auth', '003_homepage_blocks'];
                 $missingVersions = array_values(array_diff($expectedVersions, $versions));
                 if ($missingVersions !== []) {
                     astrea_preflight_fail('Schema migrations', 'missing: ' . implode(', ', $missingVersions));
