@@ -71,11 +71,17 @@ function parseHomeBlock(page: PublicPage, fallback: HomeBlock): HomeBlock {
     const parsed = JSON.parse(page.content) as unknown;
     if (!parsed || typeof parsed !== 'object') return { ...fallback, title: page.title };
     const values = parsed as Record<string, unknown>;
+    const hasImageValue = Object.prototype.hasOwnProperty.call(values, 'image_url');
+    const imageUrl = hasImageValue
+      ? typeof values.image_url === 'string' && values.image_url.trim()
+        ? values.image_url
+        : undefined
+      : fallback.imageUrl;
     return {
       eyebrow: typeof values.eyebrow === 'string' && values.eyebrow.trim() ? values.eyebrow : fallback.eyebrow,
       title: page.title || fallback.title,
       text: typeof values.text === 'string' && values.text.trim() ? values.text : fallback.text,
-      imageUrl: typeof values.image_url === 'string' && values.image_url.trim() ? values.image_url : fallback.imageUrl,
+      imageUrl,
       imagePosition: fallback.imagePosition,
       href: typeof values.href === 'string' && values.href.trim() ? values.href : undefined,
     };
